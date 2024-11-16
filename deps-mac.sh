@@ -1,27 +1,23 @@
-brew install lzo glib pkg-config py3cairo cairo
-# brew install pygobject3 gtk4 lzo
+#!/usr/bin/env bash
+
+[[ -f .venv/bin/activate ]] || { echo "venv not activated! run: 'uv venv && source .venv/bin/activate'"; exit 1; }
+
 source .venv/bin/activate
 
-export C_INCLUDE_PATH=/opt/homebrew/Cellar/lzo/2.10/include:/opt/homebrew/Cellar/lzo/2.10/include/lzo
-export LIBRARY_PATH=/opt/homebrew/lib
+brew install lzo glib libffi gettext pygobject3 gtk+3 pkg-config py3cairo cairo intltool icu4c python-tk
+
+PREFIX=$(brew --prefix)
+
+export C_INCLUDE_PATH=$PREFIX/Cellar/lzo/2.10/include:$PREFIX/Cellar/lzo/2.10/include/lzo
+export LIBRARY_PATH=$PREFIX/lib
+export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig:$PREFIX/opt/icu4c/lib/pkgconfig
+export LDFLAGS="-L$PREFIX/opt/icu4c/lib -L$PREFIX/opt/libffi/lib"
+export CPPFLAGS="-I$PREFIX/opt/icu4c/include -I$PREFIX/opt/libffi/include"
 
 # ensure uv is available
 command -v uv &>/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 
 [ "$0" = "-zsh" ] && rehash
 
-
-
-uv pip install -U python-lzo
-# python -m pip install python-lzo
-
-export PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig
-# export PKG_CONFIG_PATH=$(brew --prefix glib)/lib/pkgconfig
-
-# NO GTK!
-# uv pip install -U pymorphy2 lxml polib PyYAML beautifulsoup4 pyglossary html5lib PyICU python-lzo prompt_toolkit pyinstaller 
-
-# WITH GTK!
-uv pip install -U pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit gobject pygobject pycairo pyinstaller 
+uv pip install -U pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit gobject pygobject pycairo pyinstaller colorize_pinyin
 uv pip install .
-# python -m pip install --upgrade lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit
