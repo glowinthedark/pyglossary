@@ -1,19 +1,17 @@
 #!/bin/bash
 set -e
 
-myPath=$(realpath "$0")
-myDir=$(dirname "$myPath")
-sourceDir=$(dirname "$myDir")
+sourceDir=$(dirname $(dirname "$0"))
 gitDir="$sourceDir/.git"
 
-if [ -d "$gitDir" ] ; then
+if [ -d "$gitDir" ]; then
 	git --git-dir "$gitDir" describe --always
 	exit 0
 fi
 
-cat "$sourceDir/pyglossary/core.py" | while read line ; do
-	if [[ $line = VERSION* ]] ; then
-		echo $line | sed 's/VERSION\s*=\s*//' | sed 's/"//g'
+while read -r line; do
+	if [[ $line = VERSION* ]]; then
+		echo "$line" | sed 's/VERSION\s*=\s*//' | sed 's/"//g'
 		exit 0
 	fi
-done
+done < "$sourceDir/pyglossary/core.py"
