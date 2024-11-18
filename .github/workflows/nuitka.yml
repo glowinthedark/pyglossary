@@ -23,8 +23,8 @@ jobs:
       - name: Install uv
         # https://docs.astral.sh/uv/guides/integration/github/#caching
         uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
+        # with:
+        #   enable-cache: true
 
       - name: "Set up Python"
         uses: actions/setup-python@v5
