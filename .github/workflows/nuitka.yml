@@ -1,5 +1,8 @@
 name: 'nuitka build windows'
 on:
+  push:
+    branches:
+      - 'pyinstaller-mac-m2'
   workflow_dispatch:
 jobs:
   build:
