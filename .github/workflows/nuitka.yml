@@ -46,16 +46,27 @@ jobs:
           uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit nuitka colorize_pinyin 
           uv pip install https://github.com/cgohlke/pyicu-build/releases/download/v2.14/PyICU-2.14-cp312-cp312-win_amd64.whl
           uv pip install https://github.com/glowinthedark/python-lzo/releases/download/v1.16/python_lzo-1.16-cp312-cp312-win_amd64.whl
-      
-      - name: Build Executable
-        uses: Nuitka/Nuitka-Action@main
-        with:
-          nuitka-version: main
-          script-name: main.py
-          enable-plugins: 'tk-inter'
-          include-package: 'pyglossary'
-          windows-icon-from-ico: 'res/pyglossary.ico'
-          # onefile: true
+
+      - name: 'Nuitka build'
+        run: |
+          python -m nuitka --plugin-enable=dll-files --plugin-enable=anti-bloat --follow-imports --standalone --windows-console-mode=disable --windows-icon-from-ico=res\pyglossary.ico --enable-plugin=tk-inter --include-package=pyglossary --include-module=tkinter.tix --include-module=lzo --include-module=pymorphy2 --include-module=lxml --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module=prompt_toolkit --include-module=colorize_pinyin --include-package-data=pyglossary --include-data-files=about=about --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --noinclude-custom-mode=unittest:nofollow main.py --output-filename=pyglossary.exe
+          copy _license-dialog main.dist /Y
+          copy about main.dist /Y
+          copy AUTHORS main.dist /Y
+          copy config.json main.dist /Y
+          python -c "import shutil; shutil.copytree('plugins-meta', 'main.dist/plugins-meta', dirs_exist_ok=True)"
+          python -c "import shutil; shutil.copytree('res', 'main.dist/res', dirs_exist_ok=True)"
+
+
+      # - name: Build Executable
+      #   uses: Nuitka/Nuitka-Action@main
+      #   with:
+      #     nuitka-version: main
+      #     script-name: main.py
+      #     enable-plugins: 'tk-inter'
+      #     include-package: 'pyglossary'
+      #     windows-icon-from-ico: 'res/pyglossary.ico'
+      #     # onefile: true
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
