@@ -43,14 +43,17 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit nuitka colorize_pinyin wheel
+          uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit nuitka colorize_pinyin PyICU python-lzo
 
       - name: Build Executable
         uses: Nuitka/Nuitka-Action@main
         with:
           nuitka-version: main
           script-name: main.py
-          onefile: true
+          enable-plugins: 'tk-inter'
+          include-package: 'pyglossary'
+          windows-icon-from-ico: 'res/pyglossary.ico'
+          # onefile: true
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
