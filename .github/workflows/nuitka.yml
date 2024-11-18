@@ -73,9 +73,8 @@ jobs:
         with:
           name: ${{ runner.os }} Build
           path: |
-            build/*.exe
-            build/*.bin
-            build/*.app/**/*
+            main.dist/**/*
+
 
 # - name: 
 #   # You may pin to the exact commit or the version.
