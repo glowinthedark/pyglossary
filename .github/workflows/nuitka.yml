@@ -20,17 +20,18 @@ jobs:
       - name: Check-out repository
         uses: actions/checkout@v4
 
+      - name: "Set up Python 3.12"
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          # python-version-file: ".python-version"             
+
       - name: Install uv
         # https://docs.astral.sh/uv/guides/integration/github/#caching
         uses: astral-sh/setup-uv@v3
         # with:
         #   enable-cache: true
-
-      - name: "Set up Python"
-        uses: actions/setup-python@v5
-        with:
-          python-version-file: ".python-version"        
-
+   
       # - name: Setup Python
       #   uses: actions/setup-python@v4
       #   with:
