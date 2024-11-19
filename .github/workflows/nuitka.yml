@@ -3,11 +3,22 @@ on:
   push:
     branches:
       - 'pyinstaller-mac-m2'
+    paths-ignore:
+      - '.vscode/**'
+      - 'doc/**'
+      - '*.md'
+      - '.github/**'
+      
   workflow_dispatch:
+
 jobs:
   build:
     strategy:
       matrix:
+        python-version:
+          # - "3.10"
+          # - "3.11"
+          - "3.12"
         # os: [macos-latest, ubuntu-latest, windows-latest]
         os: [windows-latest]
         
@@ -20,10 +31,14 @@ jobs:
       - name: Check-out repository
         uses: actions/checkout@v4
 
+      # - name: Set up Python ${{ matrix.python-version }} with uv
+      #   run: uv python install ${{ matrix.python-version }}        
+
       - name: "Set up Python 3.12"
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          # x86, x64, or arm64
           architecture: 'x64'
           # python-version-file: ".python-version"             
 
