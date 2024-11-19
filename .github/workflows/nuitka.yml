@@ -2,7 +2,7 @@ name: 'nuitka build windows'
 on:
   push:
     branches:
-      - 'nuitka'
+      - 'nuitka-none'
     paths-ignore:
       - '.vscode/**'
       - 'doc/**'
