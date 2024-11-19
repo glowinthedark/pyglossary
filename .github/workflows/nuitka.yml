@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_windows:
+  build_windows_x64:
     strategy:
       matrix:
         python-version:
