@@ -75,8 +75,8 @@ jobs:
           copy /y config.json main.dist\
           copy /y help main.dist\
 
-          xcopy /e /y plugins-meta main.dist\plugins-meta
-          xcopy /e /y res main.dist\res
+          xcopy /S /I /F /e /y plugins-meta main.dist\
+          xcopy /S /I /F /e /y res main.dist\
           
           rem # cp -f {_license-dialog,about,AUTHORS,LICENSE,README.md,config.json,help} main.dist
           rem # cp -rf {plugins-meta,res} main.dist
