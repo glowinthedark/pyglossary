@@ -78,8 +78,8 @@ jobs:
           xcopy /e /y plugins-meta main.dist\plugins-meta
           xcopy /e /y res main.dist\res
           
-          # cp -f {_license-dialog,about,AUTHORS,LICENSE,README.md,config.json,help} main.dist
-          # cp -rf {plugins-meta,res} main.dist
+          rem # cp -f {_license-dialog,about,AUTHORS,LICENSE,README.md,config.json,help} main.dist
+          rem # cp -rf {plugins-meta,res} main.dist
 
 
       # - name: Build Executable
