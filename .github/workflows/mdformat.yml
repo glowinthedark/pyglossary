@@ -25,11 +25,10 @@ jobs:
           ls -l
       - name: Download dependencies
         run: |
-          python -m pip install mdformat
+          python -m pip install mdformat==0.7.18
       - name: Format .md files
         run: |
-          find . -name '*.md' -print -exec mdformat '{}' \;
-          git checkout doc/p/octopus_mdict.md
+          find . -name '*.md' | xargs mdformat
       - name: Check for changes
         run: |
           CHANGES=$(git diff --name-only HEAD --)
