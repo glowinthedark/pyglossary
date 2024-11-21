@@ -166,7 +166,7 @@ jobs:
             pyglossary.pyw
                   
       - name: Copy extra files
-        shell: python
+        shell: bash
         run: |
             cp -r {about,AUTHORS,_license-dialog,config.json,help} $DIST_DIR/$APPNAME.app/Contents/MacOS
             cp -rv _license-dialog $DIST_DIR/$APPNAME.app/Contents/MacOS/license-dialog
