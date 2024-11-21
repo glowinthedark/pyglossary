@@ -135,23 +135,23 @@ jobs:
 
       - name: Install pyglossary dependencies
         run: |
-          uv pip install pyglossary pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
-          uv pip install PyICU
+          uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
+          # uv pip install PyICU
           uv pip install https://github.com/glowinthedark/python-lzo/releases/download/latest/python_lzo-1.16-cp3.12-macosx.whl
           uv pip install pycairo
-          # uv pip install .
+          uv pip install .
 
-      - name: Install PyICU ARM64
+      - name: Install PyICU arm64
         # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/using-conditions-to-control-job-execution
         if: matrix.os == 'macos-14'
         run: |
-          uv pip https://github.com/glowinthedark/pyicu-build/releases/download/v2.14/PyICU-2.14-cp312-cp312-macosx_13_0_arm64.whl
+          uv pip install https://github.com/glowinthedark/pyicu-build/releases/download/v2.14/PyICU-2.14-cp312-cp312-macosx_13_0_arm64.whl
 
-      - name: Install PyICU ARM64
+      - name: Install PyICU x64
         # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/using-conditions-to-control-job-execution
         if: matrix.os != 'macos-14'
         run: |
-          uv pip PyICU
+          uv pip install https://github.com/glowinthedark/pyicu-build/releases/download/v2.14/PyICU-2.14-cp312-cp312-macosx_13_0_arm64.whl
 
       - name: Prepare PyInstaller build
         run: |
