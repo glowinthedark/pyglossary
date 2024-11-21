@@ -43,25 +43,29 @@ jobs:
         os: ['macos-13', 'macos-14']
         # Split macOS workflows between macos-13 (x86_64) and macos-14 (arm64)
         # runners to cover both architectures without running all combinations.
-        exclude:
+        # exclude:
           # - python-version: '3.8'
           #   os: 'macos-14'
           # - python-version: '3.10'
           #   os: 'macos-14'
-          - python-version: '3.12'
-            os: 'macos-14'
-          # - python-version: '3.9'
+          # - python-version: '3.12'
+          #   os: 'macos-14'
+          # # - python-version: '3.9'
+          # #   os: 'macos-13'
+          # # - python-version: '3.11'
+          # #   os: 'macos-13'
+          # - python-version: '3.13'
           #   os: 'macos-13'
-          # - python-version: '3.11'
-          #   os: 'macos-13'
-          - python-version: '3.13'
-            os: 'macos-13'
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
-        
+          # Number of commits to fetch, ootb only 1 commit
+          # 0 = all history for all branches and tags. (needed for git describe)
+          fetch-depth: 0
+          fetch-tags: true
+          
       - name: Update brew
         run: |
           brew update
@@ -228,12 +232,10 @@ jobs:
           path: |
             ${{ env.DIST_DIR }}
 
-
       - name: Create DMG
         if: true
         run: |
           create-dmg --volname "PyGlossary ${{ env.APPNAME }}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "PyGlossary-macOS-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/PyGlossaryMac.app"
-
 
       - name: Upload Artifacts DMG
         if: true
@@ -243,7 +245,7 @@ jobs:
           # branch name: ${{ github.ref_name }}
           name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
           path: |
-            '*.dmg'
+            **/*.dmg
         
       # - name: Set up extra environment variables (non-Windows)
       #   if: ${{ !startsWith(matrix.os, 'windows') }}
