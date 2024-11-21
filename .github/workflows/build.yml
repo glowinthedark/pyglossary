@@ -130,8 +130,11 @@ jobs:
 
       - name: Install pyglossary dependencies
         run: |
-          uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit pycairo colorize_pinyin
-          uv pip install -U pyglossary
+          uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
+          uv pip install PyICU
+          uv pip install python-lzo
+          uv pip install pycairo
+          uv pip install -U .
           
       - name: Prepare PyInstaller build
         run: |
