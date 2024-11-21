@@ -77,7 +77,8 @@ jobs:
              cairo \
              intltool \
              icu4c \
-             create-dmg
+             create-dmg \
+             pygobject3
       
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -123,7 +124,7 @@ jobs:
 
       - name: Install pyglossary dependencies
         run: |
-          pip install --progress-bar=off pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit gobject pygobject pycairo colorize_pinyin
+          pip install --progress-bar=off pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit pycairo colorize_pinyin
           pip install --progress-bar=off --upgrade .
           
       - name: Prepare PyInstaller build
