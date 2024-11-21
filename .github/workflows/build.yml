@@ -197,10 +197,10 @@ jobs:
                 src = Path(source)
                 try:
                     if src.is_dir():
-                        copied = shutil.copytree(src, target_path, dirs_exist_ok=True, symlinks=True, ignore_dangling_symlinks=True)
+                        copied_to = shutil.copytree(src, target_path / src.name, dirs_exist_ok=True, symlinks=True, ignore_dangling_symlinks=True)
                     else:
-                        copied = shutil.copy(src, target_path, follow_symlinks=False)
-                    print(f"Copied {src} -> {copied}")
+                        copied_to = shutil.copy(src, target_path, follow_symlinks=False)
+                    print(f"Copied {src} -> {copied_to}")
                 except FileNotFoundError:
                     print(f"Missing {src}")
                 except PermissionError:
@@ -232,7 +232,7 @@ jobs:
       - name: Create DMG
         if: true
         run: |
-          create-dmg --hdiutil-quiet --no-internet-enable --volname "PyGlossary ${{ env.APPNAME }}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "PyGlossary-macOS-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/PyGlossaryMac.app"
+          create-dmg --volname "PyGlossary ${{ env.APPNAME }}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "PyGlossary-macOS-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/PyGlossaryMac.app"
 
 
       - name: Upload Artifacts DMG
