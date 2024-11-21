@@ -129,7 +129,7 @@ jobs:
         run: |
           echo "C_INCLUDE_PATH=$BREW_PREFIX/Cellar/lzo/2.10/include:$BREW_PREFIX/Cellar/lzo/2.10/include/lzo" >> $GITHUB_ENV
           echo "LIBRARY_PATH=$BREW_PREFIX/Cellar/lib" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$BREW_PREFIX/opt/icu4c/lib/pkgconfig:$BREW_PREFIX/Cellar/icu4c@76/76.1_1/lib/pkgconfig:$BREW_PREFIX/Cellar/lzo/2.10/lib/pkgconfig:$BREW_PREFIX/Cellar/libffi/3.4.6/lib/pkgconfig:$BREW_PREFIX/Cellar/icu4c@75/75.1/lib/pkgconfig:$BREW_PREFIX/Cellar/icu4c@76/76.1_1/lib/pkgconfig" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$BREW_PREFIX/opt/icu4c/lib/pkgconfig:$BREW_PREFIX/Cellar/icu4c@76/76.1_1/lib/pkgconfig:$BREW_PREFIX/Cellar/lzo/2.10/lib/pkgconfig:$BREW_PREFIX/Cellar/libffi/3.4.6/lib/pkgconfig:$BREW_PREFIX/Cellar/icu4c@75/75.1/lib/pkgconfig:$BREW_PREFIX/Cellar/icu4c@76/76.1_1/lib/pkgconfig:$BREW_PATH/opt/libffi/lib/pkgconfig" >> $GITHUB_ENV
           echo "LDFLAGS=-L$BREW_PREFIX/opt/icu4c/lib -L$BREW_PREFIX/opt/libffi/lib -L$BREW_PREFIX/Cellar/icu4c@75/75.1/lib -L$BREW_PREFIX/Cellar/icu4c@76/76.1_1/include" >> $GITHUB_ENV
           echo "CPPFLAGS=-I$BREW_PREFIX/Cellar/icu4c@76/76.1_1/include -I$BREW_PREFIX/opt/libffi/include" >> $GITHUB_ENV
 
@@ -229,7 +229,8 @@ jobs:
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           # branch name: ${{ github.ref_name }}
-          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}
+          overwrite: true
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}-${{runner.name}}
           path: |
             ${{ env.DIST_DIR }}
 
@@ -242,9 +243,10 @@ jobs:
         if: true
         uses: actions/upload-artifact@v4
         with:
+          overwrite: true
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           # branch name: ${{ github.ref_name }}
-          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}-${{runner.name}}
           path: |
             **/*.dmg
         
