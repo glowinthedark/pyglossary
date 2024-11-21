@@ -222,17 +222,17 @@ jobs:
           # branch name: ${{ github.ref_name }}
           name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
           path: |
-            "${{ env.DIST_DIR }}/**/*"
+            "${{ env.DIST_DIR }}
 
 
       - name: Create DMG
-        if: false
+        if: true
         run: |
           create-dmg --hdiutil-quiet --no-internet-enable --volname "PyGlossary ${{ env.APPNAME }}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "PyGlossary-macOS-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/PyGlossaryMac.app"
 
 
       - name: Upload Artifacts DMG
-        if: false
+        if: true
         uses: actions/upload-artifact@v4
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
