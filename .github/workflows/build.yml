@@ -167,8 +167,8 @@ jobs:
       - name: Copy extra files
         run: |
             cp -r {about,AUTHORS,_license-dialog,config.json,plugins-meta,help} $DIST_DIR/$APPNAME.app/Contents/MacOS
-            cp -rv _license-dialog ${{ env.DIST_DIR }}/${{ env.APPNAME }}.app/Contents/MacOS/license-dialog
-            cp -rv {res,pyglossary} ${{ env.DIST_DIR }}/${{ env.APPNAME }}.app/Contents/MacOS
+            cp -rv _license-dialog $DIST_DIR/$APPNAME.app/Contents/MacOS/license-dialog
+            cp -rv {res,pyglossary} $DIST_DIR/$APPNAME.app/Contents/MacOS
 
       - name: Upload Artifacts zip
         uses: actions/upload-artifact@v4
