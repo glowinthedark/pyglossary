@@ -1,3 +1,5 @@
+[![nuitka build windows](https://github.com/glowinthedark/pyglossary/actions/workflows/nuitka.yml/badge.svg?branch=pyinstaller-mac-m2)](https://github.com/glowinthedark/pyglossary/actions/workflows/nuitka.yml)
+
 # PyGlossary
 
 A tool for converting dictionary files aka glossaries.

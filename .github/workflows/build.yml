@@ -1,0 +1,286 @@
+name: 'macOS DMG'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'tbd'
+  # pull_request:
+  #   branches:
+  #     - '**'
+  #     - '!master'
+  #     - '!pyup/**'
+    paths-ignore:
+      - 'docs/**'
+      - "*.md"
+
+env:
+  UV_SYSTEM_PYTHON: 1
+  UV_NO_PROGRESS: 1
+  # Enable strict unpack mode to catch file duplication problems in onefile builds (at executable run-time).
+  # PYINSTALLER_STRICT_UNPACK_MODE: 1
+  # # Enable strict collect mode to catch file duplication problems in PKG/Carchive (onefile builds) or COLLECT
+  # # (onedir builds) at build time.
+  # PYINSTALLER_STRICT_COLLECT_MODE: 1
+  # # Enable strict handling of codesign errors for macOS bundles.
+  # PYINSTALLER_STRICT_BUNDLE_CODESIGN_ERROR: 1
+  # # Enable strict verification of macOS bundles w.r.t. the code-signing requirements.
+  # PYINSTALLER_VERIFY_BUNDLE_SIGNATURE: 1
+  # # Enable PEP 597 EncodingWarnings
+  PYTHONWARNDEFAULTENCODING: true
+  APPNAME: PyGlossaryMac
+  DIST_DIR: dist.pyinstaller
+
+
+jobs:
+  build_macos:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # see https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow
+      matrix:
+        # python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.12']
+        os: ['macos-13', 'macos-14']
+        # Split macOS workflows between macos-13 (x86_64) and macos-14 (arm64)
+        # runners to cover both architectures without running all combinations.
+        # exclude:
+          # - python-version: '3.8'
+          #   os: 'macos-14'
+          # - python-version: '3.10'
+          #   os: 'macos-14'
+          # - python-version: '3.12'
+          #   os: 'macos-14'
+          # # - python-version: '3.9'
+          # #   os: 'macos-13'
+          # # - python-version: '3.11'
+          # #   os: 'macos-13'
+          # - python-version: '3.13'
+          #   os: 'macos-13'
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          # Number of commits to fetch, ootb only 1 commit
+          # 0 = all history for all branches and tags. (needed for git describe)
+          fetch-depth: 0
+          fetch-tags: true
+          
+      - name: Update brew
+        run: |
+          brew update
+          
+      - name: Install brew dependencies
+        run: |
+          brew install \
+             lzo \
+             glib \
+             libffi \
+             gettext \
+             gtk+3 \
+             pkg-config \
+             py3cairo \
+             cairo \
+             intltool \
+             icu4c \
+             create-dmg \
+             pygobject3 \
+             adwaita-icon-theme
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set cache dir
+        run: echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Fetch cache
+        id: cache-target
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.pip_cache_dir }}
+          key: ${{ runner.os }}-${{ matrix.python-version }}
+
+      - name: Install uv
+        # https://docs.astral.sh/uv/guides/integration/github/#caching
+        uses: astral-sh/setup-uv@v3
+        
+      # - name: Update pip
+      #   run: python -m pip install --upgrade setuptools wheel
+
+      - name: Install PyInstaller
+        run: uv pip install pyinstaller
+
+      # - name: Check pyinstaller --help
+      #   run: python -m PyInstaller -h
+
+      - name: set vars
+        id: envconf
+        run: |
+          echo "BREW_PREFIX=$(brew --prefix)" >> $GITHUB_ENV
+          echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
+          echo "TAG=$(git describe)" >> $GITHUB_ENV          
+        
+      - name: Set pip builld vars
+        id: envpip
+        run: |
+          echo "C_INCLUDE_PATH=$BREW_PREFIX/Cellar/lzo/2.10/include:$BREW_PREFIX/Cellar/lzo/2.10/include/lzo" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$BREW_PREFIX/Cellar/lib" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$BREW_PREFIX/opt/icu4c/lib/pkgconfig:$BREW_PREFIX/Cellar/icu4c@76/76.1_1/lib/pkgconfig:$BREW_PREFIX/Cellar/lzo/2.10/lib/pkgconfig:$BREW_PREFIX/Cellar/libffi/3.4.6/lib/pkgconfig:$BREW_PREFIX/Cellar/icu4c@75/75.1/lib/pkgconfig:$BREW_PREFIX/Cellar/icu4c@76/76.1_1/lib/pkgconfig:$BREW_PATH/opt/libffi/lib/pkgconfig" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$BREW_PREFIX/opt/icu4c/lib -L$BREW_PREFIX/opt/libffi/lib -L$BREW_PREFIX/Cellar/icu4c@75/75.1/lib -L$BREW_PREFIX/Cellar/icu4c@76/76.1_1/include" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$BREW_PREFIX/Cellar/icu4c@76/76.1_1/include -I$BREW_PREFIX/opt/libffi/include" >> $GITHUB_ENV
+
+      - name: Install pyglossary dependencies
+        run: |
+          uv pip install pyglossary pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
+          uv pip install PyICU
+          uv pip install https://github.com/glowinthedark/python-lzo/releases/download/latest/python_lzo-1.16-cp3.12-macosx.whl
+          uv pip install pycairo
+          # uv pip install .
+
+      - name: Install PyICU ARM64
+        # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/using-conditions-to-control-job-execution
+        if: matrix.os == 'macos-14'
+        run: |
+          uv pip https://github.com/glowinthedark/pyicu-build/releases/download/v2.14/PyICU-2.14-cp312-cp312-macosx_13_0_arm64.whl
+
+      - name: Install PyICU ARM64
+        # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/using-conditions-to-control-job-execution
+        if: matrix.os != 'macos-14'
+        run: |
+          uv pip PyICU
+
+      - name: Prepare PyInstaller build
+        run: |
+          rm __init__.py
+
+      - name: Pyinstaller Build
+        run: |
+          pyinstaller --noupx \
+            --windowed \
+            --noconfirm \
+            --osx-bundle-identifier com.github.pyglossary \
+            --icon res/pyglossary.icns \
+            --collect-submodules pyglossary \
+            --collect-all pyglossary \
+            --collect-all gi \
+            --argv-emulation \
+            --hidden-import msvcrt \
+            --hidden-import pyglossary \
+            --hidden-import platform \
+            --hidden-import json \
+            --hidden-import __future__ \
+            --hidden-import uuid  \
+            --hidden-import pkgutil \
+            --hidden-import shlex \
+            --hidden-import prompt_toolkit \
+            --hidden-import Gtk \
+            --hidden-import gi \
+            --paths '.:pyglossary:pyglossary/ui:pyglossary/plugins:pyglossary/glossary_v2:pyglossary/langs' \
+            --name ${{ env.APPNAME }} \
+            --distpath ${{ env.DIST_DIR }} \
+            --workpath build.pyinstaller \
+            pyglossary.pyw
+                  
+      - name: Copy extra files
+        shell: python
+        run: |
+            from pathlib import Path
+            import shutil
+            import sys
+            import os
+            
+            dist_dir = os.getenv("DIST_DIR")
+            app_name = os.getenv("APPNAME")
+            
+            if not dist_dir or not app_name:
+                print('missing env vars')
+                sys.exit(0)
+            
+            dist_path = Path(dist_dir)
+            print(f'DIST_DIR={dist_path}, APPNAME={app_name}')
+            
+            target_path = dist_path / f"{app_name}.app/Contents/MacOS"
+            sources = ["about", "AUTHORS", "_license-dialog", "config.json", "plugins-meta", "help", "res", "pyglossary"]
+            
+            if not target_path.exists():
+                print(f'missing target dir {target_path.absolute()}')
+                sys.exit(0)
+            
+            for source in sources:
+                src = Path(source)
+                try:
+                    if src.is_dir():
+                        copied_to = shutil.copytree(src, target_path / src.name, dirs_exist_ok=True, symlinks=True, ignore_dangling_symlinks=True)
+                    else:
+                        copied_to = shutil.copy(src, target_path, follow_symlinks=False)
+                    print(f"Copied {src} -> {copied_to}")
+                except FileNotFoundError:
+                    print(f"Missing {src}")
+                except PermissionError:
+                    print(f"No access {src}")
+                except Exception as e:
+                    print(f"Failed {src}: {e}")
+            print("Done.")
+
+        # shell: bash
+        # run: |
+        #     cp -r {about,AUTHORS,_license-dialog,config.json,help} $DIST_DIR/$APPNAME.app/Contents/MacOS
+        #     cp -rv _license-dialog $DIST_DIR/$APPNAME.app/Contents/MacOS/license-dialog
+        #     cp -rv {res,plugins-meta,pyglossary} $DIST_DIR/$APPNAME.app/Contents/MacOS
+      # - name: 'Debug: list dist files'
+      #   shell: bash
+      #   run: |
+      #     find ${{ env.DIST_DIR }}
+
+      - name: Upload Artifacts zip
+        uses: actions/upload-artifact@v4
+        with:
+          # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
+          # branch name: ${{ github.ref_name }}
+          overwrite: true
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}-${{runner.name}}
+          path: |
+            ${{ env.DIST_DIR }}
+
+      - name: Create DMG
+        if: true
+        run: |
+          create-dmg --volname "PyGlossary ${{ env.APPNAME }}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "PyGlossary-macOS-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/PyGlossaryMac.app"
+
+      - name: Upload Artifacts DMG
+        if: true
+        uses: actions/upload-artifact@v4
+        with:
+          overwrite: true
+          # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
+          # branch name: ${{ github.ref_name }}
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}-${{runner.name}}
+          path: |
+            **/*.dmg
+        
+      # - name: Set up extra environment variables (non-Windows)
+      #   if: ${{ !startsWith(matrix.os, 'windows') }}
+      #   run: |
+      #     # Run Qt-based tests with offscreen backend. This seems to break QtWebEngine tests on Windows, so
+      #     # apply it only here, in non-Windows path.
+      #     echo "QT_QPA_PLATFORM=offscreen" >> $GITHUB_ENV
+
+      # # Required on macOS >= 11 by tests that register custom URL schema. This could also be achieved by passing
+      # # --basetemp to pytest, but using environment variable allows us to have a unified "Run test" step for
+      # # all OSes.
+      # #
+      # # We now relocate the temporary directory to a fixed location on all OSes, in order to be able to generate
+      # # artifacts out of failed tests.
+      # - name: Relocate temporary dir
+      #   shell: bash
+      #   run: |
+      #     echo "PYTEST_DEBUG_TEMPROOT=$RUNNER_TEMP" >> $GITHUB_ENV
+
+      # Augment _pyinstaller_hooks_contrib with bogus hooks that conflict with the hooks provided by hooksample.
+      # Due to (implicit) hook priority, the 3rd-party hooks should be chosen over _pyinstaller_hooks_contrib
+      # ones, and so the bogus hooks should never be ran. This applies to standard module hooks, as well as
+      # the pre-find-module-path and pre-safe-import-module hooks.

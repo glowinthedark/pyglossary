@@ -1,0 +1,76 @@
+name: 'macOS debug'
+
+on:
+  workflow_dispatch:
+
+env:
+  PYTHONWARNDEFAULTENCODING: true
+  APPNAME: PyGlossaryMac
+  DIST_DIR: dist.pyinstaller
+  HOMEBREW_NO_INSTALL_CLEANUP: true
+  HOMEBREW_NO_ENV_HINTS: true
+  HOMEBREW_NO_AUTO_UPDATE: true
+  HOMEBREW_NO_ANALYTICS: true
+  HOMEBREW_NO_GITHUB_API: true
+  
+jobs:
+  build_macos:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        # python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.12']
+        os: ['macos-13', 'macos-14']
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          
+      - name: Update brew
+        run: |
+          brew update
+          
+      - name: Install brew dependencies
+        run: |
+          brew install \
+             lzo \
+             glib \
+             libffi \
+             gettext \
+             gtk+3 \
+             pkg-config \
+             py3cairo \
+             cairo \
+             intltool \
+             icu4c \
+             create-dmg
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set cache dir
+        run: echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Fetch cache
+        id: cache-target
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.pip_cache_dir }}
+          key: ${{ runner.os }}-${{ matrix.python-version }}
+
+      - name: debug brew
+        run: |
+          brew --prefix
+          find $(brew --prefix) -iname '*lzo*'
+          find $(brew --prefix) -iname '*icu4c*'
+          find $(brew --prefix) -iname '*ffi*'
+          find $(brew --prefix) -iname '*pkgconfig*'
+          find $(brew --prefix)
+          
+        shell: bash
+          
