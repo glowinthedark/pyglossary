@@ -104,17 +104,27 @@ jobs:
       - name: Check pyinstaller --help
         run: python -m PyInstaller -h
 
+      - name: set vars
+        id: envconf
+        run: |
+          echo "BREW_PREFIX=$(brew --prefix)" >> $GITHUB_ENV
+          echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
+          echo "TAG=$(git describe)" >> $GITHUB_ENV
+          
+        
+      - name: Set pip builld vars
+        id: envpip
+        run: |
+          echo "C_INCLUDE_PATH=$BREW_PREFIX/Cellar/lzo/2.10/include:$BREW_PREFIX/Cellar/lzo/2.10/include/lzo" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$BREW_PREFIX/Cellar/lib" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$BREW_PREFIX/opt/icu4c/lib/pkgconfig:$BREW_PREFIX/Cellar/icu4c@76/76.1_1/lib/pkgconfig:$BREW_PREFIX/Cellar/lzo/2.10/lib/pkgconfig:$BREW_PREFIX/Cellar/libffi/3.4.6/lib/pkgconfig" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$BREW_PREFIX/opt/icu4c/lib -L$BREW_PREFIX/opt/libffi/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$BREW_PREFIX/Cellar/icu4c@76/76.1_1/include -I$BREW_PREFIX/opt/libffi/include" >> $GITHUB_ENV
+
       - name: Install pyglossary dependencies
         run: |
           pip install --progress-bar=off pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit gobject pygobject pycairo colorize_pinyin
           pip install --progress-bar=off --upgrade .
-
-      - name: Set Variables
-        id: envconf
-        run: |
-          echo "PREFIX=$(brew --prefix)" >> $GITHUB_ENV
-          echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
-          echo "TAG=$(git describe)" >> $GITHUB_ENV
           
       - name: Prepare PyInstaller build
 
