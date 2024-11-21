@@ -214,6 +214,10 @@ jobs:
         #     cp -r {about,AUTHORS,_license-dialog,config.json,help} $DIST_DIR/$APPNAME.app/Contents/MacOS
         #     cp -rv _license-dialog $DIST_DIR/$APPNAME.app/Contents/MacOS/license-dialog
         #     cp -rv {res,plugins-meta,pyglossary} $DIST_DIR/$APPNAME.app/Contents/MacOS
+      - name: 'Debug: list dist files'
+        shell: bash
+        run: |
+          find ${{ env.DIST_DIR }}
 
       - name: Upload Artifacts zip
         uses: actions/upload-artifact@v4
@@ -222,7 +226,7 @@ jobs:
           # branch name: ${{ github.ref_name }}
           name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
           path: |
-            "${{ env.DIST_DIR }}
+            ${{ env.DIST_DIR }}
 
 
       - name: Create DMG
