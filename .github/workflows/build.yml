@@ -37,6 +37,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      # see https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow
       matrix:
         # python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
         python-version: ['3.12']
@@ -218,17 +219,17 @@ jobs:
         #     cp -r {about,AUTHORS,_license-dialog,config.json,help} $DIST_DIR/$APPNAME.app/Contents/MacOS
         #     cp -rv _license-dialog $DIST_DIR/$APPNAME.app/Contents/MacOS/license-dialog
         #     cp -rv {res,plugins-meta,pyglossary} $DIST_DIR/$APPNAME.app/Contents/MacOS
-      - name: 'Debug: list dist files'
-        shell: bash
-        run: |
-          find ${{ env.DIST_DIR }}
+      # - name: 'Debug: list dist files'
+      #   shell: bash
+      #   run: |
+      #     find ${{ env.DIST_DIR }}
 
       - name: Upload Artifacts zip
         uses: actions/upload-artifact@v4
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           # branch name: ${{ github.ref_name }}
-          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}
           path: |
             ${{ env.DIST_DIR }}
 
@@ -243,7 +244,7 @@ jobs:
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           # branch name: ${{ github.ref_name }}
-          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}
           path: |
             **/*.dmg
         
