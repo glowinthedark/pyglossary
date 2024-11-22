@@ -126,7 +126,7 @@ jobs:
         run: |
           uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
           uv pip install PyICU
-          uv pip install https://github.com/glowinthedark/python-lzo/releases/download/latest/python_lzo-1.16-cp312-cp312-macosx_10_13_universal2.whl
+          uv pip install https://github.com/glowinthedark/python-lzo/releases/download/v1.16/python_lzo-1.16-cp312-cp312-macosx_10_13_universal2.whl
           uv pip install pycairo
           uv pip install .
 
