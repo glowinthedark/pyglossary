@@ -1,4 +1,4 @@
-name: 'macOS DMG'
+name: 'macOS ports build'
 
 on:
   workflow_dispatch:
