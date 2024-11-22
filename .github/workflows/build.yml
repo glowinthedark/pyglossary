@@ -163,6 +163,7 @@ jobs:
       - name: Prepare PyInstaller build
         run: |
           rm __init__.py
+          sed -i '' 's/default="auto"/default="gtk"/g' pyglossary/ui/argparse_main.py
 
       - name: Pyinstaller Build
         run: |
@@ -175,6 +176,7 @@ jobs:
             --collect-all pyglossary \
             --collect-all gi \
             --argv-emulation \
+            --exclude-module tkinter \
             --hidden-import msvcrt \
             --hidden-import pyglossary \
             --hidden-import platform \
