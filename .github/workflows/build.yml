@@ -16,7 +16,7 @@ on:
 
 env:
   UV_SYSTEM_PYTHON: 1
-  UV_NO_PROGRESS: 1
+  # UV_NO_PROGRESS: 1
   # Enable strict unpack mode to catch file duplication problems in onefile builds (at executable run-time).
   # PYINSTALLER_STRICT_UNPACK_MODE: 1
   # # Enable strict collect mode to catch file duplication problems in PKG/Carchive (onefile builds) or COLLECT
