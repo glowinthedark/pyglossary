@@ -92,6 +92,8 @@ jobs:
              intltool \
              icu4c \
              create-dmg \
+             gobject-introspection \
+             libtool \
              pygobject3 \
              adwaita-icon-theme
       
