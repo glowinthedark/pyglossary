@@ -62,10 +62,11 @@ jobs:
           port selfupdate
           port install \
              lzo \
-             glib \
+             glib2 \
              libffi \
              gettext \
              gtk3 \
+             gtk3-devel \
              pkgconfig \
              cairo \
              intltool \
