@@ -30,7 +30,11 @@ env:
   PYTHONWARNDEFAULTENCODING: true
   APPNAME: PyGlossaryMac
   DIST_DIR: dist.pyinstaller
-
+  HOMEBREW_NO_INSTALL_CLEANUP: true
+  HOMEBREW_NO_ENV_HINTS: true
+  HOMEBREW_CLEANUP_MAX_AGE_DAYS: 999
+  HOMEBREW_NO_ANALYTICS: true
+  HOMEBREW_NO_AUTO_UPDATE: true
 
 jobs:
   build_macos:
@@ -81,6 +85,7 @@ jobs:
              libffi \
              gettext \
              gtk+3 \
+             gtk4 \
              pkg-config \
              py3cairo \
              cairo \
