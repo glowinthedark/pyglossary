@@ -48,21 +48,6 @@ jobs:
         # python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
         python-version: ['3.12']
         os: ['macos-13', 'macos-14']
-        # Split macOS workflows between macos-13 (x86_64) and macos-14 (arm64)
-        # runners to cover both architectures without running all combinations.
-        # exclude:
-          # - python-version: '3.8'
-          #   os: 'macos-14'
-          # - python-version: '3.10'
-          #   os: 'macos-14'
-          # - python-version: '3.12'
-          #   os: 'macos-14'
-          # # - python-version: '3.9'
-          # #   os: 'macos-13'
-          # # - python-version: '3.11'
-          # #   os: 'macos-13'
-          # - python-version: '3.13'
-          #   os: 'macos-13'
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
@@ -117,15 +102,9 @@ jobs:
       - name: Install uv
         # https://docs.astral.sh/uv/guides/integration/github/#caching
         uses: astral-sh/setup-uv@v3
-        
-      # - name: Update pip
-      #   run: python -m pip install --upgrade setuptools wheel
 
       - name: Install PyInstaller
         run: uv pip install pyinstaller
-
-      # - name: Check pyinstaller --help
-      #   run: python -m PyInstaller -h
 
       - name: set vars
         id: envconf
@@ -197,7 +176,7 @@ jobs:
             --workpath build.pyinstaller \
             pyglossary.pyw
                   
-      - name: Copy extra files
+      - name: Copy files
         shell: python
         run: |
             from pathlib import Path
@@ -236,23 +215,12 @@ jobs:
                     print(f"No access {src}")
                 except Exception as e:
                     print(f"Failed {src}: {e}")
-            print("Done.")
-
-        # shell: bash
-        # run: |
-        #     cp -r {about,AUTHORS,_license-dialog,config.json,help} $DIST_DIR/$APPNAME.app/Contents/MacOS
-        #     cp -rv _license-dialog $DIST_DIR/$APPNAME.app/Contents/MacOS/license-dialog
-        #     cp -rv {res,plugins-meta,pyglossary} $DIST_DIR/$APPNAME.app/Contents/MacOS
-      # - name: 'Debug: list dist files'
-      #   shell: bash
-      #   run: |
-      #     find ${{ env.DIST_DIR }}
+            print("Done")
 
       - name: Upload Artifacts zip
         uses: actions/upload-artifact@v4
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
-          # branch name: ${{ github.ref_name }}
           overwrite: true
           name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}-${{runner.name}}
           path: |
@@ -269,30 +237,40 @@ jobs:
         with:
           overwrite: true
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
-          # branch name: ${{ github.ref_name }}
           name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}-${{runner.name}}
           path: |
             **/*.dmg
+
+  release:
+    needs: [build_macos]
+    # needs: [build_macos, build-w64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write    
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         
-      # - name: Set up extra environment variables (non-Windows)
-      #   if: ${{ !startsWith(matrix.os, 'windows') }}
-      #   run: |
-      #     # Run Qt-based tests with offscreen backend. This seems to break QtWebEngine tests on Windows, so
-      #     # apply it only here, in non-Windows path.
-      #     echo "QT_QPA_PLATFORM=offscreen" >> $GITHUB_ENV
+        with:
+          path: ./artifacts
+          merge-multiple: true
+          
+      - name: List artifacts
+        run: |
+          pwd
+          echo ${{ github.workspace }}/artifacts
+          ls -alh ${{ github.workspace }}
+          find .       
 
-      # # Required on macOS >= 11 by tests that register custom URL schema. This could also be achieved by passing
-      # # --basetemp to pytest, but using environment variable allows us to have a unified "Run test" step for
-      # # all OSes.
-      # #
-      # # We now relocate the temporary directory to a fixed location on all OSes, in order to be able to generate
-      # # artifacts out of failed tests.
-      # - name: Relocate temporary dir
-      #   shell: bash
-      #   run: |
-      #     echo "PYTEST_DEBUG_TEMPROOT=$RUNNER_TEMP" >> $GITHUB_ENV
-
-      # Augment _pyinstaller_hooks_contrib with bogus hooks that conflict with the hooks provided by hooksample.
-      # Due to (implicit) hook priority, the 3rd-party hooks should be chosen over _pyinstaller_hooks_contrib
-      # ones, and so the bogus hooks should never be ran. This applies to standard module hooks, as well as
-      # the pre-find-module-path and pre-safe-import-module hooks.
+      - name: make release
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ github.event.repository.name }}-${{ github.ref_name }}
+          # body: macos-${{ matrix.architecture }}
+          artifacts: "artifacts/*.zip,artifacts/*.dmg"
+          generateReleaseNotes: false
+          makeLatest: true
+          allowUpdates: true
+          tag: ${{ env.TAG }}
+        
