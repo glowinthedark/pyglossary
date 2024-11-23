@@ -76,8 +76,14 @@ jobs:
           nuitka-version: main
           script-name: main.py
           enable-plugins: 'tk-inter'
-          include-package: 'pyglossary'
+          include-module: pyglossary
           windows-icon-from-ico: 'res/pyglossary.ico'
+          report: false
+          nofollow-import-to: unittest
+          assume-yes-for-downloads: true
+          output-file: pyglossary.exe
+          file-version: 4.7.1
+          product-version: 4.7.1
           include-data-dir: |
             res=.
             plugins-meta=.
