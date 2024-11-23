@@ -270,6 +270,7 @@ jobs:
           name: ${{ github.event.repository.name }}-${{ github.ref_name }}
           # body: macos-${{ matrix.architecture }}
           artifacts: "artifacts/*.zip,artifacts/*.dmg"
+          artifactContentType: application/zip
           generateReleaseNotes: false
           makeLatest: true
           allowUpdates: true
