@@ -59,7 +59,7 @@ jobs:
 
       - name: "Install Dependencies (PyICU python-lzo require msbuildtools)"
         run: |
-          uv pip install .
+          uv pip install git+https://github.com/ilius/pyglossary.git
           uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit nuitka colorize_pinyin wheel setuptools
           uv pip install https://github.com/glowinthedark/pyicu-build/releases/download/v2.14/PyICU-2.14-cp312-cp312-win_amd64.whl
           uv pip install https://github.com/glowinthedark/python-lzo/releases/download/v1.16/python_lzo-1.16-cp312-cp312-win_amd64.whl
