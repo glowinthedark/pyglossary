@@ -57,6 +57,7 @@ jobs:
           # 0 = all history for all branches and tags. (needed for git describe)
           fetch-depth: 0
           fetch-tags: true
+          ref: master
           
       - name: Update brew
         run: |
