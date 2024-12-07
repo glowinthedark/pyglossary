@@ -19,9 +19,6 @@
 from __future__ import annotations
 
 import logging
-import os
-from os.path import isfile
-from pickle import dumps, loads
 from typing import TYPE_CHECKING
 
 from .glossary_utils import Error
@@ -33,52 +30,32 @@ if TYPE_CHECKING:
 	from .glossary_types import EntryType, RawEntryType
 	from .sort_keys import NamedSortKey
 
-# from typing import Self
-# typing.Self is new in Python 3.11.
-
 
 __all__ = ["SqEntryList"]
 
 log = logging.getLogger("pyglossary")
 
-PICKLE_PROTOCOL = 4
-
-# Pickle protocol 4 performed better than protocol 5 on Python 3.9.2
-# Slightly lower running time, lower memory usage, and same .db file size
-
-# Pickle protocol 5		added in Python 3.8		PEP 574
-# Pickle protocol 4		added in Python 3.4		PEP 3154
-# Pickle Protocol 3		added in Python 3.0
-
-# https://docs.python.org/3/library/pickle.html
-
 
 class SqEntryList:
 	def __init__(  # noqa: PLR0913
 		self,
-		entryToRaw: "Callable[[EntryType], RawEntryType]",
-		entryFromRaw: "Callable[[RawEntryType], EntryType]",
-		filename: str,
+		entryToRaw: Callable[[EntryType], RawEntryType],
+		entryFromRaw: Callable[[RawEntryType], EntryType],
+		database: str,
 		create: bool = True,
-		persist: bool = False,
 	) -> None:
-		"""
-		sqliteSortKey[i] == (name, type, valueFunc).
-
-		persist: do not delete the file when variable is deleted
-		"""
+		"""sqliteSortKey[i] == (name, type, valueFunc)."""
 		import sqlite3
 
 		self._entryToRaw = entryToRaw
 		self._entryFromRaw = entryFromRaw
-		self._filename = filename
+		self._database = database
 
-		self._persist = persist
-		self._con: "sqlite3.Connection | None" = sqlite3.connect(filename)
-		self._cur: "sqlite3.Cursor | None" = self._con.cursor()
+		self._con: sqlite3.Connection | None = sqlite3.connect(database)
+		self._cur: sqlite3.Cursor | None = self._con.cursor()
 
-		if not filename:
-			raise ValueError(f"invalid {filename=}")
+		if not database:
+			raise ValueError(f"invalid {database=}")
 
 		self._orderBy = "rowid"
 		self._sorted = False
@@ -88,20 +65,14 @@ class SqEntryList:
 		self._sqliteSortKey = None
 		self._columnNames = ""
 
-	@property
-	def rawEntryCompress(self) -> bool:
-		return False
-
-	@rawEntryCompress.setter
-	def rawEntryCompress(self, enable: bool) -> None:
-		# just to comply with EntryListType
-		pass
+	def hasSortKey(self) -> bool:
+		return bool(self._sqliteSortKey)
 
 	def setSortKey(
 		self,
 		namedSortKey: NamedSortKey,
-		sortEncoding: "str | None",
-		writeOptions: "dict[str, Any]",
+		sortEncoding: str | None,
+		writeOptions: dict[str, Any],
 	) -> None:
 		"""sqliteSortKey[i] == (name, type, valueFunc)."""
 		if self._con is None:
@@ -129,7 +100,7 @@ class SqEntryList:
 			return
 
 		colDefs = ",".join(
-			[f"{col[0]} {col[1]}" for col in sqliteSortKey] + ["pickle BLOB"],
+			[f"{col[0]} {col[1]}" for col in sqliteSortKey] + ["data BLOB"],
 		)
 		self._con.execute(
 			f"CREATE TABLE data ({colDefs})",
@@ -138,14 +109,27 @@ class SqEntryList:
 	def __len__(self) -> int:
 		return self._len
 
+	def _encode(self, entry: EntryType) -> bytes:
+		return b"\x00".join(self._entryToRaw(entry))
+
+	def _decode(self, data: bytes) -> EntryType:
+		return self._entryFromRaw(data.split(b"\x00"))
+
 	def append(self, entry: EntryType) -> None:
 		self._cur.execute(
-			f"insert into data({self._columnNames}, pickle)"
+			f"insert into data({self._columnNames}, data)"
 			f" values (?{', ?' * len(self._sqliteSortKey)})",
 			[col[2](entry.l_word) for col in self._sqliteSortKey]
-			+ [dumps(self._entryToRaw(entry), protocol=PICKLE_PROTOCOL)],
+			+ [self._encode(entry)],
 		)
 		self._len += 1
+
+	def __iter__(self) -> Iterator[EntryType]:
+		if self._cur is None:
+			raise Error("SQLite cursor is closed")
+		self._cur.execute(f"SELECT data FROM data ORDER BY {self._orderBy}")
+		for row in self._cur:
+			yield self._decode(row[0])
 
 	def __iadd__(self, other: Iterable):  # -> Self
 		for item in other:
@@ -212,18 +196,4 @@ class SqEntryList:
 		self._cur = None
 
 	def __del__(self) -> None:
-		try:
-			self.close()
-			if not self._persist and isfile(self._filename):
-				os.remove(self._filename)
-		except AttributeError as e:
-			log.error(str(e))
-
-	def __iter__(self) -> Iterator[EntryType]:
-		if self._cur is None:
-			raise Error("SQLite cursor is closed")
-		query = f"SELECT pickle FROM data ORDER BY {self._orderBy}"
-		self._cur.execute(query)
-		entryFromRaw = self._entryFromRaw
-		for row in self._cur:
-			yield entryFromRaw(loads(row[0]))
+		self.close()

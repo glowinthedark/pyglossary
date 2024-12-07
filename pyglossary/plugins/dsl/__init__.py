@@ -78,7 +78,7 @@ website = (
 	"https://www.lingvo.ru/",
 	"www.lingvo.ru",
 )
-optionsProp: "dict[str, Option]" = {
+optionsProp: dict[str, Option] = {
 	"encoding": EncodingOption(),
 	"audio": BoolOption(
 		comment="Enable audio objects",
@@ -114,7 +114,7 @@ htmlEntityPattern = re.compile(r"&#?\w+;")
 
 
 def unescape(text: str) -> str:
-	def fixup(m: "re.Match") -> str:
+	def fixup(m: re.Match) -> str:
 		text = m.group(0)
 		if text[:2] == "&#":
 			# character reference
@@ -162,7 +162,7 @@ class Reader:
 		self._glos = glos
 		self._filename = ""
 		self._dirPath = ""
-		self._file: "io.TextIOBase" = nullTextIO
+		self._file: io.TextIOBase = nullTextIO
 		self._fileSize = 0
 		self._bufferLine = ""
 		self._resFileSet: set[str] = set()
@@ -319,7 +319,7 @@ class Reader:
 			yield line
 
 	@staticmethod
-	def sub_title_line(m: "re.Match") -> str:
+	def sub_title_line(m: re.Match) -> str:
 		line = m.group(0)[1:-1]
 		line = line.replace("[']", "")  # FIXME
 		line = line.replace("[/']", "")
@@ -341,14 +341,14 @@ class Reader:
 
 			# header or alt
 			if text_lines:
-				yield self.parseEntryBlock(term_lines, text_lines)
+				yield from self.parseEntryBlock(term_lines, text_lines)
 				term_lines = []
 				text_lines = []
 
 			term_lines.append(line)
 
 		if text_lines:
-			yield self.parseEntryBlock(term_lines, text_lines)
+			yield from self.parseEntryBlock(term_lines, text_lines)
 
 		resDir = dirname(self._filename)
 		for fname in sorted(self._resFileSet):
@@ -360,11 +360,11 @@ class Reader:
 				data = _file.read()
 			yield self._glos.newDataEntry(fname, data)
 
-	def parseEntryBlock(
+	def parseEntryBlock(  # noqa: PLR0912 Too many branches (14 > 12)
 		self,
 		term_lines: list[str],
 		text_lines: list[str],
-	) -> EntryType:
+	) -> Iterator[EntryType]:
 		terms = []
 		defiTitles = []
 		for line in term_lines:
@@ -385,17 +385,55 @@ class Reader:
 			if title != term:
 				defiTitles.append("<b>" + title + "</b>")
 
+		main_text: str = ""
+		subglos_list: list[tuple[str, str]] = []
+		subglos_key, subglos_text = "", ""
+
+		def add_subglos():
+			nonlocal main_text, subglos_key, subglos_text
+			subglos_list.append((subglos_key, subglos_text))
+			main_text += f"\t[m2][ref]{subglos_key}[/ref]\n"
+			subglos_key, subglos_text = "", ""
+
+		for line in text_lines:
+			s_line = line.strip()
+			if s_line == "@":
+				if subglos_key:
+					add_subglos()
+				continue
+			if s_line.startswith("@ "):
+				if subglos_key:
+					add_subglos()
+				subglos_key = s_line[2:].strip()
+				continue
+			if subglos_key:
+				subglos_text += line
+				continue
+			main_text += line
+		if subglos_key:
+			add_subglos()
+
 		defi = self.transform(
-			text="".join(text_lines),
+			text=main_text,
 			header=terms[0],
 		)
 		if defiTitles:
 			defi = "<br/>".join(defiTitles + [defi])
 
-		return self._glos.newEntry(
+		byteProgress = (self._file.tell(), self._fileSize) if self._fileSize else None
+
+		yield self._glos.newEntry(
 			terms,
 			defi,
-			byteProgress=(
-				(self._file.tell(), self._fileSize) if self._fileSize else None
-			),
+			byteProgress=byteProgress,
 		)
+
+		for term, text in subglos_list:
+			yield self._glos.newEntry(
+				[term],
+				self.transform(
+					text=text,
+					header=term,
+				),
+				byteProgress=byteProgress,
+			)

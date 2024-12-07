@@ -30,7 +30,6 @@ import warnings
 from abc import abstractmethod
 from bisect import bisect_left
 from builtins import open as fopen
-from collections.abc import Callable, Iterator, Mapping, Sequence
 from datetime import datetime, timezone
 from functools import cache, lru_cache
 from io import BufferedIOBase, IOBase
@@ -52,6 +51,8 @@ import icu  # type: ignore
 from icu import Collator, Locale, UCollAttribute, UCollAttributeValue
 
 if TYPE_CHECKING:
+	from collections.abc import Callable, Iterator, Mapping, Sequence
+
 	from .icu_types import T_Collator
 
 __all__ = [
@@ -144,7 +145,7 @@ class CompressionModule(typing.Protocol):
 	@staticmethod
 	def decompress(
 		data: bytes,
-		**kwargs: "Mapping[str, Any]",
+		**kwargs: Mapping[str, Any],
 	) -> bytes:
 		raise NotImplementedError
 
@@ -153,13 +154,13 @@ def init_compressions() -> dict[str, Compression]:
 	def ident(x: bytes) -> bytes:
 		return x
 
-	compressions: "dict[str, Compression]" = {
+	compressions: dict[str, Compression] = {
 		"": Compression(ident, ident),
 	}
 	for name in ("bz2", "zlib"):
 		m: CompressionModule
 		try:
-			m = cast(CompressionModule, __import__(name))
+			m = cast("CompressionModule", __import__(name))
 		except ImportError:
 			warnings.showwarning(
 				message=f"{name} is not available",
@@ -228,11 +229,11 @@ class IncorrectFileSize(FileFormatException):
 @cache
 def sortkey(
 	strength: int,
-	maxlength: "int | None" = None,
+	maxlength: int | None = None,
 ) -> Callable:
 	# pass empty locale to use root locale
 	# if you pass no arg, it will use system locale
-	c: "T_Collator" = Collator.createInstance(Locale(""))
+	c: T_Collator = Collator.createInstance(Locale(""))
 	c.setStrength(strength)
 	c.setAttribute(
 		UCollAttribute.ALTERNATE_HANDLING,
@@ -315,7 +316,7 @@ class MultiFileReader(BufferedIOBase):
 	def writable(self) -> bool:  # noqa: PLR6301
 		return False
 
-	def read(self, n: "int | None" = -1) -> bytes:
+	def read(self, n: int | None = -1) -> bytes:
 		file_index = -1
 		actual_offset = 0
 		for i, r in enumerate(self._ranges):
@@ -344,9 +345,9 @@ class MultiFileReader(BufferedIOBase):
 class KeydItemDict:
 	def __init__(
 		self,
-		blobs: "Sequence[Blob | Ref]",
+		blobs: Sequence[Blob | Ref],
 		strength: int,
-		maxlength: "int | None" = None,
+		maxlength: int | None = None,
 	) -> None:
 		self.blobs = blobs
 		self.sortkey = sortkey(strength, maxlength=maxlength)
@@ -387,7 +388,7 @@ class Blob:
 		content_id: int,
 		key: str,
 		fragment: str,
-		read_content_type_func: "Callable[[], str]",
+		read_content_type_func: Callable[[], str],
 		read_func: Callable,
 	) -> None:
 		# print(f"read_func is {type(read_func)}")
@@ -434,7 +435,7 @@ class StructReader:
 	def __init__(
 		self,
 		_file: IOBase,
-		encoding: "str | None" = None,
+		encoding: str | None = None,
 	) -> None:
 		self._file = _file
 		self.encoding = encoding
@@ -493,8 +494,8 @@ class StructReader:
 class StructWriter:
 	def __init__(
 		self,
-		_file: "io.BufferedWriter",
-		encoding: "str | None" = None,
+		_file: io.BufferedWriter,
+		encoding: str | None = None,
 	) -> None:
 		self._file = _file
 		self.encoding = encoding
@@ -515,8 +516,8 @@ class StructWriter:
 		self,
 		text: str,
 		len_size_spec: str,
-		encoding: "str | None" = None,
-		pad_to_length: "int | None" = None,
+		encoding: str | None = None,
+		pad_to_length: int | None = None,
 	) -> None:
 		if encoding is None:
 			encoding = self.encoding
@@ -541,7 +542,7 @@ class StructWriter:
 	def write_tiny_text(
 		self,
 		text: str,
-		encoding: "str | None" = None,
+		encoding: str | None = None,
 		editable: bool = False,
 	) -> None:
 		pad_to_length = 255 if editable else None
@@ -555,7 +556,7 @@ class StructWriter:
 	def write_text(
 		self,
 		text: str,
-		encoding: "str | None" = None,
+		encoding: str | None = None,
 	) -> None:
 		self._write_text(text, U_SHORT, encoding=encoding)
 
@@ -753,10 +754,10 @@ class Slob:
 	def as_dict(
 		self: Slob,
 		strength: int = TERTIARY,
-		maxlength: "int | None" = None,
+		maxlength: int | None = None,
 	) -> KeydItemDict:
 		return KeydItemDict(
-			cast(Sequence, self),
+			cast("Sequence", self),
 			strength=strength,
 			maxlength=maxlength,
 		)
@@ -790,7 +791,7 @@ class BinMemWriter:
 	def finalize(
 		self,
 		fout: BufferedIOBase,
-		compress: "Callable[[bytes], bytes]",
+		compress: Callable[[bytes], bytes],
 	) -> None:
 		count = len(self)
 		fout.write(pack(U_INT, count))
@@ -813,7 +814,7 @@ class ItemList(Generic[ItemT]):
 		self,
 		reader: StructReader,
 		offset: int,
-		count_or_spec: "str | int",
+		count_or_spec: str | int,
 		pos_spec: str,
 	) -> None:
 		self.lock = RLock()
@@ -862,7 +863,7 @@ class RefList(ItemList[Ref]):
 		f: IOBase,
 		encoding: str,
 		offset: int = 0,
-		count: "int | None" = None,
+		count: int | None = None,
 	) -> None:
 		super().__init__(
 			reader=StructReader(f, encoding),
@@ -878,7 +879,7 @@ class RefList(ItemList[Ref]):
 	) -> Ref:
 		if i >= len(self) or i < 0:
 			raise IndexError("index out of range")
-		return cast(Ref, self.read(self.pos(i)))
+		return cast("Ref", self.read(self.pos(i)))
 
 	def _read_item(self) -> Ref:
 		key = self.reader.read_text()
@@ -896,10 +897,10 @@ class RefList(ItemList[Ref]):
 	def as_dict(
 		self: RefList,
 		strength: int = TERTIARY,
-		maxlength: "int | None" = None,
+		maxlength: int | None = None,
 	) -> KeydItemDict:
 		return KeydItemDict(
-			cast(Sequence, self),
+			cast("Sequence", self),
 			strength=strength,
 			maxlength=maxlength,
 		)
@@ -933,7 +934,7 @@ class Store(ItemList[StoreItem]):
 		self,
 		_file: IOBase,
 		offset: int,
-		decompress: "Callable[[bytes], bytes]",
+		decompress: Callable[[bytes], bytes],
 		content_types: Sequence[str],
 	) -> None:
 		super().__init__(
@@ -952,7 +953,7 @@ class Store(ItemList[StoreItem]):
 	) -> StoreItem:
 		if i >= len(self) or i < 0:
 			raise IndexError("index out of range")
-		return cast(StoreItem, self.read(self.pos(i)))
+		return cast("StoreItem", self.read(self.pos(i)))
 
 	def _read_item(self) -> StoreItem:
 		bin_item_count = self.reader.read_int()
@@ -1012,12 +1013,12 @@ class Writer:
 	def __init__(  # noqa: PLR0913
 		self,
 		filename: str,
-		workdir: "str | None" = None,
+		workdir: str | None = None,
 		encoding: str = UTF8,
-		compression: "str | None" = DEFAULT_COMPRESSION,
+		compression: str | None = DEFAULT_COMPRESSION,
 		min_bin_size: int = 512 * 1024,
 		max_redirects: int = 5,
-		observer: "Callable[[WriterEvent], None] | None" = None,
+		observer: Callable[[WriterEvent], None] | None = None,
 		version_info: bool = True,
 	) -> None:
 		self.filename = filename
@@ -1065,11 +1066,11 @@ class Writer:
 		self.compress = COMPRESSIONS[compression].compress
 
 		self.compression = compression
-		self.content_types: "dict[str, int]" = {}
+		self.content_types: dict[str, int] = {}
 
 		self.min_bin_size = min_bin_size
 
-		self.current_bin: "BinMemWriter | None" = None
+		self.current_bin: BinMemWriter | None = None
 
 		created_at = (
 			os.getenv("SLOB_TIMESTAMP") or datetime.now(timezone.utc).isoformat()
@@ -1290,7 +1291,7 @@ class Writer:
 						self._fire_event("too_many_redirects", from_key)
 					target_ref: Ref
 					try:
-						target_ref = cast(Ref, next(ref_dict[to_key]))
+						target_ref = cast("Ref", next(ref_dict[to_key]))
 					except StopIteration:
 						self._fire_event("alias_target_not_found", to_key)
 					else:
@@ -1345,7 +1346,7 @@ class Writer:
 
 		buf_size = 10 * 1024 * 1024
 
-		def write_tags(tags: "MappingProxyType[str, Any]", f: StructWriter) -> None:
+		def write_tags(tags: MappingProxyType[str, Any], f: StructWriter) -> None:
 			f.write(pack(U_CHAR, len(tags)))
 			for key, value in tags.items():
 				f.write_tiny_text(key)
@@ -1361,7 +1362,7 @@ class Writer:
 			write_tags(self.tags, out)
 
 			def write_content_types(
-				content_types: "dict[str, int]",
+				content_types: dict[str, int],
 				f: StructWriter,
 			) -> None:
 				count = len(content_types)

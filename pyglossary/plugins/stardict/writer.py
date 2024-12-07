@@ -9,7 +9,6 @@ from os.path import (
 	dirname,
 	getsize,
 	isdir,
-	isfile,
 	join,
 	realpath,
 	split,
@@ -19,26 +18,22 @@ from pprint import pformat
 from time import perf_counter as now
 from typing import (
 	TYPE_CHECKING,
-	Any,
 	Literal,
-	Protocol,
-	TypeVar,
 )
 
 if TYPE_CHECKING:
-	import sqlite3
-	from collections.abc import Callable, Generator, Iterator, Sequence
+	from collections.abc import Callable, Generator
 
 	from pyglossary.glossary_types import EntryType, GlossaryType
 	from pyglossary.langs import Lang
+	from pyglossary.plugins.stardict.types import T_SdList
 
 
 from pyglossary.core import log
 from pyglossary.glossary_utils import Error
-from pyglossary.text_utils import (
-	uint32ToBytes,
-	uint64ToBytes,
-)
+from pyglossary.plugins.stardict.memlist import MemSdList
+from pyglossary.plugins.stardict.sqlist import IdxSqList, SynSqList
+from pyglossary.text_utils import uint32ToBytes, uint64ToBytes
 
 __all__ = ["Writer"]
 
@@ -64,150 +59,10 @@ def newlinesToBr(text: str) -> str:
 	return re_newline.sub("<br>", text)
 
 
-T_SDListItem_contra = TypeVar("T_SDListItem_contra", contravariant=True)
-
-
-class T_SdList(Protocol[T_SDListItem_contra]):
-	def append(self, x: T_SDListItem_contra) -> None: ...
-
-	def __len__(self) -> int: ...
-
-	def __iter__(self) -> Iterator[Any]: ...
-
-	def sort(self) -> None: ...
-
-
-class MemSdList:
-	def __init__(self) -> None:
-		self._l: list[Any] = []
-
-	def append(self, x: Any) -> None:
-		self._l.append(x)
-
-	def __len__(self) -> int:
-		return len(self._l)
-
-	def __iter__(self) -> Iterator[Any]:
-		return iter(self._l)
-
-	def sortKey(self, item: "tuple[bytes, Any]") -> tuple[bytes, bytes]:  # noqa: PLR6301
-		return (
-			item[0].lower(),
-			item[0],
-		)
-
-	def sort(self) -> None:
-		self._l.sort(key=self.sortKey)
-
-
-class BaseSqList:
-	def __init__(
-		self,
-		filename: str,
-	) -> None:
-		from sqlite3 import connect
-
-		if isfile(filename):
-			log.warning(f"Renaming {filename} to {filename}.bak")
-			os.rename(filename, filename + "bak")
-
-		self._filename = filename
-
-		self._con: "sqlite3.Connection | None" = connect(filename)
-		self._cur: "sqlite3.Cursor | None" = self._con.cursor()
-
-		if not filename:
-			raise ValueError(f"invalid {filename=}")
-
-		self._orderBy = "word_lower, word"
-		self._sorted = False
-		self._len = 0
-
-		columns = self._columns = [
-			("word_lower", "TEXT"),
-			("word", "TEXT"),
-		] + self.getExtraColumns()
-
-		self._columnNames = ",".join(col[0] for col in columns)
-
-		colDefs = ",".join(f"{col[0]} {col[1]}" for col in columns)
-		self._con.execute(
-			f"CREATE TABLE data ({colDefs})",
-		)
-		self._con.execute(
-			f"CREATE INDEX sortkey ON data({self._orderBy});",
-		)
-		self._con.commit()
-
-	@classmethod
-	def getExtraColumns(cls) -> list[tuple[str, str]]:
-		# list[(columnName, dataType)]
-		return []
-
-	def __len__(self) -> int:
-		return self._len
-
-	def append(self, item: Sequence) -> None:
-		if self._cur is None or self._con is None:
-			raise RuntimeError("db is closed")
-		self._len += 1
-		extraN = len(self._columns) - 1
-		self._cur.execute(
-			f"insert into data({self._columnNames}) values (?{', ?' * extraN})",
-			[item[0].lower()] + list(item),
-		)
-		if self._len % 1000 == 0:
-			self._con.commit()
-
-	def sort(self) -> None:
-		pass
-
-	def close(self) -> None:
-		if self._cur is None or self._con is None:
-			return
-		self._con.commit()
-		self._cur.close()
-		self._con.close()
-		self._con = None
-		self._cur = None
-
-	def __del__(self) -> None:
-		try:
-			self.close()
-		except AttributeError as e:
-			log.error(str(e))
-
-	def __iter__(self) -> Iterator[EntryType]:
-		if self._cur is None:
-			raise RuntimeError("db is closed")
-		query = f"SELECT * FROM data ORDER BY {self._orderBy}"
-		self._cur.execute(query)
-		for row in self._cur:
-			yield row[1:]
-
-
-class IdxSqList(BaseSqList):
-	@classmethod
-	def getExtraColumns(cls) -> list[tuple[str, str]]:
-		# list[(columnName, dataType)]
-		return [
-			("idx_block", "BLOB"),
-		]
-
-
-class SynSqList(BaseSqList):
-	@classmethod
-	def getExtraColumns(cls) -> list[tuple[str, str]]:
-		# list[(columnName, dataType)]
-		return [
-			("entry_index", "INTEGER"),
-		]
-
-
 class Writer:
 	_large_file: bool = False
 	_dictzip: bool = True
-	_sametypesequence: "Literal['', 'h', 'm', 'x'] | None" = ""
+	_sametypesequence: Literal["", "h", "m", "x"] | None = ""
 	_stardict_client: bool = False
 	_merge_syns: bool = False
 	_audio_goldendict: bool = False
@@ -218,8 +73,8 @@ class Writer:
 		self._glos = glos
 		self._filename = ""
 		self._resDir = ""
-		self._sourceLang: "Lang | None" = None
-		self._targetLang: "Lang | None" = None
+		self._sourceLang: Lang | None = None
+		self._targetLang: Lang | None = None
 		self._p_pattern = re.compile(
 			"<p( [^<>]*?)?>(.*?)</p>",
 			re.DOTALL,
@@ -317,12 +172,12 @@ class Writer:
 		# defi = defi.replace(' src="./', ' src="./res/')
 		return defi
 
-	def newIdxList(self) -> T_SdList:
+	def newIdxList(self) -> T_SdList[tuple[bytes, bytes]]:
 		if not self._sqlite:
 			return MemSdList()
 		return IdxSqList(join(self._glos.tmpDataDir, "stardict-idx.db"))
 
-	def newSynList(self) -> T_SdList:
+	def newSynList(self) -> T_SdList[tuple[bytes, int]]:
 		if not self._sqlite:
 			return MemSdList()
 		return SynSqList(join(self._glos.tmpDataDir, "stardict-syn.db"))
@@ -421,7 +276,7 @@ class Writer:
 
 		t0 = now()
 		wordCount = 0
-		defiFormatCounter: "typing.Counter[str]" = Counter()
+		defiFormatCounter: typing.Counter[str] = Counter()
 		if not isdir(self._resDir):
 			os.mkdir(self._resDir)
 
@@ -486,7 +341,7 @@ class Writer:
 			defiFormat="",
 		)
 
-	def writeSynFile(self, altIndexList: "T_SdList[tuple[bytes, int]]") -> None:
+	def writeSynFile(self, altIndexList: T_SdList[tuple[bytes, int]]) -> None:
 		"""Build .syn file."""
 		if not altIndexList:
 			return
@@ -598,7 +453,7 @@ class Writer:
 
 		t0 = now()
 		wordCount = 0
-		defiFormatCounter: "typing.Counter[str]" = Counter()
+		defiFormatCounter: typing.Counter[str] = Counter()
 		if not isdir(self._resDir):
 			os.mkdir(self._resDir)
 
@@ -655,7 +510,7 @@ class Writer:
 			defiFormat="",
 		)
 
-	def writeIdxFile(self, indexList: "T_SdList[tuple[bytes, bytes]]") -> int:
+	def writeIdxFile(self, indexList: T_SdList[tuple[bytes, bytes]]) -> int:
 		filename = self._filename + ".idx"
 		if not indexList:
 			return 0
@@ -695,7 +550,7 @@ class Writer:
 				bookname = f"{bookname} ({langs})"
 			log.info(f"bookname: {bookname}")
 
-		ifo: "list[tuple[str, str]]" = [
+		ifo: list[tuple[str, str]] = [
 			("version", "3.0.0"),
 			("bookname", bookname),
 			("wordcount", str(wordCount)),

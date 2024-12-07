@@ -40,7 +40,7 @@ def mergeHtmlEntriesWithSameHeadword(
 	entryIter: Iterator[EntryType],
 ) -> Iterator[EntryType]:
 	try:
-		last: EntryType = next(entryIter)
+		last: EntryType | None = next(entryIter)
 	except StopIteration:
 		return
 	last.detectDefiFormat()
@@ -63,7 +63,7 @@ def mergeHtmlEntriesWithSameHeadword(
 
 		defi = getHtmlDefi(last) + "\n<hr>\n" + getHtmlDefi(entry)
 
-		last = Entry(
+		last = Entry(  # pyright: ignore
 			entry.l_word[0],
 			defi,
 			defiFormat="h",
@@ -77,7 +77,7 @@ def mergePlaintextEntriesWithSameHeadword(
 	entryIter: Iterator[EntryType],
 ) -> Iterator[EntryType]:
 	try:
-		last: EntryType = next(entryIter)
+		last: EntryType | None = next(entryIter)
 	except StopIteration:
 		return
 	for entry in entryIter:
@@ -105,7 +105,7 @@ def mergePlaintextEntriesWithSameHeadword(
 			+ entry.defi
 		)
 
-		last = Entry(
+		last = Entry(  # pyright: ignore
 			entry.l_word[0],
 			defi,
 			defiFormat="m",

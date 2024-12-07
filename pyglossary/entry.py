@@ -10,9 +10,7 @@ from os.path import (
 	getsize,
 	join,
 )
-from pickle import loads as pickle_loads
 from typing import TYPE_CHECKING
-from zlib import decompress as zlib_decompress
 
 from .entry_base import BaseEntry, MultiStr
 from .iter_utils import unique_everseen
@@ -49,8 +47,8 @@ class DataEntry(BaseEntry):  # noqa: PLR0904
 		self,
 		fname: str,
 		data: bytes = b"",
-		tmpPath: "str | None" = None,
-		byteProgress: "tuple[int, int] | None" = None,
+		tmpPath: str | None = None,
+		byteProgress: tuple[int, int] | None = None,
 	) -> None:
 		if data and tmpPath:
 			os.makedirs(dirname(tmpPath), mode=0o755, exist_ok=True)
@@ -127,10 +125,10 @@ class DataEntry(BaseEntry):  # noqa: PLR0904
 	def addAlt(self, alt: str) -> None:
 		pass
 
-	def editFuncWord(self, func: "Callable[[str], str]") -> None:
+	def editFuncWord(self, func: Callable[[str], str]) -> None:
 		pass
 
-	def editFuncDefi(self, func: "Callable[[str], str]") -> None:
+	def editFuncDefi(self, func: Callable[[str], str]) -> None:
 		pass
 
 	def strip(self) -> None:
@@ -195,26 +193,20 @@ class Entry(BaseEntry):
 
 	@staticmethod
 	def getRawEntrySortKey(
-		key: "Callable[[bytes], Any]",
-		rawEntryCompress: bool,
+		key: Callable[[bytes], Any],
 	) -> Callable[[RawEntryType], Any]:
-		# FIXME: this type for `key` is only for rawEntryCompress=False
-		# for rawEntryCompress=True, it is Callable[[bytes], Any]
-		# here `x` is raw entity, meaning a tuple of form (word, defi) or
-		# (word, defi, defiFormat)
-		# so x[0] is word(s) in bytes, that can be a str (one word),
-		# or a list or tuple (one word with or more alternatives)
-		if rawEntryCompress:
-			return lambda x: key(pickle_loads(zlib_decompress(x))[0])  # type: ignore
-		# x is rawEntry, so x[0] is list of words (entry.l_word)
-		return lambda x: key(x[0])  # type: ignore
+		def newKey(x: RawEntryType) -> Any:
+			# x is rawEntry, so x[2:] is list[bytes]: list of words in bytes
+			return key([b.decode("utf-8") for b in x[2:]])  # type: ignore
+
+		return newKey
 
 	def __init__(
 		self,
 		word: MultiStr,
 		defi: str,
 		defiFormat: str = "m",
-		byteProgress: "tuple[int, int] | None" = None,
+		byteProgress: tuple[int, int] | None = None,
 	) -> None:
 		"""
 		Create a new Entry.
@@ -247,6 +239,9 @@ class Entry(BaseEntry):
 		self._defiFormat = defiFormat
 		self._byteProgress = byteProgress  # tuple[int, int] | None
 
+	def getFileName(self) -> str:  # noqa: PLR6301
+		return ""
+
 	def __repr__(self) -> str:
 		return (
 			f"Entry({self._word!r}, {self._defi!r}, "
@@ -266,6 +261,13 @@ class Entry(BaseEntry):
 		if isinstance(self._word, str):
 			return [self._word]
 		return self._word
+
+	@property
+	def lb_word(self) -> list[bytes]:
+		"""Returns list of the word and all the alternate words."""
+		if isinstance(self._word, str):
+			return [self._word.encode("utf-8")]
+		return [word.encode("utf-8") for word in self._word]
 
 	@property
 	def defi(self) -> str:
@@ -315,7 +317,7 @@ class Entry(BaseEntry):
 		l_word.append(alt)
 		self._word = l_word
 
-	def editFuncWord(self, func: "Callable[[str], str]") -> None:
+	def editFuncWord(self, func: Callable[[str], str]) -> None:
 		"""
 		Run function `func` on all the words.
 
@@ -328,7 +330,7 @@ class Entry(BaseEntry):
 
 		self._word = [func(st) for st in self._word]
 
-	def editFuncDefi(self, func: "Callable[[str], str]") -> None:
+	def editFuncDefi(self, func: Callable[[str], str]) -> None:
 		"""
 		Run function `func` on all the definitions.
 

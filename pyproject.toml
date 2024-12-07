@@ -4,9 +4,7 @@ indent-style = "tab"
 skip-magic-trailing-comma = false
 line-ending = "lf"
 docstring-code-format = false
-exclude = [
-	"pyglossary/plugin_lib/ripemd128.py",
-]
+exclude = ["pyglossary/plugin_lib/ripemd128.py"]
 
 [tool.ruff]
 line-length = 88
@@ -103,7 +101,8 @@ select = [
 	"RUF",  # Ruff-specific rules
 ]
 ignore = [
-	"RUF039", # First argument to `re.compile()` is not raw string
+	"PYI042",  # Type alias `...` should be CamelCase FIXME
+	"RUF039",  # First argument to `re.compile()` is not raw string
 	"FURB189",
 	# FURB189 Subclassing `dict` can be error prone, use `collections.UserDict` instead
 	# FURB189 Subclassing `str` can be error prone, use `collections.UserStr` instead
@@ -175,7 +174,7 @@ mccabe.max-complexity = 13 # Unlike Flake8, default to a complexity level of 10.
 [tool.ruff.lint.per-file-ignores]
 
 "*_types.py" = [
-	"TC003",   # Move standard library import `...` into a type-checking block
+	"TC003", # Move standard library import `...` into a type-checking block
 ]
 "pyglossary/plugins/**/*.py" = [
 	"PLR0904", # Too many public methods
@@ -238,7 +237,6 @@ mccabe.max-complexity = 13 # Unlike Flake8, default to a complexity level of 10.
 "doc/lib-examples/*.py" = ["ANN", "INP"]
 
 
-
 [tool.mypy]
 exclude = [
 	# '.*/plugin_lib/.*',
@@ -246,6 +244,8 @@ exclude = [
 
 [tool.refurb]
 ignore = [
+	117, # Replace `open(filename, "rb")` with `filename.open("rb")`
+	184, # Assignment statement should be chained
 	101, # Replace `with open(x, ...) as f: y = f.read()` with `y = Path(x).read_bytes()`
 	103, # Replace `with open(x, ...) as f: f.write(y)` with `Path(x).write_bytes(y)`
 	104, # Replace `os.getcwd()` with `Path.cwd()`
@@ -257,9 +257,6 @@ ignore = [
 	155, # Replace `os.path.getsize(x)` with `Path(x).stat().st_size`
 ]
 # refurb has no exclude param!
-#exclude = [
-#    "pyglossary/plugin_lib/readmdict.py",
-#]
 #load = ["some_module"]
 #quiet = true
 
@@ -350,44 +347,92 @@ verbose = false
 [tool.import-analyzer]
 exclude = ["pyglossary/ui/wcwidth/", "build/"]
 
+[tool.pyright]
+pythonVersion = "3.10"
+pythonPlatform = "Linux"
+reportMissingImports = "error"
+reportMissingTypeStubs = false
+exclude = [
+	"pyglossary/slob.py",
+	"setup.py",
+	"whitelist.py",       # for vulture
+	# "pyglossary/ui/gtk4_utils/*",
+	# "pyglossary/ui/gtk3_utils/*",
+	"pyglossary/plugins/babylon_bgl/bgl_gzip.py",
+	"pyglossary/plugins/testformat.py",
+	# "pyglossary/plugin_lib/*",
+	"pyglossary/ui/gtk*_utils/__init__.py",
+	"pyglossary/ui/ui_qt.py",
+	"pyglossary/ui/progressbar/",
+	"pyglossary/reverse.py",
+	"wcwidth*",
+	".direnv",
+	".eggs",
+	".git",
+	".mypy_cache",
+	".nox",
+	".pants.d",
+	".ruff_cache",
+	".tox",
+	".venv",
+	"__pypackages__",
+	"_build",
+	"buck-out",
+	"build",
+	"dist",
+	"venv",
+]
 
-# [project]
-# name = "pyglossary"
-# description = "A tool for converting dictionary files aka glossaries."
-# readme = "README.md"
-# version = "4.6.1"
-# authors = [{ name = "Saeed Rasooli", email = "saeed.gnu@gmail.com" }]
-# license = { text = "GPLv3+" }
-# keywords = ["dictionary", "glossary"]
-# classifiers = [
-#     "Development Status :: 5 - Production/Stable",
-#     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-#     "Operating System :: Unix",
-#     "Operating System :: MacOS :: MacOS X",
-#     "Operating System :: Microsoft :: Windows",
-#     "Typing :: Typed",
-#     "Programming Language :: Python :: 3.10",
-#     "Programming Language :: Python :: 3.11",
-#     "Programming Language :: Python :: 3.12",
-# ]
-# requires-python = ">= 3.10"
-# dependencies = ["PyICU", "lxml", "beautifulsoup4"]
+[tool.fixit]
+disable = ["fixit.rules.no_namedtuple"]
 
-# [project.urls]
-# "Source code" = "https://github.com/ilius/pyglossary"
-# Changelog = "https://github.com/ilius/pyglossary/tree/master/doc/releases"
-# "Issue tracker" = "https://github.com/ilius/pyglossary/issues"
+[[tool.fixit.overrides]]
+path = "pyglossary/reverse.py"
+disable = ["fixit.rules"]
 
-# [project.optional-dependencies]
-# all = [
-#     # TODO
-# ]
+[[tool.fixit.overrides]]
+path = "pyglossary/ui/wcwidth/"
+disable = ["fixit.rules"]
 
-# [build-system]
-# requires = [
-#     "setuptools", # min version?
-#     # "setuptools_scm[toml] >= 4, <6",
-#     # "setuptools_scm_git_archive",
-#     # "wheel >= 0.29.0",
-# ]
-# build-backend = 'setuptools.build_meta'
+[[tool.fixit.overrides]]
+path = "pyglossary/ui/progressbar/"
+disable = ["fixit.rules"]
+
+[build-system]
+requires = [
+	"setuptools", # min version?
+	# "setuptools_scm[toml] >= 4, <6",
+	# "setuptools_scm_git_archive",
+	# "wheel >= 0.29.0",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyglossary"
+version = "4.7.1"
+description = "A tool for converting dictionary files aka glossaries."
+readme = "README.md"
+authors = [{ name = "Saeed Rasooli", email = "saeed.gnu@gmail.com" }]
+license = { text = "GPLv3+" }
+keywords = ["dictionary", "glossary"]
+classifiers = [
+	"Development Status :: 5 - Production/Stable",
+	"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+	"Operating System :: Unix",
+	"Operating System :: MacOS :: MacOS X",
+	"Operating System :: Microsoft :: Windows",
+	"Typing :: Typed",
+	"Programming Language :: Python :: 3.10",
+	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
+]
+requires-python = ">= 3.10"
+dependencies = []
+
+[project.optional-dependencies]
+all = ["PyICU", "lxml", "beautifulsoup4"]
+
+[project.urls]
+"Source code" = "https://github.com/ilius/pyglossary"
+Changelog = "https://github.com/ilius/pyglossary/tree/master/doc/releases"
+"Issue tracker" = "https://github.com/ilius/pyglossary/issues"

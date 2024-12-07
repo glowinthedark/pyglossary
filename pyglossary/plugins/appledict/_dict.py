@@ -53,7 +53,7 @@ def id_generator() -> Iterator[str]:
 	cnt = 1
 
 	while True:
-		yield "_" + str(base36(cnt))
+		yield "_" + base36(cnt)
 		cnt += 1
 
 
@@ -69,10 +69,10 @@ def quote_string(value: str, BeautifulSoup: Any) -> str:
 
 def indexes_generator(
 	indexes_lang: str,
-) -> """Callable[
+) -> Callable[
 	[str, list[str], str, Any],
 	str,
-]""":
+]:
 	"""Generate indexes according to glossary language."""
 	indexer = None
 	"""Callable[[Sequence[str], str], Sequence[str]]"""

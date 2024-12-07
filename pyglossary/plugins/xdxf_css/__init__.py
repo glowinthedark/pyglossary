@@ -77,7 +77,7 @@ website = (
 	"https://github.com/soshial/xdxf_makedict/tree/master/format_standard",
 	"XDXF standard - @soshial/xdxf_makedict",
 )
-optionsProp: "dict[str, Option]" = {
+optionsProp: dict[str, Option] = {
 	"html": BoolOption(comment="Entries are HTML"),
 }
 
@@ -133,9 +133,9 @@ class Reader:
 	def __init__(self, glos: GlossaryType) -> None:
 		self._glos = glos
 		self._filename = ""
-		self._file: "io.IOBase" = nullBinaryIO
+		self._file: io.IOBase = nullBinaryIO
 		self._encoding = "utf-8"
-		self._htmlTr: "TransformerType | None" = None
+		self._htmlTr: TransformerType | None = None
 		self._re_span_k = re.compile(
 			'<span class="k">[^<>]*</span>(<br/>)?',
 		)
@@ -193,7 +193,8 @@ class Reader:
 						break
 				continue
 			if not elem.text:
-				log.warning(f"empty tag <{elem.tag}>")
+				if elem.tag != "br":
+					log.warning(f"empty tag <{elem.tag}>")
 				continue
 			key = self.infoKeyMap.get(elem.tag, elem.tag)
 			self._glos.setInfo(key, elem.text)
@@ -204,7 +205,7 @@ class Reader:
 			cfile.seek(0, 2)
 			self._fileSize = cfile.tell()
 			cfile.seek(0)
-			self._glos.setInfo("input_file_size", f"{self._fileSize}")
+			self._glos.setInfo("input_file_size", str(self._fileSize))
 		else:
 			log.warning("XDXF Reader: file is not seekable")
 			self._file.close()
@@ -220,7 +221,7 @@ class Reader:
 			tag="ar",
 		)
 
-		if self._has_added_css is False:
+		if not self._has_added_css:
 			self._has_added_css = True
 			cssPath = join(rootDir, "pyglossary", "xdxf", "xdxf.css")
 			with open(cssPath, "rb") as css_file:
@@ -269,7 +270,7 @@ class Reader:
 		self._file.close()
 		self._file = nullBinaryIO
 
-	def generate_abbr_js(self, abbr_defs: list["Element"]) -> bytes:
+	def generate_abbr_js(self, abbr_defs: list[Element]) -> bytes:
 		abbr_map_js = """const abbr_map = new Map();\n"""
 		for abbr_def in abbr_defs:
 			abbr_k_list: list[str] = []
@@ -281,7 +282,7 @@ class Reader:
 					abbr_v_text = self._htmlTr.stringify_children(child)
 			# TODO escape apostrophes
 			for abbr_k in abbr_k_list:
-				if len(abbr_k) > 0 and len(abbr_v_text) > 0:
+				if abbr_k and abbr_v_text:
 					abbr_map_js += f"abbr_map.set('{abbr_k}', '{abbr_v_text}');\n"
 		with open(join(rootDir, "pyglossary", "xdxf", "xdxf.js"), "rb") as js_file:
 			return abbr_map_js.encode(encoding="utf-8") + js_file.read()
@@ -328,7 +329,7 @@ class Reader:
 	def _mktitle(  # noqa: PLR6301
 		self,
 		title_element: Element,
-		include_opts: "Sequence | None" = None,
+		include_opts: Sequence | None = None,
 	) -> str:
 		if include_opts is None:
 			include_opts = ()
