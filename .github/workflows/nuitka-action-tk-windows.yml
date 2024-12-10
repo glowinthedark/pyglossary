@@ -112,7 +112,7 @@ jobs:
           nuitka-version: main
           script-name: main.py
           standalone: true
-          mode: app
+          # mode: app
           enable-plugins: |
             no-qt
             tk-inter
@@ -153,7 +153,7 @@ jobs:
           # windows-console-mode: force ## SEE https://github.com/Nuitka/Nuitka-Action/blob/main/action.yml#L280C1-L285C35
           windows-icon-from-ico: res\pyglossary.ico
           output-dir: ${{ env.DIST_DIR }}
-          output-file: pyglossary.exe
+          # output-file: pyglossary.exe
           file-version: ${{ env.TAG }}
           
       # - name: Nuitka build
