@@ -78,7 +78,7 @@ jobs:
       #     cache-dependency-path: |
       #       **/requirements*.txt
 
-      - name: "Install Dependencies (PyICU python-lzo require msbuildtools)"
+      - name: "Install Dependencies"
         run: |
           uv venv
           .venv\Scripts\activate
@@ -126,7 +126,6 @@ jobs:
           #   res=res
           #   plugins-meta=plugins-meta     
           include-module: |
-            lzo 
             lxml 
             tkinter
             pymorphy2
