@@ -1,0 +1,268 @@
+name: 'macOS tk nuitka DMG'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'tbd'
+  # pull_request:
+  #   branches:
+  #     - '**'
+  #     - '!master'
+  #     - '!pyup/**'
+    paths-ignore:
+      - 'docs/**'
+      - "*.md"
+
+env:
+  UV_SYSTEM_PYTHON: 1
+
+  PYTHONWARNDEFAULTENCODING: true
+  APPNAME: PyGlossaryTk
+  DIST_DIR: dist.nuitka.tk
+  HOMEBREW_NO_INSTALL_CLEANUP: true
+  HOMEBREW_NO_ENV_HINTS: true
+  HOMEBREW_CLEANUP_MAX_AGE_DAYS: 999
+  HOMEBREW_NO_ANALYTICS: true
+  HOMEBREW_NO_AUTO_UPDATE: true
+  MAIN_SCRIPT: main.py
+  RESOURCE_DIR: "resources" 
+
+jobs:
+  build_macos:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # create-dmg chokes when running parallel workers 
+      # max-parallel: 1 
+      # see https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow
+      matrix:
+        # python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.12']
+        os: ['macos-13', 'macos-14']
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          # Number of commits to fetch, ootb only 1 commit
+          # 0 = all history for all branches and tags. (needed for git describe)
+          fetch-depth: 0
+          fetch-tags: true
+          ref: master
+          
+      - name: Update brew
+        run: |
+          brew update
+          
+      - name: Install brew dependencies
+        run: |
+          brew install \
+             libffi \
+             gettext \
+             pkg-config \
+             intltool \
+             icu4c \
+             create-dmg
+             # already installed?             python-tk@${{ matrix.python-version }} \
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set cache dir
+        run: echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Fetch cache
+        id: cache-target
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.pip_cache_dir }}
+          key: ${{ runner.os }}-${{ matrix.python-version }}
+
+      - name: Install uv
+        # https://docs.astral.sh/uv/guides/integration/github/#caching
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install nuitka
+        run: uv pip install nuitka
+
+      - name: set vars
+        id: envconf
+        run: |
+          echo "BREW_PREFIX=$(brew --prefix)" >> $GITHUB_ENV
+          echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
+          echo "TAG=$(git describe)" >> $GITHUB_ENV
+          echo "PREFIX_ICU4C=$(brew --prefix icu4c)" >> $GITHUB_ENV
+        
+      - name: Set pip builld vars
+        id: envpip
+        run: |
+          echo "C_INCLUDE_PATH=$(brew --prefix lzo)/include:$(brew --prefix lzo)/include/lzo" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$BREW_PREFIX/Cellar/lib" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$(brew --prefix icu4c)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig:" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c)/lib -L$(brew --prefix icu4c)/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$(brew --prefix icu4c)/include -I$(brew --prefix libffi)/include -I$(brew --prefix lzo)/include" >> $GITHUB_ENV
+
+      - name: Install pyglossary dependencies
+        run: |
+          uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
+          uv pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
+          uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match PyICU
+          uv pip install .
+
+      - name: Prepare nuitka build
+        run: |
+          cp $MAIN_SCRIPT $APPNAME.py
+          rm __init__.py
+          sed -i '' 's/default="auto"/default="tk"/g' pyglossary/ui/argparse_main.py
+          sed -i '' 's/self\.tk_inter_version in ("8\.5", "8\.6")/self.tk_inter_version in ("8.5", "8.6", "9.0")/' .venv/lib/python3.12/site-packages/nuitka/plugins/standard/TkinterPlugin.py || true
+
+
+      - name: nuitka Build
+        run: |
+          python -m nuitka \
+          	--standalone \
+          	--assume-yes-for-downloads \
+          	--follow-imports \
+          	--macos-create-app-bundle \
+          	--macos-app-icon=res/pyglossary.icns \
+          	--macos-signed-app-name="$APPNAME" \
+          	--macos-app-name="$APPNAME" \
+          	--macos-app-mode=gui \
+          	--enable-plugin=tk-inter \
+          	--include-package=pyglossary \
+          	--include-module=tkinter \
+            --nofollow-import-to=pyglossary.ui.ui_gtk \
+          	--nofollow-import-to=pyglossary.ui.ui_gtk4 \
+          	--nofollow-import-to=pyglossary.ui.ui_qt \
+          	--nofollow-import-to=gi \
+          	--nofollow-import-to=gtk \
+          	--nofollow-import-to=pyqt4 \
+          	--nofollow-import-to=pyqt5 \
+          	--nofollow-import-to=pyqt6 \
+          	--nofollow-import-to=*.tests \
+          	--noinclude-pytest-mode=nofollow \
+          	--noinclude-setuptools-mode=nofollow \
+          	--plugin-disable=pyqt5 \
+          	--include-module=lzo \
+          	--include-module=pymorphy2 \
+          	--include-module=lxml \
+          	--include-module=polib \
+          	--include-module=yaml \
+          	--include-module=bs4 \
+          	--include-module=html5lib \
+          	--include-module=icu \
+          	--include-module=colorize_pinyin \
+          	--include-package-data=pyglossary \
+          	--include-data-files=about=about \
+          	--include-data-files=about=about \
+          	--include-data-files=_license-dialog=_license-dialog \
+          	--include-data-dir=res=. \
+          	--include-data-files=_license-dialog=license-dialog \
+          	--noinclude-custom-mode=unittest:nofollow \
+          	--output-dir="$DIST_DIR" \
+          	--output-filename=$APPNAME \
+          	$APPNAME.py
+                  
+      - name: Copy files
+        shell: python
+        run: |
+            from pathlib import Path
+            import shutil
+            import sys
+            import os
+            
+            dist_dir = os.getenv("DIST_DIR")
+            app_name = os.getenv("APPNAME")
+            
+            if not dist_dir or not app_name:
+                print('missing env vars')
+                sys.exit(0)
+            
+            dist_path = Path(dist_dir)
+            print(f'DIST_DIR={dist_path}, APPNAME={app_name}')
+            
+            target_path = dist_path / f"{app_name}.app/Contents/MacOS"
+            sources = ["about", "AUTHORS", "_license-dialog", "config.json", "plugins-meta", "help", "res", "pyglossary"]
+            
+            if not target_path.exists():
+                print(f'missing target dir {target_path.absolute()}')
+                sys.exit(0)
+            
+            for source in sources:
+                src = Path(source)
+                try:
+                    if src.is_dir():
+                        copied_to = shutil.copytree(src, target_path / src.name, dirs_exist_ok=True, symlinks=True, ignore_dangling_symlinks=True)
+                    else:
+                        copied_to = shutil.copy(src, target_path, follow_symlinks=False)
+                    print(f"Copied {src} -> {copied_to}")
+                except FileNotFoundError:
+                    print(f"Missing {src}")
+                except PermissionError:
+                    print(f"No access {src}")
+                except Exception as e:
+                    print(f"Failed {src}: {e}")
+            print("Done")
+
+      - name: Upload Artifacts zip
+        uses: actions/upload-artifact@v4
+        with:
+          # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
+          overwrite: true
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}-${{runner.name}}
+          path: |
+            ${{ env.DIST_DIR }}
+
+      - name: Create DMG
+        if: true
+        run: |
+          create-dmg --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
+
+      - name: Upload Artifacts DMG
+        if: true
+        uses: actions/upload-artifact@v4
+        with:
+          overwrite: true
+          # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}-${{runner.name}}
+          path: |
+            **/*.dmg
+
+  release:
+    needs: [build_macos]
+    # needs: [build_macos, build-w64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write    
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        
+        with:
+          path: ./artifacts
+          merge-multiple: true
+          
+      - name: List artifacts
+        run: |
+          pwd
+          echo ${{ github.workspace }}/artifacts
+          ls -alh ${{ github.workspace }}
+          find .       
+
+      - name: make release
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ github.event.repository.name }}-${{ github.ref_name }}
+          # body: macos-${{ matrix.architecture }}
+          artifacts: "artifacts/*.zip,artifacts/*.dmg"
+          artifactContentType: application/zip
+          generateReleaseNotes: false
+          makeLatest: true
+          allowUpdates: true
+          tag: ${{ env.TAG }}
+        
