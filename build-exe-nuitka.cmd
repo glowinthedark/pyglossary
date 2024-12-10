@@ -16,7 +16,7 @@ if "%VIRTUAL_ENV%" == "" (
 
 set OUTPUT_DIR=build.PyGlossaryWinNuitka
 
-python -m nuitka --plugin-enable=dll-files --plugin-enable=anti-bloat --follow-imports --standalone --windows-console-mode=disable --windows-icon-from-ico=res\pyglossary.ico --enable-plugin=tk-inter --include-package=pyglossary --include-module=tkinter.tix --include-module=lzo --include-module=pymorphy2 --include-module=lxml --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module=prompt_toolkit --include-module=colorize_pinyin --include-package-data=pyglossary --include-data-files=about=about --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --noinclude-custom-mode=unittest:nofollow main.py --output-dir="%OUTPUT_DIR%" --output-filename=pyglossary.exe
+python -m nuitka --plugin-enable=dll-files --plugin-enable=anti-bloat --follow-imports --standalone --windows-console-mode=disable --windows-icon-from-ico=res\pyglossary.ico --enable-plugin=tk-inter --include-package=pyglossary --include-module=tkinter --include-module=lzo --include-module=pymorphy2 --include-module=lxml --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module=colorize_pinyin --include-package-data=pyglossary --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --noinclude-custom-mode=unittest:nofollow main.py --output-dir="%OUTPUT_DIR%" --output-filename=pyglossary.exe
 
 rem FIXME: NOT including all files! --include-data-dir="C:\Python312\tcl\tix8.4.3"=tix8.4.3
 

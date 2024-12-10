@@ -1,0 +1,15 @@
+PyYAML
+beautifulsoup4
+colorize_pinyin
+html5lib
+lxml
+nuitka
+polib
+pyinstaller
+pymorphy2
+pyyaml
+--extra-index-url https://glowinthedark.github.io/python-lzo/
+python-lzo
+--extra-index-url https://glowinthedark.github.io/pyicu-build
+pyicu
+
