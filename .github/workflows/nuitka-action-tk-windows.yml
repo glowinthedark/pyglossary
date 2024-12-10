@@ -122,9 +122,9 @@ jobs:
             about=about
             _license-dialog=_license-dialog
             _license-dialog=license-dialog
-          include-data-dir: |
-            res=res
-            plugins-meta=plugins-meta     
+          # include-data-dir: |
+          #   res=res
+          #   plugins-meta=plugins-meta     
           include-module: |
             lzo 
             lxml 
