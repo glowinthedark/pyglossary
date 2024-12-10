@@ -1,4 +1,4 @@
-name: 'macOS DMG'
+name: 'macOS tk nuitka DMG'
 
 on:
   workflow_dispatch:
