@@ -58,13 +58,13 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew install \
-             python-tk@${{ matrix.python-version }} \
              libffi \
              gettext \
              pkg-config \
              intltool \
              icu4c \
              create-dmg
+             # already installed?             python-tk@${{ matrix.python-version }} \
       
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
