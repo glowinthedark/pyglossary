@@ -69,6 +69,8 @@ jobs:
 
       - name: "Install Dependencies (PyICU python-lzo require msbuildtools)"
         run: |
+          uv venv
+          source .venv/bin/activate
           uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit nuitka colorize_pinyin wheel setuptools
           uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
           uv pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
@@ -77,14 +79,20 @@ jobs:
           # uv pip install https://github.com/glowinthedark/pyicu-build/releases/download/v2.14/PyICU-2.14-cp312-cp312-win_amd64.whl
           # uv pip install https://github.com/glowinthedark/python-lzo/releases/download/v1.16/python_lzo-1.16-cp312-cp312-win_amd64.whl
 
-      - name: Prepare nuitka build
-        shell: bash
+      - name: patch
+        shell: python
         run: |
-          cp $MAIN_SCRIPT $APPNAME.py
-          rm __init__.py
-          sed -i '' 's/default="auto"/default="tk"/g' pyglossary/ui/argparse_main.py
-          sed -i '' 's/self\.tk_inter_version in ("8\.5", "8\.6")/self.tk_inter_version in ("8.5", "8.6", "9.0")/' .venv/lib/python3.12/site-packages/nuitka/plugins/standard/TkinterPlugin.py || true
-
+          from shutil import copy
+          from pathlib import Path
+          try:
+              copy(os.getenv("MAIN_SCRIPT"), os.getenv("APPNAME"))
+              Path('__init__.py').unlink()
+              p = Path('pyglossary/ui/argparse_main.py'); p.write_text(p.read_text().replace('default="auto"', 'default="tk"'))
+              p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'))
+              p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'))
+              p = Path('.venv/lib/python3.12/site-packages/nuitka/plugins/standard/TkinterPlugin.py'); p.write_text(p.read_text().replace('self.tk_inter_version in ("8.5", "8.6")', 'self.tk_inter_version in ("8.5", "8.6", "9.0")'))
+          except Exception as e:
+              print(str(e))
 
       - name: Nuitka build
         shell: cmd
