@@ -111,7 +111,7 @@ jobs:
         with:
           nuitka-version: main
           script-name: main.py
-          standalone: true
+          # standalone: true
           # mode: app
           enable-plugins: |
             no-qt
