@@ -77,7 +77,7 @@ website = (
 	"https://github.com/soshial/xdxf_makedict/tree/master/format_standard",
 	"XDXF standard - @soshial/xdxf_makedict",
 )
-optionsProp: "dict[str, Option]" = {
+optionsProp: dict[str, Option] = {
 	"html": BoolOption(comment="Entries are HTML"),
 	"xsl": BoolOption(
 		comment="Use XSL transformation",
@@ -108,9 +108,9 @@ class Reader:
 	def __init__(self, glos: GlossaryType) -> None:
 		self._glos = glos
 		self._filename = ""
-		self._file: "io.IOBase" = nullBinaryIO
+		self._file: io.IOBase = nullBinaryIO
 		self._encoding = "utf-8"
-		self._htmlTr: "TransformerType | None" = None
+		self._htmlTr: TransformerType | None = None
 		self._re_span_k = re.compile(
 			'<span class="k">[^<>]*</span>(<br/>)?',
 		)
@@ -175,7 +175,7 @@ class Reader:
 		cfile.seek(0, 2)
 		self._fileSize = cfile.tell()
 		cfile.seek(0)
-		self._glos.setInfo("input_file_size", f"{self._fileSize}")
+		self._glos.setInfo("input_file_size", str(self._fileSize))
 
 	def __len__(self) -> int:
 		return 0
@@ -204,7 +204,7 @@ class Reader:
 				if len(words) == 1:
 					defi = self._re_span_k.sub("", defi)
 			else:
-				b_defi = cast(bytes, tostring(article, encoding=self._encoding))
+				b_defi = cast("bytes", tostring(article, encoding=self._encoding))
 				defi = b_defi[4:-5].decode(self._encoding).strip()
 				defiFormat = "x"
 
@@ -265,7 +265,7 @@ class Reader:
 	def _mktitle(  # noqa: PLR6301
 		self,
 		title_element: Element,
-		include_opts: "Sequence | None" = None,
+		include_opts: Sequence | None = None,
 	) -> str:
 		if include_opts is None:
 			include_opts = ()

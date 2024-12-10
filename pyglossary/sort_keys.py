@@ -22,10 +22,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 if TYPE_CHECKING:
-	from collections.abc import Callable
-
 	from .icu_types import T_Collator, T_Locale
-	from .sort_keys_type import SortKeyType, SQLiteSortKeyType
+	from .sort_keys_types import (
+		LocaleSortKeyMakerType,
+		SortKeyMakerType,
+		SQLiteSortKeyMakerType,
+	)
 
 __all__ = [
 	"LocaleNamedSortKey",
@@ -41,8 +43,8 @@ defaultSortKeyName = "headword_lower"
 class NamedSortKey(NamedTuple):
 	name: str
 	desc: str
-	normal: SortKeyType
-	sqlite: SQLiteSortKeyType
+	normal: SortKeyMakerType | None
+	sqlite: SQLiteSortKeyMakerType | None
 
 
 @dataclass(slots=True)  # not frozen because of mod
@@ -62,20 +64,21 @@ class LocaleNamedSortKey:
 		self.mod = mod
 		return mod
 
+	# mypy seems to have problems with @property
 	@property
-	def normal(self) -> SortKeyType:
+	def normal(self) -> SortKeyMakerType:
 		return self.module.normal
 
 	@property
-	def sqlite(self) -> SQLiteSortKeyType:
+	def sqlite(self) -> SQLiteSortKeyMakerType:
 		return self.module.sqlite
 
 	@property
-	def locale(self) -> SortKeyType | None:
+	def locale(self) -> LocaleSortKeyMakerType | None:
 		return getattr(self.module, "locale", None)
 
 	@property
-	def sqlite_locale(self) -> Callable[..., SQLiteSortKeyType] | None:
+	def sqlite_locale(self) -> SQLiteSortKeyMakerType | None:
 		return getattr(self.module, "sqlite_locale", None)
 
 
@@ -118,7 +121,7 @@ _sortKeyByName = {item.name: item for item in namedSortKeyList}
 
 
 def lookupSortKey(sortKeyId: str) -> NamedSortKey | None:
-	localeName: "str | None" = None
+	localeName: str | None = None
 
 	parts = sortKeyId.split(":")
 	if len(parts) == 1:
@@ -145,15 +148,15 @@ def lookupSortKey(sortKeyId: str) -> NamedSortKey | None:
 
 	from icu import Collator, Locale  # type: ignore
 
-	localeObj: "T_Locale" = Locale(localeName)
+	localeObj: T_Locale = Locale(localeName)
 	localeNameFull = localeObj.getName()
-	collator: "T_Collator" = Collator.createInstance(localeObj)
+	collator: T_Collator = Collator.createInstance(localeObj)
 
 	return NamedSortKey(
 		name=f"{localeSK.name}:{localeNameFull}",
 		desc=f"{localeSK.desc}:{localeNameFull}",
-		normal=localeSK.locale(collator) if localeSK.locale else None,
-		sqlite=localeSK.sqlite_locale(collator) if localeSK.sqlite_locale else None,
+		normal=localeSK.locale(collator) if localeSK.locale else None,  # pyright: ignore[reportArgumentType]
+		sqlite=localeSK.sqlite_locale(collator) if localeSK.sqlite_locale else None,  # pyright: ignore[reportArgumentType]
 	)
 
 

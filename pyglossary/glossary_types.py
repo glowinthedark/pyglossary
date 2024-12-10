@@ -4,6 +4,7 @@ import typing
 from collections.abc import (
 	Callable,
 	Iterator,
+	Sequence,
 )
 
 # -*- coding: utf-8 -*-
@@ -30,11 +31,10 @@ __all__ = [
 
 MultiStr: TypeAlias = "str | list[str]"
 
-# 3 different types in order:
-# - compressed
-# - uncompressed, without defiFormat
-# - uncompressed, with defiFormat
-RawEntryType: TypeAlias = "bytes |tuple[list[str], bytes] |tuple[list[str], bytes, str]"
+# str(rawEntry[0]): defiFormat or ""
+# rawEntry[1]: b_defi
+# rawEntry[2:]: b_word_list
+RawEntryType: TypeAlias = Sequence[bytes]
 
 
 class EntryType(typing.Protocol):  # noqa: PLR0904
@@ -58,6 +58,9 @@ class EntryType(typing.Protocol):  # noqa: PLR0904
 	def l_word(self) -> list[str]: ...
 
 	@property
+	def lb_word(self) -> list[bytes]: ...
+
+	@property
 	def defi(self) -> str: ...
 
 	@property
@@ -76,13 +79,13 @@ class EntryType(typing.Protocol):  # noqa: PLR0904
 		# TODO: type: Literal["m", "h", "x", "b"]
 		...
 
-	def detectDefiFormat(self) -> None: ...
+	def detectDefiFormat(self, default: str = "") -> str: ...
 
 	def addAlt(self, alt: str) -> None: ...
 
-	def editFuncWord(self, func: "Callable[[str], str]") -> None: ...
+	def editFuncWord(self, func: Callable[[str], str]) -> None: ...
 
-	def editFuncDefi(self, func: "Callable[[str], str]") -> None: ...
+	def editFuncDefi(self, func: Callable[[str], str]) -> None: ...
 
 	def strip(self) -> None: ...
 
@@ -102,15 +105,9 @@ class EntryType(typing.Protocol):  # noqa: PLR0904
 class EntryListType(typing.Protocol):
 	def __init__(
 		self,
-		entryToRaw: "Callable[[EntryType], RawEntryType]",
-		entryFromRaw: "Callable[[RawEntryType], EntryType]",
+		entryToRaw: Callable[[EntryType], RawEntryType],
+		entryFromRaw: Callable[[RawEntryType], EntryType],
 	) -> None: ...
-
-	@property
-	def rawEntryCompress(self) -> bool: ...
-
-	@rawEntryCompress.setter
-	def rawEntryCompress(self, enable: bool) -> None: ...
 
 	def append(self, entry: EntryType) -> None: ...
 
@@ -120,11 +117,13 @@ class EntryListType(typing.Protocol):
 
 	def __iter__(self) -> Iterator[EntryType]: ...
 
+	def hasSortKey(self) -> bool: ...
+
 	def setSortKey(
 		self,
 		namedSortKey: NamedSortKey,
-		sortEncoding: "str | None",
-		writeOptions: "dict[str, Any]",
+		sortEncoding: str | None,
+		writeOptions: dict[str, Any],
 	) -> None: ...
 
 	def sort(self) -> None: ...
@@ -202,7 +201,7 @@ class GlossaryType(typing.Protocol):  # noqa: PLR0904
 		_class: str = "",
 	) -> str: ...
 
-	def getConfig(self, name: str, default: "str | None") -> str | None: ...
+	def getConfig(self, name: str, default: str | None) -> str | None: ...
 
 	def addEntry(self, entry: EntryType) -> None: ...
 
@@ -211,22 +210,21 @@ class GlossaryType(typing.Protocol):  # noqa: PLR0904
 		word: MultiStr,
 		defi: str,
 		defiFormat: str = "",
-		byteProgress: "tuple[int, int] | None" = None,
+		byteProgress: tuple[int, int] | None = None,
 	) -> EntryType: ...
 
 	def newDataEntry(self, fname: str, data: bytes) -> EntryType: ...
 
-	@property
-	def rawEntryCompress(self) -> bool: ...
-
 	def stripFullHtml(
 		self,
-		errorHandler: "Callable[[EntryType, str], None] | None" = None,
+		errorHandler: Callable[[EntryType, str], None] | None = None,
 	) -> None: ...
 
 	def preventDuplicateWords(self) -> None: ...
 
 	def removeHtmlTagsAll(self) -> None: ...
+
+	def addCleanupPath(self, path: str) -> None: ...
 
 
 class GlossaryExtendedType(GlossaryType, typing.Protocol):

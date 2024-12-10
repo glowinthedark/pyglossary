@@ -39,22 +39,13 @@ log = logging.getLogger("pyglossary")
 class EntryList:
 	def __init__(
 		self,
-		entryToRaw: "Callable[[EntryType], RawEntryType]",
-		entryFromRaw: "Callable[[RawEntryType], EntryType]",
+		entryToRaw: Callable[[EntryType], RawEntryType],
+		entryFromRaw: Callable[[RawEntryType], EntryType],
 	) -> None:
 		self._l: list[RawEntryType] = []
 		self._entryToRaw = entryToRaw
 		self._entryFromRaw = entryFromRaw
-		self._sortKey: "Callable[[RawEntryType], Any] | None" = None
-		self._rawEntryCompress = False
-
-	@property
-	def rawEntryCompress(self) -> bool:
-		return self._rawEntryCompress
-
-	@rawEntryCompress.setter
-	def rawEntryCompress(self, enable: bool) -> None:
-		self._rawEntryCompress = enable
+		self._sortKey: Callable[[RawEntryType], Any] | None = None
 
 	def append(self, entry: EntryType) -> None:
 		self._l.append(self._entryToRaw(entry))
@@ -70,11 +61,14 @@ class EntryList:
 		for rawEntry in self._l:
 			yield entryFromRaw(rawEntry)
 
+	def hasSortKey(self) -> bool:
+		return bool(self._sortKey)
+
 	def setSortKey(
 		self,
 		namedSortKey: NamedSortKey,
-		sortEncoding: "str | None",
-		writeOptions: "dict[str, Any]",
+		sortEncoding: str | None,
+		writeOptions: dict[str, Any],
 	) -> None:
 		if namedSortKey.normal is None:
 			raise NotImplementedError(
@@ -86,7 +80,6 @@ class EntryList:
 		sortKey = namedSortKey.normal(**kwargs)
 		self._sortKey = Entry.getRawEntrySortKey(
 			key=sortKey,
-			rawEntryCompress=self._rawEntryCompress,
 		)
 
 	def sort(self) -> None:

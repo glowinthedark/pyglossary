@@ -47,6 +47,7 @@ def defineFlags(parser: argparse.ArgumentParser, config: dict[str, Any]):
 			"gtk",
 			"gtk4",
 			"tk",
+			"web",
 			# "qt",
 			"auto",
 			"none",
@@ -83,6 +84,14 @@ def defineFlags(parser: argparse.ArgumentParser, config: dict[str, Any]):
 		const="tk",
 		default=None,
 		help="use Tkinter-based user interface",
+	)
+	parser.add_argument(
+		"--web",
+		dest="ui_type",
+		action="store_const",
+		const="web",
+		default=None,
+		help="use web browser interface",
 	)
 	parser.add_argument(
 		"--interactive",
@@ -264,7 +273,7 @@ def defineFlags(parser: argparse.ArgumentParser, config: dict[str, Any]):
 		registerConfigOption(parser, key, option)
 
 
-def validateFlags(args: "argparse.Namespace", log: logging.Logger) -> bool:
+def validateFlags(args: argparse.Namespace, log: logging.Logger) -> bool:
 	from pyglossary.sort_keys import lookupSortKey, namedSortKeyList
 
 	for param1, param2 in UIBase.conflictingParams:

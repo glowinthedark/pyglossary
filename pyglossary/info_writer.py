@@ -20,7 +20,7 @@ class InfoWriter:
 	def __init__(self, glos: GlossaryType) -> None:
 		self._glos = glos
 		self._filename = ""
-		self._file: "io.TextIOBase" = nullTextIO
+		self._file: io.TextIOBase = nullTextIO
 
 	def open(self, filename: str) -> None:
 		self._filename = filename
@@ -54,13 +54,13 @@ class InfoWriter:
 
 		nonLowercaseWordCount = 0
 
-		styleByTagCounter: "dict[str, int]" = Counter()
+		styleByTagCounter: dict[str, int] = Counter()
 
-		defiFormatCounter: "dict[str, int]" = Counter()
-		firstTagCounter: "dict[str, int]" = Counter()
-		allTagsCounter: "dict[str, int]" = Counter()
-		sourceScriptCounter: "dict[str, int]" = Counter()
-		dataEntryExtCounter: "dict[str, int]" = Counter()
+		defiFormatCounter: dict[str, int] = Counter()
+		firstTagCounter: dict[str, int] = Counter()
+		allTagsCounter: dict[str, int] = Counter()
+		sourceScriptCounter: dict[str, int] = Counter()
+		dataEntryExtCounter: dict[str, int] = Counter()
 
 		while True:
 			entry = yield
@@ -79,8 +79,7 @@ class InfoWriter:
 				tag = m.group(1)
 				styleByTagCounter[tag] += 1
 
-			entry.detectDefiFormat()
-			defiFormat = entry.defiFormat
+			defiFormat = entry.detectDefiFormat("")
 			defiFormatCounter[defiFormat] += 1
 			if defiFormat == "m":
 				if re_possible_html.match(defi):
