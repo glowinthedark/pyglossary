@@ -58,7 +58,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew install \
-             python-tk \
+             python-tk@${{ matrix.python-version }} \
              libffi \
              gettext \
              pkg-config \
