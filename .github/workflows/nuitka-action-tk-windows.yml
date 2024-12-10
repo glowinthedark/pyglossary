@@ -38,9 +38,20 @@ jobs:
       RESOURCE_DIR: "resources" 
       
     steps:
-      - name: Check-out repository
+      - name: Check-out repo
         uses: actions/checkout@v4
+        with:
+          submodules: true
+          # Number of commits to fetch, ootb only 1 commit
+          # 0 = all history for all branches and tags. (needed for git describe)
+          fetch-depth: 0
+          fetch-tags: true
 
+      - name: set vars
+        id: envconf
+        run: |
+          echo "TAG=$(git describe)" >> $GITHUB_ENV
+          
       # - name: Set up Python ${{ matrix.python-version }} with uv
       #   run: uv python install ${{ matrix.python-version }}        
 
@@ -100,19 +111,50 @@ jobs:
         with:
           nuitka-version: main
           script-name: main.py
+          standalone: true
           mode: app
-          enable-plugins: no-qt tk-inter anti-bloat
+          enable-plugins: |
+            no-qt
+            tk-inter
+            anti-bloat
           include-package-data: pyglossary
-          include-data-files: about=about _license-dialog=_license-dialog _license-dialog=license-dialog
-          include-module: lzo lxml tkinter pymorphy2 polib yaml bs4 html5lib icu colorize_pinyin 
+          include-data-files: |
+            about=about
+            _license-dialog=_license-dialog
+            _license-dialog=license-dialog
+          include-data-dir: |
+            res=res
+            plugins-meta=plugins-meta     
+          include-module: |
+            lzo 
+            lxml 
+            tkinter
+            pymorphy2
+            polib
+            yaml
+            bs4
+            html5lib
+            icu
+            colorize_pinyin 
           include-package: pyglossary
-          include-plugin-directory: plugins-meta
-          nofollow-import-to: gtk gi prompt_toolkit pyqt4
+          noinclude-data-files: |
+            tests
+            scripts
+          include-plugin-directory: |
+            plugins-meta
+            res
+          nofollow-import-to: |
+            gtk
+            gi
+            prompt_toolkit
+            pyqt4
           assume-yes-for-downloads: true
+          clang: true
           windows-console-mode: force ## SEE https://github.com/Nuitka/Nuitka-Action/blob/main/action.yml#L280C1-L285C35
           windows-icon-from-ico: res\pyglossary.ico
           output-dir: ${{ env.DIST_DIR }}
           output-file: pyglossary.exe
+          file-version: ${{ env.TAG }}
           
       # - name: Nuitka build
       #   shell: cmd
