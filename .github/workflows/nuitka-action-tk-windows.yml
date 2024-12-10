@@ -1,0 +1,294 @@
+name: 'Nuitka-Action@main tk windows'
+on:
+  push:
+    branches:
+      - 'nuitka-none'
+    paths-ignore:
+      - '.vscode/**'
+      - 'doc/**'
+      - '*.md'
+      # - '.github/**'
+      
+  workflow_dispatch:
+
+jobs:
+  build_windows_x64:
+    strategy:
+      matrix:
+        python-version:
+          # - "3.10"
+          # - "3.11"
+          - "3.12"
+        # os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [windows-latest]
+        
+    runs-on: ${{ matrix.os }}
+    
+    env:
+      UV_SYSTEM_PYTHON: 1    
+      PYTHONWARNDEFAULTENCODING: true
+      APPNAME: PyGlossaryTk
+      DIST_DIR: dist.nuitka.tk
+      HOMEBREW_NO_INSTALL_CLEANUP: true
+      HOMEBREW_NO_ENV_HINTS: true
+      HOMEBREW_CLEANUP_MAX_AGE_DAYS: 999
+      HOMEBREW_NO_ANALYTICS: true
+      HOMEBREW_NO_AUTO_UPDATE: true
+      MAIN_SCRIPT: main.py
+      RESOURCE_DIR: "resources" 
+      
+    steps:
+      - name: Check-out repo
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          # Number of commits to fetch, ootb only 1 commit
+          # 0 = all history for all branches and tags. (needed for git describe)
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: set vars
+        id: envconf
+        run: |
+          echo "TAG=$(git describe)" >> $GITHUB_ENV
+          
+      # - name: Set up Python ${{ matrix.python-version }} with uv
+      #   run: uv python install ${{ matrix.python-version }}        
+
+      - name: "Set up Python 3.12"
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          # x86, x64, or arm64
+          architecture: 'x64'
+          # python-version-file: ".python-version"             
+
+      - name: Install uv
+        # https://docs.astral.sh/uv/guides/integration/github/#caching
+        uses: astral-sh/setup-uv@v4
+        # with:
+        #   enable-cache: true
+   
+      # - name: Setup Python
+      #   uses: actions/setup-python@v4
+      #   with:
+      #     python-version: '3.10' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+      #     architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+      #     cache: 'pip'
+      #     cache-dependency-path: |
+      #       **/requirements*.txt
+
+      - name: "Install Dependencies (PyICU python-lzo require msbuildtools)"
+        run: |
+          uv venv
+          .venv\Scripts\activate
+          uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit nuitka colorize_pinyin wheel setuptools
+          uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
+          uv pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
+          uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match PyICU
+          uv pip install git+https://github.com/ilius/pyglossary.git
+          # uv pip install https://github.com/glowinthedark/pyicu-build/releases/download/v2.14/PyICU-2.14-cp312-cp312-win_amd64.whl
+          # uv pip install https://github.com/glowinthedark/python-lzo/releases/download/v1.16/python_lzo-1.16-cp312-cp312-win_amd64.whl
+
+      - name: patch
+        shell: python
+        run: |
+          from shutil import copy
+          from pathlib import Path
+          try:
+              copy(os.getenv("MAIN_SCRIPT"), os.getenv("APPNAME"))
+              Path('__init__.py').unlink()
+              p = Path('pyglossary/ui/argparse_main.py'); p.write_text(p.read_text().replace('default="auto"', 'default="tk"'))
+              p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'))
+              p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'))
+              p = Path('.venv/lib/python3.12/site-packages/nuitka/plugins/standard/TkinterPlugin.py'); p.write_text(p.read_text().replace('self.tk_inter_version in ("8.5", "8.6")', 'self.tk_inter_version in ("8.5", "8.6", "9.0")'))
+          except Exception as e:
+              print(str(e))
+              
+      # Build python script into a single execute or app folder (macOS)
+      # https://github.com/Nuitka/Nuitka-Action
+      - uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: main.py
+          # standalone: true
+          # mode: app
+          enable-plugins: |
+            no-qt
+            tk-inter
+            anti-bloat
+          include-package-data: pyglossary
+          include-data-files: |
+            about=about
+            _license-dialog=_license-dialog
+            _license-dialog=license-dialog
+          # include-data-dir: |
+          #   res=res
+          #   plugins-meta=plugins-meta     
+          include-module: |
+            lzo 
+            lxml 
+            tkinter
+            pymorphy2
+            polib
+            yaml
+            bs4
+            html5lib
+            icu
+            colorize_pinyin 
+          include-package: pyglossary
+          noinclude-data-files: |
+            tests
+            scripts
+          include-plugin-directory: |
+            plugins-meta
+            res
+          nofollow-import-to: |
+            gtk
+            gi
+            prompt_toolkit
+            pyqt4
+          assume-yes-for-downloads: true
+          clang: true
+          # windows-console-mode: force ## SEE https://github.com/Nuitka/Nuitka-Action/blob/main/action.yml#L280C1-L285C35
+          windows-icon-from-ico: res\pyglossary.ico
+          output-dir: ${{ env.DIST_DIR }}
+          # output-file: pyglossary.exe
+          file-version: ${{ env.TAG }}
+          
+      # - name: Nuitka build
+      #   shell: cmd
+      #   run: |
+      #     python -m nuitka --standalone --assume-yes-for-downloads --plugin-enable=dll-files --plugin-enable=anti-bloat --follow-imports --windows-console-mode=disable --windows-icon-from-ico=res\pyglossary.ico --enable-plugin=tk-inter --include-package=pyglossary --include-module=tkinter --include-module=lzo --include-module=pymorphy2 --include-module=lxml --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu  --include-module=colorize_pinyin --include-package-data=pyglossary --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --noinclude-custom-mode=unittest:nofollow --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --nofollow-import-to=pyglossary.ui.ui_gtk --nofollow-import-to=pyglossary.ui.ui_gtk4 --nofollow-import-to=pyglossary.ui.ui_qt --nofollow-import-to=gi --nofollow-import-to=gtk --nofollow-import-to=pyqt4 --nofollow-import-to=pyqt5 --nofollow-import-to=pyqt6 --nofollow-import-to=*.tests --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --plugin-disable=pyqt5 main.py --output-dir="${{ env.DIST_DIR }}" --output-filename=pyglossary.exe
+
+      - name: Copy assets
+        shell: python
+        run: |
+            from pathlib import Path
+            import shutil
+            import sys
+            import os
+            
+            dist_dir = os.getenv("DIST_DIR")
+            app_name = os.getenv("APPNAME")
+            
+            if not dist_dir or not app_name:
+                print('missing env vars')
+                sys.exit(0)
+            
+            dist_path = Path(dist_dir)
+            print(f'DIST_DIR={dist_path}, APPNAME={app_name}')
+            
+            target_path = dist_path / f"{app_name}.app/Contents/MacOS"
+            sources = ["about", "AUTHORS", "_license-dialog", "config.json", "plugins-meta", "help", "res", "pyglossary"]
+            
+            if not target_path.exists():
+                print(f'missing target dir {target_path.absolute()}')
+                sys.exit(0)
+            
+            for source in sources:
+                src = Path(source)
+                try:
+                    if src.is_dir():
+                        copied_to = shutil.copytree(src, target_path / src.name, dirs_exist_ok=True, symlinks=True, ignore_dangling_symlinks=True)
+                    else:
+                        copied_to = shutil.copy(src, target_path, follow_symlinks=False)
+                    print(f"Copied {src} -> {copied_to}")
+                except FileNotFoundError:
+                    print(f"Missing {src}")
+                except PermissionError:
+                    print(f"No access {src}")
+                except Exception as e:
+                    print(f"Failed {src}: {e}")
+            print("Done")
+      # - name: Build Executable
+      #   uses: Nuitka/Nuitka-Action@main
+      #   with:
+      #     nuitka-version: main
+      #     script-name: main.py
+      #     enable-plugins: 'tk-inter'
+      #     include-package: 'pyglossary'
+      #     windows-icon-from-ico: 'res/pyglossary.ico'
+      #     # onefile: true
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
+          # branch name: ${{ github.ref_name }}
+          include-hidden-files: true
+          name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+          path: |
+            ${{ env.DIST_DIR }}/**/*
+
+
+# - name: 
+#   # You may pin to the exact commit or the version.
+#   # uses: JustUndertaker/Nuitka-Action@8819a38343397ff46d960ab9cb40f488d886c2fa
+#   uses: JustUndertaker/Nuitka-Action@v1.0
+#   with:
+#     # Version of nuitka to use
+#     nuitka-version: # optional, default is main
+#     # Name or path to python script that is to be built
+#     script-name: 
+#     # Create an extension module executable instead of a program. Defaults to off.
+#     module: # optional
+#     # Enable standalone mode for output. This allows you to transfer the created binary to other machines without it using an existing Python installation. This also means it will become big. It implies these option: "-- follow-imports" and "--python-flag=no_site". Defaults to true.
+#     standalone: # optional, default is true
+#     # On top of standalone mode, enable onefile mode. This means not a folder, but a compressed executable is created and used. Defaults to true.
+#     onefile: # optional, default is true
+#     # Allow Nuitka to download external code if necessary, e.g. dependency walker, ccache, and even gcc on Windows. To disable, redirect input from nul device, e.g. "</dev/null" or "<NUL:". Default is to prompt.
+#     assume-yes-for-downloads: # optional, default is true
+#     # Displays the detailed C compilation info from Scons during build process (useful for debugging purposes)
+#     show-scons: # optional, default is true
+#     # A comma separated list of plugins, such as pyside2, pyside6, tk-inter, etc.
+#     enable-plugins: # optional
+#     # Include data files from complete directory in the distribution. This is recursive. Check "--include-data-files" with patterns if you want non-recursive inclusion. An example would be "--include-data-dir=/path/some_dir=data/some_dir" for plain copy, of the whole directory. All files are copied, if you want to exclude files you need to remove them beforehand, or use "--noinclude-data-files" option to remove them. Default empty.
+#     include-data-dir: # optional
+#     # Include a whole package. Give as a Python namespace, e.g. "some_package.sub_package" and Nuitka will then find it and include it and all the modules found below that disk location in the binary or extension module it creates, and make it available for import by the code. To avoid unwanted sub packages, e.g. tests you can e.g. do this "--nofollow-import-to=*.tests". Default empty.
+#     include-package: # optional
+#     # Include package data. Detects data files of packages automatically and copies them over. Can be a list. Default empty.
+#     include-package-data: # optional
+#     # Include a single module. Give as a Python namespace, e.g. "some_package.some_module" and Nuitka will then find it and include it in the binary or extension module it creates, and make it available for import by the code. Default empty.
+#     include-module: # optional
+#     # Include the content of that directory, no matter if it is used by the given main program in a visible form. Overrides all other inclusion options. Can be given multiple times. Default empty.
+#     include-plugin-directory: # optional
+#     # Include into files matching the PATTERN. Overrides all other follow options. Can be given multiple times. Default empty.
+#     include-plugin-files: # optional
+#     # For already compiled extension modules, where there is both a source file and an extension module, normally the extension module is used, but it should be better to compile the module from available source code for best performance. If not desired, there is --no- prefer-source-code to disable warnings about it. Default off.
+#     prefer-source-code: # optional
+#     # User provided YAML file with package configuration. You can include DLLs, remove bloat, add hidden dependencies. Check User Manual for a complete description of the format to use. Can be given multiple times. Defaults to empty.
+#     user-package-configuration-file: # optional
+#     # Directory for output builds
+#     output-dir: # optional, default is build
+#     # Specify how the executable should be named. For extension modules there is no choice, also not for standalone mode and using it will be an error. This may include path information that needs to exist though. Defaults to '<program_name>' on this platform. .exe)
+#     output-file: # optional
+#     # Github personal access token of an account authorized to access the Nuitka/Nuitka-commercial repo
+#     access-token: # optional
+#     # When compiling for Windows or macOS, enable the console window and create a console application. This disables hints from certain modules, e.g. "PySide" that suggest to disable it. Defaults to true.
+#     enable-console: # optional, default is true
+#     # When compiling for Windows or macOS, disable the console window and create a GUI application. Defaults to false.
+#     disable-console: # optional
+#     # Add executable icon. Can be given multiple times for different resolutions or files with multiple icons inside. In the later case, you may also suffix with \#<n> where n is an integer index starting from 1, specifying a specific icon to be included, and all others to be ignored.
+#     windows-icon-from-ico: # optional
+#     # Request Windows User Control, to grant admin rights on execution. (Windows only). Defaults to off.
+#     windows-uac-admin: # optional
+#     # Request Windows User Control, to enforce running from a few folders only, remote desktop access. (Windows only). Defaults to off.
+#     windows-uac-uiaccess: # optional
+#     # Name of the company to use in Windows Version information.  One of file or product version is required, when a version resource needs to be added, e.g. to specify product name, or company name. Defaults to GITHUB_REPOSITORY_OWNER.
+#     windows-company-name: # optional, default is ${{ github.repository_owner }}
+#     # Name of the product to use in Windows Version information. Defaults to base filename of the binary.
+#     windows-product-name: # optional
+#     # File version to use in Windows Version information. Must be a sequence of up to 4 numbers, e.g. 1.0.0.0, only this format is allowed. One of file or product version is required, when a version resource needs to be added, e.g. to specify product name, or company name. Defaults to unused.
+#     windows-file-version: # optional
+#     # Product version to use in Windows Version information. Must be a sequence of up to 4 numbers, e.g. 1.0.0.0, only this format is allowed. One of file or product version is required, when a version resource needs to be added, e.g. to specify product name, or company name. Defaults to unused.
+#     windows-product-version: # optional
+#     # Description of the file use in Windows Version information.  One of file or product version is required, when a version resource needs to be added, e.g. to specify product name, or company name. Defaults to nonsense.
+#     windows-file-description: # optional
+#     # Use this as a temporary folder. Defaults to '%TEMP%\onefile_%PID%_%TIME%', i.e. system temporary directory.
+#     windows-onefile-tempdir-spec: # optional
+#     # Allows/enforces building with MinGW64
+#     mingw64: # optional
+#     # When compiling for macOS, create a bundle rather than a plain binary application. Currently experimental and incomplete. Currently this is the only way to unlock disabling of console. Defaults to false.
+#     macos-create-app-bundle: # optional
+          
