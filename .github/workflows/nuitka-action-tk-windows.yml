@@ -150,7 +150,7 @@ jobs:
             pyqt4
           assume-yes-for-downloads: true
           clang: true
-          windows-console-mode: force ## SEE https://github.com/Nuitka/Nuitka-Action/blob/main/action.yml#L280C1-L285C35
+          # windows-console-mode: force ## SEE https://github.com/Nuitka/Nuitka-Action/blob/main/action.yml#L280C1-L285C35
           windows-icon-from-ico: res\pyglossary.ico
           output-dir: ${{ env.DIST_DIR }}
           output-file: pyglossary.exe
