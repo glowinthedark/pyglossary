@@ -223,7 +223,7 @@ jobs:
       - name: Create DMG
         if: true
         run: |
-          create-dmg --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
+          create-dmg --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
 
       - name: Upload Artifacts DMG
         if: true
