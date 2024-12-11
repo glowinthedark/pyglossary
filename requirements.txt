@@ -1,15 +1,26 @@
 PyYAML
 beautifulsoup4
+bs4
 colorize_pinyin
 html5lib
+icu
+libzim
 lxml
+lzo
+marisa-trie
+mistune
 nuitka
 polib
+prompt-toolkit
+psutil
+pygments
 pyinstaller
 pymorphy2
+python-idzip
 pyyaml
---extra-index-url https://glowinthedark.github.io/python-lzo/
+romkan
+tqdm
+xxhash
 python-lzo
---extra-index-url https://glowinthedark.github.io/pyicu-build
 pyicu
 
