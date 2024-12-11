@@ -125,16 +125,16 @@ jobs:
           # include-data-dir: |
           #   res=res
           #   plugins-meta=plugins-meta     
-          include-module: |
-            lxml 
-            tkinter
-            pymorphy2
-            polib
-            yaml
-            bs4
-            html5lib
-            icu
-            colorize_pinyin 
+          # include-module: |
+          #   lxml 
+          #   tkinter
+          #   pymorphy2
+          #   polib
+          #   yaml
+          #   bs4
+          #   html5lib
+          #   icu
+          #   colorize_pinyin 
           include-package: pyglossary
           noinclude-data-files: |
             tests
