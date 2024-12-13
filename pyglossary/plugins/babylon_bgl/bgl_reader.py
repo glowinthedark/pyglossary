@@ -173,7 +173,7 @@ class BGLGzipFile(GzipFile):
 		self,
 		fileobj: io.IOBase | None = None,
 		closeFileobj: bool = False,
-		**kwargs,
+		**kwargs,  # noqa: ANN003
 	) -> None:
 		GzipFile.__init__(self, fileobj=fileobj, **kwargs)
 		self.closeFileobj = closeFileobj
@@ -793,12 +793,12 @@ class BglReader:
 				yield self.readType2(block)
 
 			elif block.type == 11:
-				succeed, _u_word, u_alts, u_defi = self.readEntry_Type11(block)
+				succeed, u_word, u_alts, u_defi = self.readEntry_Type11(block)
 				if not succeed:
 					continue
 
 				yield self._glos.newEntry(
-					[_u_word] + u_alts,
+					[u_word] + u_alts,
 					u_defi,
 				)
 
@@ -1060,7 +1060,7 @@ class BglReader:
 		pass
 
 	@staticmethod
-	def decodeCharsetTagsBabylonReference(b_text: bytes, b_text2: bytes):
+	def decodeCharsetTagsBabylonReference(b_text: bytes, b_text2: bytes) -> str:
 		b_refs = b_text2.split(b";")
 		add_text = ""
 		for i_ref, b_ref in enumerate(b_refs):
@@ -1213,10 +1213,10 @@ class BglReader:
 			u_word = replaceHtmlEntriesInKeys(u_word)
 			# u_word = u_word.replace("<BR>", "").replace("<BR/>", "")\
 			# 	.replace("<br>", "").replace("<br/>", "")
-			_u_word_copy = u_word
+			u_word_copy = u_word
 			u_word = stripHtmlTags(u_word)
-			if u_word != _u_word_copy:
-				u_word_html = _u_word_copy
+			if u_word != u_word_copy:
+				u_word_html = u_word_copy
 			# if(re.match(".*[&<>].*", _u_word_copy)):
 			# 	log.debug("original text: " + _u_word_copy + "\n" \
 			# 			  + "new      text: " + u_word + "\n")

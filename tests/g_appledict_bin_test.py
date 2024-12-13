@@ -7,7 +7,7 @@ sys.path.insert(0, rootDir)
 
 from glossary_v2_test import TestGlossaryBase
 
-from pyglossary.glossary import Glossary
+from pyglossary.glossary_v2 import ConvertArgs, Glossary
 
 
 class TestGlossaryAppleDictBin(TestGlossaryBase):
@@ -73,13 +73,15 @@ class TestGlossaryAppleDictBin(TestGlossaryBase):
 		)
 
 		result = self.glos.convert(
-			inputFilename=inputDirPath,
-			outputFilename=outputFilePath,
-			inputFormat="AppleDictBin",
-			outputFormat="Tabfile",
-			readOptions={
-				"html_full": html_full,
-			},
+			ConvertArgs(
+				inputFilename=inputDirPath,
+				outputFilename=outputFilePath,
+				inputFormat="AppleDictBin",
+				outputFormat="Tabfile",
+				readOptions={
+					"html_full": html_full,
+				},
+			)
 		)
 		self.assertIsNotNone(result)
 		self.assertEqual(result, outputFilePath)
@@ -112,9 +114,9 @@ class TestGlossaryAppleDictBin(TestGlossaryBase):
 			"Contents/MyDictionary.xsl",
 			"Contents/MyDictionary_prefs.html",
 		]
-		_internal = "Images/_internal_dictionary.png"
+		internal = "Images/_internal_dictionary.png"
 		resFiles = {
-			_internal: f"Contents/{_internal}",
+			internal: f"Contents/{internal}",
 		}
 		self.convert_appledict_binary_to_txt(baseName, files, resFiles=resFiles)
 

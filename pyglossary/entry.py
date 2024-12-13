@@ -119,7 +119,7 @@ class DataEntry(BaseEntry):  # noqa: PLR0904
 	def defiFormat(self, defiFormat: str) -> None:
 		pass
 
-	def detectDefiFormat(self, default: str = "") -> str:  # noqa: ARG002
+	def detectDefiFormat(self, default: str = "") -> str:  # noqa: ARG002, PLR6301
 		return "b"
 
 	def addAlt(self, alt: str) -> None:
@@ -150,7 +150,8 @@ class DataEntry(BaseEntry):  # noqa: PLR0904
 		pass
 
 
-class Entry(BaseEntry):
+# Too many public methods (21 > 20)
+class Entry(BaseEntry):  # noqa: PLR0904
 	xdxfPattern = re.compile("^<k>[^<>]*</k>", re.DOTALL | re.IGNORECASE)
 	htmlPattern = re.compile(
 		".*(?:"
@@ -195,7 +196,7 @@ class Entry(BaseEntry):
 	def getRawEntrySortKey(
 		key: Callable[[bytes], Any],
 	) -> Callable[[RawEntryType], Any]:
-		def newKey(x: RawEntryType) -> Any:
+		def newKey(x: RawEntryType) -> Any:  # noqa: ANN401
 			# x is rawEntry, so x[2:] is list[bytes]: list of words in bytes
 			return key([b.decode("utf-8") for b in x[2:]])  # type: ignore
 

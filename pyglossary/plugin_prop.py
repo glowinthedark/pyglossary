@@ -156,7 +156,7 @@ class PluginProp:  # noqa: PLR0904
 		return self
 
 	@classmethod
-	def fromModule(cls: type, mod: Any) -> PluginProp:
+	def fromModule(cls: type, mod: Any) -> PluginProp:  # noqa: ANN401
 		self = cls()
 		self._mod = mod
 		self._Reader = None
@@ -199,13 +199,13 @@ class PluginProp:  # noqa: PLR0904
 		return self._enable
 
 	@property
-	def module(self) -> Any:
+	def module(self) -> Any:  # noqa: ANN401
 		if self._mod is not None:
 			return self._mod
 		moduleName = self._moduleName
 		log.debug(f"importing {moduleName} in DictPluginProp")
 		try:
-			_mod = __import__(
+			mod = __import__(
 				f"pyglossary.plugins.{moduleName}",
 				fromlist=moduleName,
 			)
@@ -221,9 +221,9 @@ class PluginProp:  # noqa: PLR0904
 
 		# self._mod = _mod
 		if core.isDebug():
-			self.checkModule(_mod)
+			self.checkModule(mod)
 
-		return _mod
+		return mod
 
 	@property
 	def lname(self) -> str:
@@ -376,7 +376,7 @@ class PluginProp:  # noqa: PLR0904
 			self._writeDepends = getattr(self.writerClass, "depends", {})
 		return self._writeDepends
 
-	def checkModule(self, module) -> None:
+	def checkModule(self, module: Any) -> None:  # noqa: ANN401
 		name = self.name
 
 		if hasattr(module, "write"):
@@ -434,12 +434,12 @@ class PluginProp:  # noqa: PLR0904
 	]
 
 	# only run this on CI to do extra validation
-	def checkModuleMore(self, module) -> None:
+	def checkModuleMore(self, module: Any) -> None:
 		name = self.name
 		if not hasattr(module, "__all__"):
 			raise PluginCheckError(f"Please add __all__ to plugin {name!r}")
-		_all = module.__all__
-		for attr in _all:
+		all_ = module.__all__
+		for attr in all_:
 			if not hasattr(module, attr):
 				raise PluginCheckError(
 					f"Undefined name {attr!r} in __all__ in plugin {name!r}"

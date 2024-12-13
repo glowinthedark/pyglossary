@@ -230,18 +230,6 @@ class TestGlossaryErrors(TestGlossaryErrorsBase):
 		self.assertEqual(res, ("test", "Tabfile", ""))
 		self.assertLogError("inputFilename is empty")
 
-	def test_init_infoBadType(self):
-		try:
-			Glossary(info=["a"])
-		except Exception as e:
-			self.assertEqual(str(type(e)), "<class 'TypeError'>")
-			self.assertEqual(
-				str(e),
-				"Glossary: `info` has invalid type, dict or OrderedDict expected",
-			)
-		else:
-			self.fail("did not raise an exception")
-
 	def test_cleanup_removed(self):
 		glos = Glossary()
 		tmpFname = "test_cleanup_removed"
@@ -523,15 +511,6 @@ class TestGlossaryErrors(TestGlossaryErrorsBase):
 			err = str(e)
 
 		self.assertEqual(err, "invalid sortKeyName = 'blah'")
-
-	# def test_collectDefiFormat_direct(self):
-	# 	from pyglossary.glossary import Glossary as GlossaryLegacy
-	# 	fname = "100-en-fa.txt"
-	# 	glos = self.glos = GlossaryLegacy()
-	# 	glos.read(self.downloadFile(fname), direct=True)
-	# 	res = glos.collectDefiFormat(10)
-	# 	self.assertIsNone(res)
-	# 	self.assertLogError("collectDefiFormat: not supported in direct mode")
 
 
 if __name__ == "__main__":

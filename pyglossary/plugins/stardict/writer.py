@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 	from pyglossary.glossary_types import EntryType, GlossaryType
 	from pyglossary.langs import Lang
-	from pyglossary.plugins.stardict.types import T_SdList
+	from pyglossary.plugins.stardict.sd_types import T_SdList
 
 
 from pyglossary.core import log
@@ -64,7 +64,7 @@ class Writer:
 	_stardict_client: bool = False
 	_audio_goldendict: bool = False
 	_audio_icon: bool = True
-	_sqlite: bool = False
+	_sqlite: bool | None = None
 
 	dictzipSynFile = True
 
@@ -93,7 +93,9 @@ class Writer:
 		self._targetLang = None
 
 	def open(self, filename: str) -> None:
-		log.debug(f"open: {filename = }")
+		if self._sqlite is None:
+			self._sqlite = self._glos.sqlite
+		log.debug(f"open: {filename = }, {self._sqlite = }")
 		fileBasePath = filename
 		##
 		if splitext(filename)[1].lower() == ".ifo":
@@ -249,7 +251,6 @@ class Writer:
 		self.writeIfoFile(
 			entryIndex + 1,
 			len(altIndexList),
-			defiFormat=defiFormat,
 		)
 
 	def writeGeneral(self) -> Generator[None, EntryType, None]:
@@ -334,7 +335,7 @@ class Writer:
 			f"Writing {len(altIndexList)} synonyms took {now() - t0:.2f} seconds",
 		)
 
-	def writeIdxFile(self, indexList: T_SdList[tuple[bytes, bytes]]):
+	def writeIdxFile(self, indexList: T_SdList[tuple[bytes, bytes]]) -> None:
 		if not indexList:
 			return
 
@@ -380,10 +381,10 @@ class Writer:
 		self,
 		wordCount: int,
 		synWordCount: int,
-		defiFormat: str = "",
 	) -> None:
 		"""Build .ifo file."""
 		glos = self._glos
+		defiFormat = self._sametypesequence
 		indexFileSize = getsize(self._filename + ".idx")
 
 		ifoDict: dict[str, str] = OrderedDict(

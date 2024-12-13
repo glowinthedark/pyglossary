@@ -60,6 +60,7 @@ from base64 import b64encode
 from hashlib import sha1
 from http import HTTPStatus
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
 from socketserver import ThreadingMixIn
 
 from pyglossary.glossary_v2 import Glossary
@@ -113,9 +114,9 @@ class WebLogHandler(logging.Handler):
 		msg = msg.replace("\x00", "")
 
 		if record.exc_info:
-			_type, value, tback = record.exc_info
+			type_, value, tback = record.exc_info
 			tback_text = "".join(
-				traceback.format_exception(_type, value, tback),
+				traceback.format_exception(type_, value, tback),
 			)
 			if msg:
 				msg += "\n"
@@ -262,16 +263,16 @@ class HttpWebsocketServer(ThreadingMixIn, HTTPServer, API, logging.Handler):
 			serverlog.error(str(e), exc_info=True)
 			sys.exit(1)
 
-	def _message_received_(self, handler, msg):
+	def message_received_handler(self, handler, msg):
 		self.message_received(self.handler_to_client(handler), self, msg)
 
-	def _ping_received_(self, handler, msg):
+	def ping_received_handler(self, handler, msg):
 		handler.send_pong(msg)
 
-	def _pong_received_(self, handler, msg):
+	def pong_received_handler(self, handler, msg):
 		pass
 
-	def _new_client_(self, handler):
+	def new_client_handler(self, handler):
 		if self._deny_clients:
 			status = self._deny_clients["status"]
 			reason = self._deny_clients["reason"]
@@ -288,7 +289,7 @@ class HttpWebsocketServer(ThreadingMixIn, HTTPServer, API, logging.Handler):
 		self.clients.append(client)
 		self.new_client(client, self)
 
-	def _client_left_(self, handler):
+	def client_left_handler(self, handler):
 		client = self.handler_to_client(handler)
 		self.client_left(client, self)
 		if client in self.clients:
@@ -368,7 +369,7 @@ class HTTPWebSocketHandler(SimpleHTTPRequestHandler):
 		self._send_lock = threading.Lock()
 
 		super().__init__(
-			socket, addr, server, *args, **kwargs, directory="pyglossary/ui/ui_web"
+			socket, addr, server, *args, **kwargs, directory=Path(__file__).parent
 		)
 
 	def do_GET(self):
@@ -563,11 +564,11 @@ class HTTPWebSocketHandler(SimpleHTTPRequestHandler):
 			serverlog.warning("Binary frames are not supported.")
 			return
 		if opcode == OPCODE_TEXT:
-			opcode_handler = self.server._message_received_
+			opcode_handler = self.server.message_received_handler
 		elif opcode == OPCODE_PING:
-			opcode_handler = self.server._ping_received_
+			opcode_handler = self.server.ping_received_handler
 		elif opcode == OPCODE_PONG:
-			opcode_handler = self.server._pong_received_
+			opcode_handler = self.server.pong_received_handler
 		else:
 			serverlog.warning(f"Unknown opcode {opcode:#x}.")
 			self.keep_alive = 0
@@ -679,7 +680,7 @@ class HTTPWebSocketHandler(SimpleHTTPRequestHandler):
 		with self._send_lock:
 			self.handshake_done = self.request.send(response.encode())
 		self.valid_client = True
-		self.server._new_client_(self)
+		self.server.new_client_handler(self)
 
 	@classmethod
 	def make_handshake_response(cls, key):
@@ -698,7 +699,7 @@ class HTTPWebSocketHandler(SimpleHTTPRequestHandler):
 		return response_key.decode("ASCII")
 
 	def finish(self):
-		self.server._client_left_(self)
+		self.server.client_left_handler(self)
 
 
 def encode_to_UTF8(data):

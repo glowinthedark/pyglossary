@@ -26,14 +26,14 @@ class Result(NamedTuple):
 class Transformer:
 	def __init__(  # noqa: PLR0913
 		self,
-		input: str,
+		inputText: str,
 		currentKey: str = "",
 		exampleColor: str = "steelblue",
 		audio: bool = True,
 		abbrev: str = "",  # "" or "css"
 		abbrevDict: dict[str, str] | None = None,
 	) -> None:
-		self.input = input
+		self.input = inputText
 		self.start = 0
 		self.pos = 0
 		self.labelOpen = False
@@ -104,7 +104,7 @@ class Transformer:
 			return
 		self.output += st
 
-	def closeLabel(self):
+	def closeLabel(self) -> None:
 		# print(f"Label: {self.label!r}")
 		desc = None
 		if self.abbrev:

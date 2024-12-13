@@ -223,7 +223,7 @@ class EbookWriter:
 	def add_file_manifest(
 		self,
 		relative_path: str,
-		_id: str,
+		id_: str,
 		contents: bytes,
 		mimetype: str,
 	) -> None:
@@ -231,7 +231,7 @@ class EbookWriter:
 		self.manifest_files.append(
 			{
 				"path": relative_path,
-				"id": _id,
+				"id": id_,
 				"mimetype": mimetype,
 			},
 		)
@@ -243,12 +243,6 @@ class EbookWriter:
 			# so we can191 not say if the current group is the last or not
 			return "#groupPage"
 		return f"g{index:06d}.xhtml"
-
-	def get_prefix(self, word: str) -> str:
-		raise NotImplementedError
-
-	def sortKey(self, words: list[str]) -> Any:
-		raise NotImplementedError
 
 	def _add_group(
 		self,

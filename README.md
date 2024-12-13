@@ -35,6 +35,12 @@ ______________________________________________________________________
 
 Android Termux - interactive command-line interface
 
+______________________________________________________________________
+
+<img src="https://raw.githubusercontent.com/wiki/ilius/pyglossary/screenshots/50-web-wiktextract-ifo-ar.png" width="50%" height="50%"/>
+
+Web interface
+
 ## Supported formats
 
 | Format                                                  |     |    Extension    | Read | Write |
@@ -155,6 +161,7 @@ But you can explicitly select user interface type using `--ui`
 
 - `./main.py --ui=gtk`
 - `./main.py --ui=tk`
+- `./main.py --ui=web`
 - `./main.py --ui=cmd`
 
 ## Installation on Windows
@@ -263,125 +270,14 @@ you can place it in this directory:
 - Mac: `~/Library/Preferences/PyGlossary/plugins/`
 - Windows: `C:\Users\USERNAME\AppData\Roaming\PyGlossary\plugins\`
 
-## Using PyGlossary as a Python library
+## Linux packaging status
 
-There are a few examples in [doc/lib-examples](./doc/lib-examples) directory.
+[![Packaging status](https://repology.org/badge/vertical-allrepos/pyglossary.svg?columns=3&header=PyGlossary)](https://repology.org/project/pyglossary/versions)
 
-Here is a basic script that converts any supported glossary format to [Tabfile](./doc/p/tabfile.md):
+## Using PyGlossary as a library
 
-```python
-import sys
-from pyglossary import Glossary
+See [doc/lib-usage.md](./doc/lib-usage.md) for how to use PyGlossary as a Python library.
 
-# Glossary.init() should be called only once, so make sure you put it
-# in the right place
-Glossary.init()
+## Internals
 
-glos = Glossary()
-glos.convert(
-	inputFilename=sys.argv[1],
-	outputFilename=f"{sys.argv[1]}.txt",
-	# although it can detect format for *.txt, you can still pass outputFormat
-	outputFormat="Tabfile",
-	# you can pass readOptions or writeOptions as a dict
-	# writeOptions={"encoding": "utf-8"},
-)
-```
-
-And if you choose to use `glossary_v2`:
-
-```python
-import sys
-from pyglossary.glossary_v2 import ConvertArgs, Glossary
-
-# Glossary.init() should be called only once, so make sure you put it
-# in the right place
-Glossary.init()
-
-glos = Glossary()
-glos.convert(ConvertArgs(
-	inputFilename=sys.argv[1],
-	outputFilename=f"{sys.argv[1]}.txt",
-	# although it can detect format for *.txt, you can still pass outputFormat
-	outputFormat="Tabfile",
-	# you can pass readOptions or writeOptions as a dict
-	# writeOptions={"encoding": "utf-8"},
-))
-```
-
-You may look at docstring of `Glossary.convert` for full list of keyword arguments.
-
-If you need to add entries inside your Python program (rather than converting one glossary into another), then you use `write` instead of `convert`, here is an example:
-
-```python
-from pyglossary import Glossary
-
-Glossary.init()
-
-glos = Glossary()
-mydict = {
-	"a": "test1",
-	"b": "test2",
-	"c": "test3",
-}
-for word, defi in mydict.items():
-	glos.addEntryObj(glos.newEntry(
-		word,
-		defi,
-		defiFormat="m",  # "m" for plain text, "h" for HTML
-	))
-
-glos.setInfo("title", "My Test StarDict")
-glos.setInfo("author", "John Doe")
-glos.write("test.ifo", format="Stardict")
-```
-
-**Note:** `addEntryObj` is renamed to `addEntry` in `pyglossary.glossary_v2`.
-
-**Note:** Switching to `glossary_v2` is optional and recommended.
-
-And if you need to read a glossary from file into a `Glossary` object in RAM (without immediately converting it), you can use `glos.read(filename, format=inputFormat)`. Be wary of RAM usage in this case.
-
-If you want to include images, css, js or other files in a glossary that you are creating, you need to add them as **Data Entries**, for example:
-
-```python
-with open(os.path.join(imageDir, "a.jpeg")) as fp:
-	glos.addEntry(glos.newDataEntry("img/a.jpeg", fp.read()))
-```
-
-The first argument to `newDataEntry` must be the relative path (that generally html codes of your definitions points to).
-
-## Internal glossary structure
-
-A glossary contains a number of entries.
-
-Each entry contains:
-
-- Headword (title or main phrase for lookup)
-- Alternates (some alternative phrases for lookup)
-- Definition
-
-In PyGlossary, headword and alternates together are accessible as a single Python list `entry.l_word`
-
-`entry.defi` is the definition as a Python Unicode `str`. Also `entry.b_defi` is definition in UTF-8 byte array.
-
-`entry.defiFormat` is definition format. If definition is plaintext (not rich text), the value is `m`. And if it's in HTML (contains any html tag), then `defiFormat` is `h`. The value `x` is also allowed for XFXF, but XDXF is not widely supported in dictionary applications.
-
-There is another type of entry which is called **Data Entry**, and generally contains an image, audio, css, or any other file that was included in input glossary. For data entries:
-
-- `entry.s_word` is file name (and `l_word` is still a list containing this string),
-- `entry.defiFormat` is `b`
-- `entry.data` gives the content of file in `bytes`.
-
-## Entry filters
-
-Entry filters are internal objects that modify words/definition of entries,
-or remove entries (in some special cases).
-
-Like several filters in a pipe which connects a `reader` object to a `writer` object
-(with both of their classes defined in plugins and instantiated in `Glossary` class).
-
-You can enable/disable some of these filters using config parameters / command like flags, which
-are documented in [doc/config.rst](./doc/config.rst).
-
-The full list of entry filters is also documented in [doc/entry-filters.md](./doc/entry-filters.md).
+See [doc/internals.md](./doc/internals.md) for information about internal glossary structure and entry filters.

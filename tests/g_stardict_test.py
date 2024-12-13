@@ -5,7 +5,7 @@ from os.path import abspath, dirname
 rootDir = dirname(dirname(abspath(__file__)))
 sys.path.insert(0, rootDir)
 
-from glossary_errors_test import TestGlossaryErrorsBase
+from glossary_v2_errors_test import TestGlossaryErrorsBase
 
 from pyglossary.glossary_v2 import ConvertArgs, Error, Glossary
 
@@ -35,7 +35,10 @@ class TestGlossaryStarDictBase(TestGlossaryErrorsBase):
 		outputFilename = self.newTempFilePath(f"{fname}.ifo")
 		otherFiles = {ext: self.newTempFilePath(f"{fname}.{ext}") for ext in binExtList}
 
-		glos = self.glos = Glossary(info=info)
+		glos = self.glos = Glossary()
+		if info:
+			for key, value in info.items():
+				glos.setInfo(key, value)
 
 		if config is not None:
 			glos.config = config

@@ -47,7 +47,7 @@ def getPipSafeVersion() -> str:
 
 
 class my_install(install):
-	def run(self):
+	def run(self) -> None:
 		install.run(self)
 		if os.sep == "/":
 			binPath = join(self.install_scripts, "pyglossary")
@@ -60,7 +60,7 @@ class my_install(install):
 					"installation path already exists "
 					f"but is not a directory: {self.install_scripts}",
 				)
-			open(binPath, "w").write("""#!/usr/bin/env -S python3 -O
+			open(binPath, "w", encoding="ascii").write("""#!/usr/bin/env -S python3 -O
 import sys
 from os.path import dirname
 sys.path.insert(0, dirname(__file__))

@@ -100,12 +100,12 @@ class TestGlossaryBase(unittest.TestCase):
 
 	def downloadFile(self, filename):
 		unixFilename = filename.replace("\\", "/")
-		_crc32 = self.dataFileCRC32[unixFilename]
+		crc32 = self.dataFileCRC32[unixFilename]
 		fpath = join(testCacheDir, self.fixDownloadFilename(filename))
 		if isfile(fpath):
 			with open(fpath, mode="rb") as _file:
 				data = _file.read()
-			if crc32hex(data) != _crc32:
+			if crc32hex(data) != crc32:
 				raise RuntimeError(f"CRC32 check failed for existing file: {fpath!r}")
 			return fpath
 		try:
@@ -115,7 +115,7 @@ class TestGlossaryBase(unittest.TestCase):
 			print(f"{filename=}")
 			raise e from None
 		actual_crc32 = crc32hex(data)
-		if actual_crc32 != _crc32:
+		if actual_crc32 != crc32:
 			raise RuntimeError(
 				"CRC32 check failed for downloaded file: "
 				f"{filename!r}: {actual_crc32}",
@@ -449,24 +449,6 @@ class TestGlossary(TestGlossaryBase):
 
 		entryCount = sum(1 for _ in glos)
 		self.assertEqual(entryCount, 100)
-
-	def test_init_infoDict(self):
-		glos = self.glos = Glossary(info={"a": "b"})
-		self.assertEqual(list(glos.iterInfo()), [("a", "b")])
-
-	def test_init_infoOrderedDict(self):
-		from collections import OrderedDict
-
-		glos = self.glos = Glossary(
-			info=OrderedDict(
-				[
-					("y", "z"),
-					("a", "b"),
-					("1", "2"),
-				],
-			),
-		)
-		self.assertEqual(list(glos.iterInfo()), [("y", "z"), ("a", "b"), ("1", "2")])
 
 	def test_lang_1(self):
 		glos = self.glos = Glossary()
@@ -968,7 +950,7 @@ Japonica"""
 	def test_wordTitleStr_b2(self):
 		glos = self.glos = Glossary()
 		self.assertEqual(
-			glos.wordTitleStr("test1", _class="headword"),
+			glos.wordTitleStr("test1", class_="headword"),
 			'<b class="headword">test1</b><br>',
 		)
 

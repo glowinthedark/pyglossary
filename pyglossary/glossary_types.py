@@ -175,6 +175,9 @@ class GlossaryType(typing.Protocol):  # noqa: PLR0904
 	def readOptions(self) -> dict | None: ...
 
 	@property
+	def sqlite(self) -> bool: ...
+
+	@property
 	def sourceLang(self) -> Lang | None: ...
 
 	@property
@@ -198,7 +201,7 @@ class GlossaryType(typing.Protocol):  # noqa: PLR0904
 		self,
 		word: str,
 		sample: str = "",
-		_class: str = "",
+		class_: str = "",
 	) -> str: ...
 
 	def getConfig(self, name: str, default: str | None) -> str | None: ...
@@ -230,7 +233,7 @@ class GlossaryType(typing.Protocol):  # noqa: PLR0904
 class GlossaryExtendedType(GlossaryType, typing.Protocol):
 	def progressInit(
 		self,
-		*args,
+		*args,  # noqa: ANN002
 	) -> None: ...
 
 	def progress(self, pos: int, total: int, unit: str = "entries") -> None: ...
