@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -e
 
 if [[ -z "$VIRTUAL_ENV" ]]; then
   echo Not in a venv! Quitting...
@@ -11,7 +12,7 @@ if [[ -z "$VIRTUAL_ENV" ]]; then
   read -r -n 1 -s -p "any key to exit..."
   exit 1
 else
-  uv pip install -r requirements-web.txt --extra-index-url https://glowinthedark.github.io/python-lzo/ --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match
+  uv pip install -U --extra-index-url https://glowinthedark.github.io/python-lzo/ --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match beautifulsoup4 colorize_pinyin git+https://github.com/glowinthedark/python-romkan.git html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-lzo pyyaml PyYAML tqdm xxhash
   echo
   echo "USING VENV: $VIRTUAL_ENV"
   echo
@@ -21,8 +22,6 @@ fi
 MAIN_SCRIPT="main.py"
 APPNAME="PyGlossaryWeb"
 OUTPUT_DIR="dist.nuitka.web"
-RESOURCE_DIR="resources"  # Directory with app resources (images, etc.)
-#ARCH="universal" NOT WORKING          # Options: arm64, x86_64, universal
 VERSION=$(git describe --abbrev=0)
 TAG=$(git describe)
 
@@ -30,7 +29,7 @@ cp $MAIN_SCRIPT $APPNAME.py
 
 echo "[$0]: patching files..."
 git checkout HEAD -- pyglossary/ui/argparse_main.py pyglossary/ui/runner.py
-mv __init__.py __init__.py.txt # get it out of the way during build or pyinstaller gets confused
+rm -rf __init__.py  # get it out of the way during build or pyinstaller gets confused
 sed -i '' 's/default="gtk"/default="web"/g' pyglossary/ui/argparse_main.py
 sed -i '' 's/default="tk"/default="web"/g' pyglossary/ui/argparse_main.py
 sed -i '' 's/default="auto"/default="web"/g' pyglossary/ui/argparse_main.py

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 if [[ -z "$VIRTUAL_ENV" ]]; then
   echo Not in a venv! Quitting...
   echo ' - 1. create a venv: uv venv'
@@ -21,9 +23,8 @@ APPNAME=PyGlossaryGtk
 VERSION=$(git describe --abbrev=0)
 TAG=$(git describe)
 
-mv __init__.py __init__.py.txt # get it out of the way during build or pyinstaller gets confused
+rm -rf __init__.py  # get it out of the way during build or pyinstaller gets confused
 sed -i '' 's/default="auto"/default="gtk"/g' pyglossary/ui/argparse_main.py
-cp ../pyglossary-glo/pyglossary/ui/ui_tk.py pyglossary/ui
 
 pyinstaller --noupx \
     --windowed \
@@ -83,6 +84,6 @@ else
 fi
 
 pwd
-# restore original
-mv __init__.py.txt __init__.py 
-
+echo "[$0]: restoring patched files..."
+git checkout HEAD -- pyglossary/ui/argparse_main.py pyglossary/ui/runner.py __init__.py
+echo "all done!"

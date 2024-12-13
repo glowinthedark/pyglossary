@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 # windows nuitka github action generated
 #Nuitka-Options: Used command line options: --standalone --mode=app --include-package-data=pyglossary --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --include-data-dir=res=res --include-data-dir="plugins-meta=plugins-meta     " --include-module="lzo " --include-module="lxml " --include-module=tkinter --include-module=pymorphy2 --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module="colorize_pinyin " --include-package=pyglossary --noinclude-data-files=tests --noinclude-data-files=scripts --include-plugin-directory=plugins-meta --include-plugin-directory=res --nofollow-import-to=gtk --nofollow-import-to=gi --nofollow-import-to=prompt_toolkit --nofollow-import-to=pyqt4 --assume-yes-for-downloads --clang --windows-icon-from-ico=res\pyglossary.ico --output-dir=dist.nuitka.tk --output-file=pyglossary.exe --script-name=main.py --enable-plugins=no-qt --en
 
@@ -13,7 +13,7 @@ if [[ -z "$VIRTUAL_ENV" ]]; then
   read -r -n 1 -s -p "any key to exit..."
   exit 1
 else
-  uv pip install -r requirements-web.txt --extra-index-url https://glowinthedark.github.io/python-lzo/ --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match
+  uv pip install -U --extra-index-url https://glowinthedark.github.io/python-lzo/ --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match beautifulsoup4 colorize_pinyin git+https://github.com/glowinthedark/python-romkan.git html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-lzo pyyaml PyYAML tqdm xxhash
   echo
   echo "USING VENV: $VIRTUAL_ENV"
   echo
@@ -27,15 +27,16 @@ RESOURCE_DIR="resources"  # Directory with app resources (images, etc.)
 #ARCH="universal"          # Options: arm64, x86_64, universal
 VERSION=$(git describe --abbrev=0)
 TAG=$(git describe)
+PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 
 cp $MAIN_SCRIPT $APPNAME.py
 
 echo "[$0]: patching files..."
 git checkout HEAD -- pyglossary/ui/argparse_main.py pyglossary/ui/runner.py
-mv __init__.py __init__.py.txt # get it out of the way during build or pyinstaller gets confused
+rm -rf __init__.py  # get it out of the way during build or pyinstaller gets confused
 sed -i '' 's/default="auto"/default="tk"/g' pyglossary/ui/argparse_main.py
 sed -i '' 's/^\s*ui_list = \["gtk", "tk", "web"\]/ui_list = \["tk", "gtk", "web"\]/' pyglossary/ui/runner.py
-sed -i '' 's/self\.tk_inter_version in ("8\.5", "8\.6")/self.tk_inter_version in ("8.5", "8.6", "9.0")/' .venv/lib/python3.12/site-packages/nuitka/plugins/standard/TkinterPlugin.py
+sed -i '' 's/self\.tk_inter_version in ("8\.5", "8\.6")/self.tk_inter_version in ("8.5", "8.6", "9.0")/' .venv/lib/python${PYTHON_VERSION}/site-packages/nuitka/plugins/standard/TkinterPlugin.py
 
 # NOT SUPPORTED (YET)
 #	--macos-target-arch=$ARCH \

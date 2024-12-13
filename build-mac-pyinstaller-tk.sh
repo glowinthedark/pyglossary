@@ -13,7 +13,7 @@ if [[ -z "$VIRTUAL_ENV" ]]; then
   read -r -n 1 -s -p "any key to exit..."
   exit 1
 else
-  uv pip install -r requirements-web.txt --extra-index-url https://glowinthedark.github.io/python-lzo/ --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match
+#  uv pip install -r requirements-src.txt --extra-index-url https://glowinthedark.github.io/python-lzo/ --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match
   echo
   echo "USING VENV: $VIRTUAL_ENV"
   echo
