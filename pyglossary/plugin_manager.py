@@ -21,7 +21,6 @@ from __future__ import annotations
 import logging
 import os
 import sys
-import warnings
 from os.path import isdir, join
 from typing import Any, NamedTuple
 
@@ -111,7 +110,7 @@ class PluginManager:
 		attrs: dict[str, Any],
 		modulePath: str,
 	) -> None:
-		format = attrs["name"]
+		name = attrs["name"]
 
 		extensions = attrs["extensions"]
 		prop = PluginProp.fromDict(
@@ -121,7 +120,7 @@ class PluginManager:
 		if prop is None:
 			return
 
-		cls.plugins[format] = prop
+		cls.plugins[name] = prop
 		cls.loadedModules.add(attrs["module"])
 
 		if not prop.enable:
@@ -134,12 +133,12 @@ class PluginManager:
 			cls.pluginByExt[ext] = prop
 
 		if attrs["canRead"]:
-			cls.formatsReadOptions[format] = attrs["readOptions"]
-			cls.readFormats.append(format)
+			cls.formatsReadOptions[name] = attrs["readOptions"]
+			cls.readFormats.append(name)
 
 		if attrs["canWrite"]:
-			cls.formatsWriteOptions[format] = attrs["writeOptions"]
-			cls.writeFormats.append(format)
+			cls.formatsWriteOptions[name] = attrs["writeOptions"]
+			cls.writeFormats.append(name)
 
 		if log.level <= core.TRACE:
 			prop.module  # noqa: B018, to make sure importing works
@@ -165,9 +164,9 @@ class PluginManager:
 			# log.debug(f"Plugin disabled or not a module: {moduleName}")
 			return
 
-		name = module.format
-
 		prop = PluginProp.fromModule(module)
+
+		name = prop.name
 
 		cls.plugins[name] = prop
 		cls.loadedModules.add(moduleName)
@@ -209,17 +208,16 @@ class PluginManager:
 	def detectInputFormat(
 		cls: type[PluginManager],
 		filename: str,
-		format: str = "",
-		quiet: bool = False,  # noqa: ARG003
+		formatName: str = "",
 	) -> DetectedFormat:
 		filenameOrig = filename
 		_, filename, ext, compression = splitFilenameExt(filename)
 
 		plugin = None
-		if format:
-			plugin = cls.plugins.get(format)
+		if formatName:
+			plugin = cls.plugins.get(formatName)
 			if plugin is None:
-				raise Error(f"Invalid format {format!r}")
+				raise Error(f"Invalid format {formatName!r}")
 		else:
 			plugin = cls.pluginByExt.get(ext)
 			if not plugin:
@@ -239,44 +237,30 @@ class PluginManager:
 	@classmethod
 	def _outputPluginByFormat(
 		cls: type[PluginManager],
-		format: str,
+		formatName: str,
 	) -> tuple[PluginProp | None, str]:
-		if not format:
+		if not formatName:
 			return None, ""
-		plugin = cls.plugins.get(format, None)
+		plugin = cls.plugins.get(formatName, None)
 		if not plugin:
-			return None, f"Invalid format {format}"
+			return None, f"Invalid format {formatName}"
 		if not plugin.canWrite:
 			return None, f"plugin {plugin.name} does not support writing"
 		return plugin, ""
 
-	# TODO: breaking change:
-	# remove `kwargs` and the check for `quiet`
-	# also:
 	# C901		`detectOutputFormat` is too complex (16 > 13)
 	# PLR0912	Too many branches (14 > 12)
 	@classmethod
 	def detectOutputFormat(  # noqa: PLR0912, PLR0913, C901
 		cls: type[PluginManager],
 		filename: str = "",
-		format: str = "",
+		formatName: str = "",
 		inputFilename: str = "",
 		addExt: bool = False,
-		**kwargs,  # noqa: ANN003
 	) -> DetectedFormat:
 		from os.path import splitext
 
-		if "quiet" in kwargs:
-			warnings.warn(
-				"quiet= argument is no longer used and will be removed, "
-				"because we raise exception `Error` on error",
-				stacklevel=2,
-			)
-			del kwargs["quiet"]
-		if kwargs:
-			raise TypeError(f"invalid arguments: {kwargs}")
-
-		plugin, err = cls._outputPluginByFormat(format)
+		plugin, err = cls._outputPluginByFormat(formatName)
 		if err:
 			raise Error(err)
 
