@@ -94,7 +94,7 @@ if [ -d "$OUTPUT_DIR/$APPNAME.app/Contents/MacOS" ]; then
     # ln -s ../Resources/pyglossary $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/glossary
 
     # make DMG
-  DMG_FILE="$APPNAME-macos13-arm64-$TAG.dmg"
+  DMG_FILE="$APPNAME-tk-macos13-arm64-$TAG.dmg"
 
   [[ -f "$DMG_FILE" ]] && rm "$DMG_FILE"
 

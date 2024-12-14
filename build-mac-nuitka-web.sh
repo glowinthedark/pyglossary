@@ -93,21 +93,22 @@ if [ -d "$OUTPUT_DIR/$APPNAME.app/Contents/MacOS" ]; then
     # ln -s ../Resources/pyglossary $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/glossary
 
     # make DMG
-  DMG_FILE="$APPNAME-macos13-arm64-$TAG.dmg"
+  DMG_FILE="$APPNAME-WEB-macos13-arm64-$TAG.dmg"
 
   [[ -f "$DMG_FILE" ]] && rm "$DMG_FILE"
 
-  create-dmg --volname "$APPNAME $VERSION" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "$DMG_FILE" "$OUTPUT_DIR/$APPNAME.app"
+  create-dmg --volname "$APPNAME-WEB $VERSION" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "$DMG_FILE" "$OUTPUT_DIR/$APPNAME.app"
+  create-dmg --volname "$APPNAME-WEB $VERSION" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "$DMG_FILE" "$OUTPUT_DIR/$APPNAME.app"
 
 else
     echo "ERROR: build failed!"
 fi
 
 # Code sign the app (optional)
-if command -v codesign__NOT_NOW &>/dev/null; then
-    echo "Code signing the application bundle..."
-    codesign --deep --force --sign - "$APP_BINARY"
-fi
+#if command -v codesign &>/dev/null; then
+#    echo "Code signing the application bundle..."
+#    codesign --deep --force --sign - "$APP_BINARY"
+#fi
 
 echo "[$0]: restoring patched files..."
 git checkout HEAD -- pyglossary/ui/argparse_main.py pyglossary/ui/runner.py __init__.py

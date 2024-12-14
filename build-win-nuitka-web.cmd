@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python -m nuitka --standalone example.py  --windows-console-mode=attach
+@REM python -m nuitka --standalone example.py  --windows-console-mode=attach
 
 if [[ -z "$VIRTUAL_ENV" ]]; then
   echo Not in a venv! Quitting...
