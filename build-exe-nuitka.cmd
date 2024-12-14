@@ -3,7 +3,7 @@
 if "%VIRTUAL_ENV%" == "" (
     echo Not in a venv! Quitting...
     echo  - 1. to create venv use: uv venv
-    echo  - 2. to activate existing venv use: .venv\Scripts\activate"
+    echo  - 2. to activate existing venv use: .venv\Scripts\activate
     echo Install uv with:
     echo    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
     exit /b 1
