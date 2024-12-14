@@ -1,7 +1,6 @@
 #!/bin/bash
+
 set -e
-# windows nuitka github action generated
-#Nuitka-Options: Used command line options: --standalone --mode=app --include-package-data=pyglossary --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --include-data-dir=res=res --include-data-dir="plugins-meta=plugins-meta     " --include-module="lzo " --include-module="lxml " --include-module=tkinter --include-module=pymorphy2 --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module="colorize_pinyin " --include-package=pyglossary --noinclude-data-files=tests --noinclude-data-files=scripts --include-plugin-directory=plugins-meta --include-plugin-directory=res --nofollow-import-to=gtk --nofollow-import-to=gi --nofollow-import-to=prompt_toolkit --nofollow-import-to=pyqt4 --assume-yes-for-downloads --clang --windows-icon-from-ico=res\pyglossary.ico --output-dir=dist.nuitka.tk --output-file=pyglossary.exe --script-name=main.py --enable-plugins=no-qt --en
 
 if [[ -z "$VIRTUAL_ENV" ]]; then
   echo Not in a venv! Quitting...
