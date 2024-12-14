@@ -11,7 +11,7 @@ from os.path import dirname, exists, isdir, join
 from setuptools import setup
 from setuptools.command.install import install
 
-VERSION = "4.7.1"
+VERSION = "5.0.0"
 log = logging.getLogger("root")
 relRootDir = "share/pyglossary"
 
@@ -106,11 +106,12 @@ package_data = {
 		"ui/wcwidth/*.py",
 		"xdxf/xdxf.xsl",
 		"xdxf/*.py",
-	] + [
+	]
+	+ [
 		# safest way found so far to include every resource of plugins
 		# producing plugins/pkg/*, plugins/pkg/sub1/*, ... except .pyc/.pyo
 		re.sub(
-			fr"^.*?pyglossary{sep}(?=plugins)",
+			rf"^.*?pyglossary{sep}(?=plugins)",
 			"",
 			join(dirpath, fname),
 		)

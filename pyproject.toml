@@ -52,7 +52,7 @@ select = [
 	"ASYNC1", # flake8-trio
 	"BLE", # flake8-blind-except
 	"B", # flake8-bugbear
-	# "A", # flake8-builtins
+	"A", # flake8-builtins
 	"COM", # flake8-commas
 	# "CPY", # flake8-copyright   --preview
 	"C4",   # flake8-comprehensions
@@ -406,7 +406,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyglossary"
-version = "4.7.1"
+version = "5.0.0"
 description = "A tool for converting dictionary files aka glossaries."
 readme = "README.md"
 authors = [{ name = "Saeed Rasooli", email = "saeed.gnu@gmail.com" }]
