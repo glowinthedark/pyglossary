@@ -12,6 +12,12 @@ if [[ -z "$VIRTUAL_ENV" ]]; then
   read -r -n 1 -s -p "any key to exit..."
   exit 1
 else
+  PREFIX=$(brew --prefix)
+  export C_INCLUDE_PATH=$PREFIX/Cellar/lzo/2.10/include:$PREFIX/Cellar/lzo/2.10/include/lzo
+  export LIBRARY_PATH=$PREFIX/lib
+  export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig:$PREFIX/opt/icu4c/lib/pkgconfig
+  export LDFLAGS="-L$PREFIX/opt/icu4c/lib -L$PREFIX/opt/libffi/lib"
+  export CPPFLAGS="-I$PREFIX/opt/icu4c/include -I$PREFIX/opt/libffi/include"
   uv pip install -U --extra-index-url https://glowinthedark.github.io/python-lzo/ --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match beautifulsoup4 colorize_pinyin git+https://github.com/glowinthedark/python-romkan.git html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-lzo pyyaml PyYAML tqdm xxhash
   echo
   echo "USING VENV: $VIRTUAL_ENV"
