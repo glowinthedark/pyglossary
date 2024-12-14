@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "PyGlossary"
-#define MyAppVersion "4.7.1"
+#define MyAppVersion "5.0.0"
 #define MyAppPublisher "github.com/ilius/pyglossary"
 #define MyAppURL "https://github.com/ilius/pyglossary"
 #define MyAppExeName "pyglossary.exe"
