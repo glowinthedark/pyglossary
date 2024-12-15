@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from io import BytesIO, IOBase
 from os.path import dirname, isfile, join
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-	from collections.abc import Callable, Iterator
-	from typing import Any
+	from collections.abc import Iterator
 
 	from pyglossary.glossary_types import EntryType, GlossaryType
 	from pyglossary.lxml_types import Element, T_htmlfile
@@ -22,15 +22,28 @@ from pyglossary.langs import langDict
 from pyglossary.langs.writing_system import getWritingSystemFromText
 
 from .options import optionsProp
+from .utils import XMLLANG, ReaderUtils
 
 TEI = "{http://www.tei-c.org/ns/1.0}"
 ENTRY = f"{TEI}entry"
 INCLUDE = "{http://www.w3.org/2001/XInclude}include"
 NAMESPACE = {None: "http://www.tei-c.org/ns/1.0"}
-XMLLANG = "{http://www.w3.org/XML/1998/namespace}lang"
 
 
-class Reader:
+@dataclass
+class ParsedSense:
+	transCits: list[Element]
+	defs: list[Element]
+	grams: list[Element]
+	notes: list[Element]
+	refs: list[Element]
+	usages: list[Element]
+	xrList: list[Element]
+	exampleCits: list[Element]
+	langs: list[Element]
+
+
+class Reader(ReaderUtils):
 	compressions = stdCompressions
 	depends = {
 		"lxml": "lxml",
@@ -110,42 +123,6 @@ class Reader:
 		"lbl",
 	}
 
-	@staticmethod
-	def makeList(  # noqa: PLR0913
-		hf: T_htmlfile,
-		input_objects: list[Any],
-		processor: Callable,
-		single_prefix: str = "",
-		skip_single: bool = True,
-		ordered: bool = True,
-		list_type: str = "",
-	) -> None:
-		"""Wrap elements into <ol> if more than one element."""
-		if not input_objects:
-			return
-
-		if skip_single and len(input_objects) == 1:
-			if single_prefix:
-				hf.write(single_prefix)
-			processor(hf, input_objects[0])
-			return
-
-		attrib: dict[str, str] = {}
-		if list_type:
-			attrib["type"] = list_type
-
-		with hf.element("ol" if ordered else "ul", attrib=attrib):
-			for el in input_objects:
-				with hf.element("li"):
-					processor(hf, el)
-
-	@staticmethod
-	def getTitleTag(sample: str) -> str:
-		ws = getWritingSystemFromText(sample)
-		if ws:
-			return ws.titleTag
-		return "b"
-
 	def writeRef(  # noqa: PLR6301
 		self,
 		hf: T_htmlfile,
@@ -175,7 +152,7 @@ class Reader:
 	) -> None:
 		from lxml import etree as ET
 
-		quotes = []
+		quotes: list[Element] = []
 		sense = ET.Element(f"{TEI}sense")
 		for child in elem.xpath("child::node()"):
 			if isinstance(child, str):
@@ -250,26 +227,32 @@ class Reader:
 		for child in elem.xpath("child::node()"):
 			writeChild(child, 0)
 
+	def setAttribLangDir(
+		self,
+		attrib: dict[str, str],
+	) -> None:
+		try:
+			lang = attrib.pop(XMLLANG)
+		except KeyError:
+			return
+
+		attrib["lang"] = lang
+
+		if self._auto_rtl:
+			langObj = langDict[lang]
+			if langObj:
+				attrib["dir"] = "rtl" if langObj.rtl else "ltr"
+
 	def writeWithDirection(
 		self,
 		hf: T_htmlfile,
 		child: Element,
 		tag: str,
 	) -> None:
-		attrib = dict(child.attrib)
-		try:
-			lang = attrib.pop(XMLLANG)
-		except KeyError:
-			pass
-		else:
-			attrib["lang"] = lang
-			if self._auto_rtl:
-				langObj = langDict[lang]
-				if langObj:
-					if langObj.rtl:
-						attrib["dir"] = "rtl"
-					else:
-						attrib["dir"] = "ltr"
+		attrib: dict[str, str] = dict(child.attrib)
+
+		self.setAttribLangDir(attrib)
+
 		try:
 			type_ = attrib.pop("type")
 		except KeyError:
@@ -277,6 +260,7 @@ class Reader:
 		else:
 			if type_ != "trans":
 				attrib["class"] = type_
+
 		with hf.element(tag, attrib=attrib):
 			self.writeRichText(hf, child)
 
@@ -310,36 +294,6 @@ class Reader:
 
 			self.writeRichText(hf, child)
 
-	def getLangDesc(self, elem: Element) -> str | None:
-		lang = elem.attrib.get(XMLLANG)
-		if lang:
-			langObj = langDict[lang]
-			if not langObj:
-				log.warning(f"unknown lang {lang!r} in {self.tostring(elem)}")
-				return None
-			return langObj.name
-
-		orig = elem.attrib.get("orig")
-		if orig:
-			return orig
-
-		log.warning(f"unknown lang name in {self.tostring(elem)}")
-		return None
-
-	def writeLangTag(
-		self,
-		hf: T_htmlfile,
-		elem: Element,
-	) -> None:
-		langDesc = self.getLangDesc(elem)
-		if not langDesc:
-			return
-		# TODO: make it Italic or change font color?
-		if elem.text:
-			hf.write(f"{langDesc}: {elem.text}")
-		else:
-			hf.write(f"{langDesc}")  # noqa: FURB183
-
 	def writeNote(
 		self,
 		hf: T_htmlfile,
@@ -347,23 +301,21 @@ class Reader:
 	) -> None:
 		self.writeRichText(hf, note)
 
-	# TODO: break it down
-	# PLR0912 Too many branches (25 > 12)
-	def writeSenseSense(  # noqa: PLR0912
+	def parseSenseSense(  # noqa: PLR0912
 		self,
-		hf: T_htmlfile,
 		sense: Element,
-	) -> int:
+	) -> ParsedSense:
 		# this <sense> element can be 1st-level (directly under <entry>)
 		# or 2nd-level
-		transCits = []
-		defList = []
-		gramList = []
-		noteList = []
-		refList = []
-		usgList = []
-		xrList = []
-		exampleCits = []
+		transCits: list[Element] = []
+		defs: list[Element] = []
+		grams: list[Element] = []
+		notes: list[Element] = []
+		refs: list[Element] = []
+		usages: list[Element] = []
+		xrList: list[Element] = []
+		exampleCits: list[Element] = []
+		langs: list[Element] = []
 		for child in sense.iterchildren():
 			if child.tag == f"{TEI}cit":
 				if child.attrib.get("type", "trans") == "trans":
@@ -375,35 +327,35 @@ class Reader:
 				continue
 
 			if child.tag == f"{TEI}def":
-				defList.append(child)
+				defs.append(child)
 				continue
 
 			if child.tag == f"{TEI}note":
 				type_ = child.attrib.get("type")
 				if not type_:
-					noteList.append(child)
+					notes.append(child)
 				elif type_ in {"pos", "gram"}:
-					gramList.append(child)
+					grams.append(child)
 				elif type_ in self.noteTypes:
-					noteList.append(child)
+					notes.append(child)
 				else:
 					log.warning(f"unknown note type {type_}")
-					noteList.append(child)
+					notes.append(child)
 				continue
 
 			if child.tag == f"{TEI}ref":
-				refList.append(child)
+				refs.append(child)
 				continue
 
 			if child.tag == f"{TEI}usg":
 				if not child.text:
 					log.warning(f"empty usg: {self.tostring(child)}")
 					continue
-				usgList.append(child)
+				usages.append(child)
 				continue
 
 			if child.tag == f"{TEI}lang":
-				self.writeLangTag(hf, child)
+				langs.append(child)
 				continue
 
 			if child.tag in {f"{TEI}sense", f"{TEI}gramGrp"}:
@@ -415,13 +367,39 @@ class Reader:
 
 			log.warning(f"unknown tag {child.tag} in <sense>")
 
+		return ParsedSense(
+			transCits=transCits,
+			defs=defs,
+			grams=grams,
+			notes=notes,
+			refs=refs,
+			usages=usages,
+			xrList=xrList,
+			exampleCits=exampleCits,
+			langs=langs,
+		)
+
+	# TODO: break it down
+	# PLR0912 Too many branches (16 > 12)
+	def writeSenseSense(  # noqa: PLR0912
+		self,
+		hf: T_htmlfile,
+		sense: Element,
+	) -> int:
+		# this <sense> element can be 1st-level (directly under <entry>)
+		# or 2nd-level
+		ps = self.parseSenseSense(sense)
+
+		for child in ps.langs:
+			self.writeLangTag(hf, child)
+
 		self.makeList(
 			hf,
-			defList,
+			ps.defs,
 			self.writeDef,
 			single_prefix="",
 		)
-		if gramList:
+		if ps.grams:
 			color = self._gram_color
 			attrib = {
 				"class": self.gramClass,
@@ -429,7 +407,7 @@ class Reader:
 			if color:
 				attrib["color"] = color
 			with hf.element("div"):
-				for i, gram in enumerate(gramList):
+				for i, gram in enumerate(ps.grams):
 					text = gram.text or ""
 					if i > 0:
 						hf.write(self.getCommaSep(text))
@@ -437,52 +415,50 @@ class Reader:
 						hf.write(text)
 		self.makeList(
 			hf,
-			noteList,
+			ps.notes,
 			self.writeNote,
 			single_prefix="",
 		)
 		self.makeList(
 			hf,
-			transCits,
+			ps.transCits,
 			self.writeTransCit,
 			single_prefix="",
 		)
-		if refList:
+		if ps.refs:
 			with hf.element("div"):
 				hf.write("Related: ")
-				for i, ref in enumerate(refList):
+				for i, ref in enumerate(ps.refs):
 					if i > 0:
 						hf.write(" | ")
 					self.writeRef(hf, ref)
-		if xrList:
-			for xr in xrList:
-				with hf.element("div"):
-					self.writeRichText(hf, xr)
-		if usgList:
+		for xr in ps.xrList:
+			with hf.element("div"):
+				self.writeRichText(hf, xr)
+		if ps.usages:
 			with hf.element("div"):
 				hf.write("Usage: ")
-				for i, usg in enumerate(usgList):
+				for i, usg in enumerate(ps.usages):
 					text = usg.text or ""
 					if i > 0:
 						hf.write(self.getCommaSep(text))
 					hf.write(text)
-		if exampleCits:
-			for cit in exampleCits:
-				with hf.element(
-					"div",
-					attrib={
-						"class": "example",
-						"style": f"padding: {self._example_padding}px 0px;",
-					},
-				):
-					for quote in cit.findall("quote", NAMESPACE):
+		for cit in ps.exampleCits:
+			with hf.element(
+				"div",
+				attrib={
+					"class": "example",
+					"style": f"padding: {self._example_padding}px 0px;",
+				},
+			):
+				for quote in cit.findall("quote", NAMESPACE):
+					self.writeWithDirection(hf, quote, "div")
+				for cit2 in cit.findall("cit", NAMESPACE):
+					for quote in cit2.findall("quote", NAMESPACE):
+						quote.attrib.update(cit2.attrib)
 						self.writeWithDirection(hf, quote, "div")
-					for cit2 in cit.findall("cit", NAMESPACE):
-						for quote in cit2.findall("quote", NAMESPACE):
-							quote.attrib.update(cit2.attrib)
-							self.writeWithDirection(hf, quote, "div")
 
-		return len(transCits) + len(exampleCits)
+		return len(ps.transCits) + len(ps.exampleCits)
 
 	def getCommaSep(self, sample: str) -> str:
 		if sample and self._auto_comma:
@@ -506,7 +482,7 @@ class Reader:
 			attrib["color"] = color
 
 		for gramGrp in gramGrpList:
-			parts = []
+			parts: list[str] = []
 			for child in gramGrp.iterchildren():
 				part = self.normalizeGramGrpChild(child)
 				if part:
@@ -522,12 +498,12 @@ class Reader:
 
 			hf.write(ET.Element("br"))
 
-	def writeSenseGrams(
+	def writeGramGroupChildren(
 		self,
 		hf: T_htmlfile,
-		sense: Element,
+		elem: Element,
 	) -> None:
-		self.writeGramGroups(hf, sense.findall("gramGrp", NAMESPACE))
+		self.writeGramGroups(hf, elem.findall("gramGrp", NAMESPACE))
 
 	def writeSense(
 		self,
@@ -535,7 +511,7 @@ class Reader:
 		sense: Element,
 	) -> None:
 		# this <sense> element is 1st-level (directly under <entry>)
-		self.writeSenseGrams(hf, sense)
+		self.writeGramGroupChildren(hf, sense)
 		self.makeList(
 			hf,
 			sense.findall("sense", NAMESPACE),
@@ -543,19 +519,6 @@ class Reader:
 			single_prefix="",
 		)
 		self.writeSenseSense(hf, sense)
-
-	@staticmethod
-	def getDirection(elem: Element) -> str:
-		lang = elem.get(XMLLANG)
-		if lang is None:
-			return ""
-		langObj = langDict[lang]
-		if langObj is None:
-			log.warning(f"unknown language {lang}")
-			return ""
-		if langObj.rtl:
-			return "rtl"
-		return ""
 
 	def writeSenseList(
 		self,
@@ -566,7 +529,7 @@ class Reader:
 		if not senseList:
 			return
 
-		if self._auto_rtl and self.getDirection(senseList[0]) == "rtl":
+		if self._auto_rtl and self.isRTL(senseList[0]):
 			with hf.element("div", dir="rtl"):
 				self.makeList(
 					hf,
@@ -633,8 +596,8 @@ class Reader:
 		from lxml import etree as ET
 
 		glos = self._glos
-		keywords = []
-		f = BytesIO()
+		keywords: list[str] = []
+		buff = BytesIO()
 		pron_color = self._pron_color
 
 		if self._discover:
@@ -645,7 +608,7 @@ class Reader:
 		def br() -> Element:
 			return ET.Element("br")
 
-		inflectedKeywords = []
+		inflectedKeywords: list[str] = []
 
 		for form in entry.findall("form", NAMESPACE):
 			inflected = form.get("type") == "infl"
@@ -666,7 +629,7 @@ class Reader:
 		]
 		senseList = entry.findall("sense", NAMESPACE)
 
-		with ET.htmlfile(f, encoding="utf-8") as hf:
+		with ET.htmlfile(buff, encoding="utf-8") as hf:
 			with hf.element("div"):
 				if self._word_title:
 					for keyword in keywords:
@@ -691,10 +654,10 @@ class Reader:
 					hf.write("\n")
 
 				hf_ = cast("T_htmlfile", hf)
-				self.writeGramGroups(hf_, entry.findall("gramGrp", NAMESPACE))
+				self.writeGramGroupChildren(hf_, entry)
 				self.writeSenseList(hf_, senseList)
 
-		defi = f.getvalue().decode("utf-8")
+		defi = buff.getvalue().decode("utf-8")
 		# defi = defi.replace("\xa0", "&nbsp;")  # do we need to do this?
 		file = self._file
 		return self._glos.newEntry(
@@ -720,20 +683,6 @@ class Reader:
 		except Exception:
 			log.exception(f"unexpected {extent=}")
 
-	@staticmethod
-	def tostring(elem: Element) -> str:
-		from lxml import etree as ET
-
-		return (
-			ET.tostring(
-				elem,
-				method="html",
-				pretty_print=True,
-			)
-			.decode("utf-8")
-			.strip()
-		)
-
 	def stripParag(self, elem: Element) -> str:
 		text = self.tostring(elem)
 		text = self._p_pattern.sub("\\2", text)
@@ -743,7 +692,7 @@ class Reader:
 		self,
 		elems: list[Element],
 	) -> str:
-		lines = []
+		lines: list[str] = []
 		for elem in elems:
 			for line in self.stripParag(elem).split("\n"):
 				line = line.strip()  # noqa: PLW2901
@@ -782,14 +731,14 @@ class Reader:
 		return self._ref_pattern.sub('<a href="\\1">\\2</a>', text)
 
 	def setDescription(self, header: Element) -> None:
-		elems = []
+		elems: list[Element] = []
 		for tag in ("sourceDesc", "projectDesc"):
 			elems += header.findall(f".//{tag}//p", NAMESPACE)
 		desc = self.stripParagList(elems)
 		if not desc:
 			return
 
-		website_list = []
+		website_list: list[str] = []
 		for match in self._website_pattern.findall(desc):
 			if not match[1]:
 				continue
