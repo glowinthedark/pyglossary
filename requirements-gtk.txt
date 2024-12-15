@@ -2,7 +2,6 @@ PyYAML
 bs4
 colorize_pinyin
 gi
-pygobject
 html5lib
 libzim
 lxml
@@ -13,14 +12,13 @@ polib
 prompt-toolkit
 psutil
 pygments
+pygobject
 pyicu
 pyinstaller
 pymorphy2
 python-idzip
 python-lzo
+python-romkan-ng
 pyyaml
-#romkan
-git+https://github.com/glowinthedark/python-romkan.git
 tqdm
 xxhash
-

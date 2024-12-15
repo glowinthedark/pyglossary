@@ -68,8 +68,10 @@ python -m nuitka \
 	--nofollow-import-to=*.tests \
 	--noinclude-pytest-mode=nofollow \
 	--noinclude-setuptools-mode=nofollow \
+	--enable-plugins=no-qt,data-files
 	--plugin-disable=tk-inter \
 	--plugin-disable=pyqt5 \
+	--plugin-disable=gi \
 	--include-module=lzo \
 	--include-module=pymorphy2 \
 	--include-module=lxml \

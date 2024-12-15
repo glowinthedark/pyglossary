@@ -1,6 +1,6 @@
 beautifulsoup4
 colorize_pinyin
-git+https://github.com/glowinthedark/python-romkan.git
+python-romkan-ng
 html5lib
 libzim
 lxml
