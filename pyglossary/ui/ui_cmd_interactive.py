@@ -47,7 +47,6 @@ import json
 import logging
 import os
 import shlex
-from collections import OrderedDict
 from os.path import (
 	abspath,
 	dirname,
@@ -56,7 +55,7 @@ from os.path import (
 	join,
 	relpath,
 )
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
 	from collections.abc import Iterable
@@ -274,7 +273,7 @@ class UI(ui_cmd.UI):
 		self._outputFilename = ""
 		self._inputFormat = ""
 		self._outputFormat = ""
-		self.config = {}
+		self.config: dict[str, Any] = {}
 		self._readOptions = {}
 		self._writeOptions = {}
 		self._convertOptions = {}
@@ -304,31 +303,27 @@ class UI(ui_cmd.UI):
 			"    -l, --long  use a long listing format\n"
 		)
 
-		self._fsActions = OrderedDict(
-			[
-				("!pwd", (self.fs_pwd, "")),
-				("!ls", (self.fs_ls, self.ls_usage)),
-				("!..", (self.fs_cd_parent, "")),
-				("!cd", (self.fs_cd, "")),
-			],
-		)
-		self._finalActions = OrderedDict(
-			[
-				("formats", self.askFormats),
-				("read-options", self.askReadOptions),
-				("write-options", self.askWriteOptions),
-				("reset-read-options", self.resetReadOptions),
-				("reset-write-options", self.resetWriteOptions),
-				("config", self.askConfig),
-				("indirect", self.setIndirect),
-				("sqlite", self.setSQLite),
-				("no-progressbar", self.setNoProgressbar),
-				("sort", self.setSort),
-				("sort-key", self.setSortKey),
-				("show-options", self.showOptions),
-				("back", None),
-			],
-		)
+		self._fsActions = {
+			"!pwd": (self.fs_pwd, ""),
+			"!ls": (self.fs_ls, self.ls_usage),
+			"!..": (self.fs_cd_parent, ""),
+			"!cd": (self.fs_cd, ""),
+		}
+		self._finalActions = {
+			"formats": self.askFormats,
+			"read-options": self.askReadOptions,
+			"write-options": self.askWriteOptions,
+			"reset-read-options": self.resetReadOptions,
+			"reset-write-options": self.resetWriteOptions,
+			"config": self.askConfig,
+			"indirect": self.setIndirect,
+			"sqlite": self.setSQLite,
+			"no-progressbar": self.setNoProgressbar,
+			"sort": self.setSort,
+			"sort-key": self.setSortKey,
+			"show-options": self.showOptions,
+			"back": None,
+		}
 
 	@staticmethod
 	def fs_pwd(args: list[str]):
@@ -1122,40 +1117,30 @@ class UI(ui_cmd.UI):
 		inputFormat: str = "",
 		outputFormat: str = "",
 		reverse: bool = False,
-		config: dict | None = None,
-		readOptions: dict | None = None,
-		writeOptions: dict | None = None,
-		convertOptions: dict | None = None,
-		glossarySetAttrs: dict | None = None,
-	):
+		config: dict[str, Any] | None = None,
+		readOptions: dict[str, Any] | None = None,
+		writeOptions: dict[str, Any] | None = None,
+		convertOptions: dict[str, Any] | None = None,
+		glossarySetAttrs: dict[str, Any] | None = None,
+	) -> bool:
 		if reverse:
 			raise NotImplementedError("Reverse is not implemented in this UI")
-		if config is None:
-			config = {}
-		if readOptions is None:
-			readOptions = {}
-		if writeOptions is None:
-			writeOptions = {}
-		if convertOptions is None:
-			convertOptions = {}
-		if glossarySetAttrs is None:
-			glossarySetAttrs = {}
 
 		self._inputFilename = inputFilename
 		self._outputFilename = outputFilename
 		self._inputFormat = inputFormat
 		self._outputFormat = outputFormat
-		self._readOptions = readOptions
-		self._writeOptions = writeOptions
-		self._convertOptions = convertOptions
-		self._glossarySetAttrs = glossarySetAttrs
+		self._readOptions = readOptions or {}
+		self._writeOptions = writeOptions or {}
+		self._convertOptions = convertOptions or {}
+		self._glossarySetAttrs = glossarySetAttrs or {}
 
 		if not self._progressbar:
 			self._glossarySetAttrs["progressbar"] = False
 
 		self.loadConfig()
 		self.savedConfig = self.config.copy()
-		self.config = config
+		self.config = config or {}
 
 		del inputFilename, outputFilename, inputFormat, outputFormat
 		del config, readOptions, writeOptions, convertOptions
@@ -1179,3 +1164,5 @@ class UI(ui_cmd.UI):
 
 		if self.config != self.savedConfig and confirm("Save Config?"):
 			self.saveConfig()
+
+		return True

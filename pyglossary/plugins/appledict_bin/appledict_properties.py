@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 __all__ = ["AppleDictProperties", "from_metadata"]
 
@@ -49,15 +50,15 @@ class AppleDictProperties:
 	css_name: str | None
 
 
-def from_metadata(metadata: dict) -> AppleDictProperties:
+def from_metadata(metadata: dict[str, Any]) -> AppleDictProperties:
 	format_version: int = metadata.get("IDXDictionaryVersion", -1)
-	dictionaryIndexes: list[dict] | None = metadata.get("IDXDictionaryIndexes")
-	if dictionaryIndexes:
-		key_text_metadata = dictionaryIndexes[0]
-		body_metadata = dictionaryIndexes[2]
-	else:
-		key_text_metadata = {}
-		body_metadata = {}
+	dictionaryIndexes: list[dict[str, Any]] | None = metadata.get(
+		"IDXDictionaryIndexes",
+	)
+	key_text_metadata: dict[str, Any] = (
+		dictionaryIndexes[0] if dictionaryIndexes else {}
+	)
+	body_metadata: dict[str, Any] = dictionaryIndexes[2] if dictionaryIndexes else {}
 
 	key_text_data_fields = key_text_metadata.get("IDXIndexDataFields", {})
 	key_text_variable_fields = [

@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import logging
 import warnings
-from collections import OrderedDict as odict
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -45,7 +44,7 @@ log = logging.getLogger("pyglossary")
 def optionsPropFromDict(
 	optionsPropDict: dict[str, Any],
 ) -> dict[str, Option]:
-	props = {}
+	props: dict[str, Option] = {}
 	for name, propDict in optionsPropDict.items():
 		try:
 			prop = optionFromDict(propDict)
@@ -331,10 +330,11 @@ class PluginProp:  # noqa: PLR0904
 		return nameList
 
 	def _getOptionsFromClass(self, rwclass: type | None) -> dict[str, Any]:
-		optionsProp = self.optionsProp
-		options = odict()
 		if rwclass is None:
-			return options
+			return {}
+
+		optionsProp = self.optionsProp
+		options: dict[str, Any] = {}
 
 		for attrName in self._getOptionAttrNamesFromClass(rwclass):
 			name = attrName[1:]

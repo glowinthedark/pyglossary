@@ -22,7 +22,6 @@ from __future__ import annotations
 import logging
 import sys
 import traceback
-from collections import OrderedDict
 from os.path import abspath, isfile
 from typing import TYPE_CHECKING, Any
 
@@ -569,7 +568,7 @@ class FormatOptionsDialog(gtk.Dialog):
 
 	def getOptionsValues(self):
 		model = self.treev.get_model()
-		optionsValues = {}
+		optionsValues: dict[str, Any] = {}
 		for row in model:
 			if not row[0]:  # not enable
 				continue
@@ -953,17 +952,15 @@ class GeneralOptionsDialog(gtk.Dialog):
 		pack(hbox, self.sqliteCheck, 0, 0, padding=hpad)
 		pack(self.vbox, hbox, 0, 0, padding=vpad)
 		##
-		self.configParams = OrderedDict(
-			[
-				("save_info_json", False),
-				("lower", False),
-				("skip_resources", False),
-				("rtl", False),
-				("enable_alts", True),
-				("cleanup", True),
-				("remove_html_all", True),
-			],
-		)
+		self.configParams = {
+			"save_info_json": False,
+			"lower": False,
+			"skip_resources": False,
+			"rtl": False,
+			"enable_alts": True,
+			"cleanup": True,
+			"remove_html_all": True,
+		}
 		self.configCheckButtons = {}
 		configDefDict = UIBase.configDefDict
 		for param in self.configParams:
@@ -1385,15 +1382,12 @@ class UI(gtk.Dialog, MyDialog, UIBase):
 		inputFormat: str = "",
 		outputFormat: str = "",
 		reverse: bool = False,
-		config: dict | None = None,
-		readOptions: dict | None = None,
-		writeOptions: dict | None = None,
-		convertOptions: dict | None = None,
-		glossarySetAttrs: dict | None = None,
+		config: dict[str, Any] | None = None,
+		readOptions: dict[str, Any] | None = None,
+		writeOptions: dict[str, Any] | None = None,
+		convertOptions: dict[str, Any] | None = None,
+		glossarySetAttrs: dict[str, Any] | None = None,
 	):
-		if glossarySetAttrs is None:
-			glossarySetAttrs = {}
-
 		self.config = config
 
 		if inputFilename:
@@ -1418,7 +1412,7 @@ class UI(gtk.Dialog, MyDialog, UIBase):
 		if convertOptions:
 			log.debug(f"Using {convertOptions=}")
 
-		self._glossarySetAttrs = glossarySetAttrs
+		self._glossarySetAttrs = glossarySetAttrs or {}
 
 		self.convertInputEntry.grab_focus()
 		gtk.Dialog.present(self)
