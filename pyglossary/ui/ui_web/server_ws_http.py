@@ -49,19 +49,25 @@ Author of this customized version:
 - Website: https://legbehindneck.com
 """
 
+import base64
 import errno
 import json
 import logging
+import os
+import posixpath
 import struct
 import sys
 import threading
 import traceback
 from base64 import b64encode
+from collections import OrderedDict
 from hashlib import sha1
 from http import HTTPStatus
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from socketserver import ThreadingMixIn
+from typing import Any
+from urllib.parse import unquote
 
 from pyglossary.glossary_v2 import Glossary
 
@@ -99,7 +105,9 @@ OPCODE_PING = 0x9
 OPCODE_PONG = 0xA
 
 CLOSE_STATUS_NORMAL = 1000
-DEFAULT_CLOSE_REASON = bytes("", encoding="utf-8")
+DEFAULT_CLOSE_REASON = b""
+DEFAULT_MAX_BROWSE_ENTRIES = 42
+MAX_IMAGE_SIZE = 512000
 
 
 class WebLogHandler(logging.Handler):
@@ -157,7 +165,9 @@ class API:
 			self._multicast(json.dumps(msg))
 
 	def deny_new_connections(
-		self, status=CLOSE_STATUS_NORMAL, reason=DEFAULT_CLOSE_REASON
+		self,
+		status=CLOSE_STATUS_NORMAL,
+		reason=DEFAULT_CLOSE_REASON,
 	):
 		self._deny_new_connections(status, reason)
 
@@ -165,7 +175,9 @@ class API:
 		self._allow_new_connections()
 
 	def shutdown_gracefully(
-		self, status=CLOSE_STATUS_NORMAL, reason=DEFAULT_CLOSE_REASON
+		self,
+		status=CLOSE_STATUS_NORMAL,
+		reason=DEFAULT_CLOSE_REASON,
 	):
 		self._shutdown_gracefully(status, reason)
 
@@ -173,7 +185,9 @@ class API:
 		self._shutdown_abruptly()
 
 	def disconnect_clients_gracefully(
-		self, status=CLOSE_STATUS_NORMAL, reason=DEFAULT_CLOSE_REASON
+		self,
+		status=CLOSE_STATUS_NORMAL,
+		reason=DEFAULT_CLOSE_REASON,
 	):
 		self._disconnect_clients_gracefully(status, reason)
 
@@ -184,7 +198,7 @@ class API:
 class HttpWebsocketServer(ThreadingMixIn, HTTPServer, API, logging.Handler):
 
 	"""
-		A websocket server waiting for clients to connect.
+	A websocket server waiting for clients to connect.
 
 	Args:
 		port(int): Port to bind to
@@ -199,9 +213,9 @@ class HttpWebsocketServer(ThreadingMixIn, HTTPServer, API, logging.Handler):
 		clients(list): A list of connected clients. A client is a dictionary
 			like below.
 				{
-				'id'	  : id,
-				'handler' : handler,
-				'address' : (addr, port)
+					'id'	  : id,
+					'handler' : handler,
+					'address' : (addr, port)
 				}
 
 	"""
@@ -242,7 +256,7 @@ class HttpWebsocketServer(ThreadingMixIn, HTTPServer, API, logging.Handler):
 	def _run_forever(self, threaded):
 		cls_name = self.__class__.__name__
 		try:
-			serverlog.info(f"Listening on http://{self.host}/{self.port}/")
+			serverlog.info(f"Listening on http://{self.host}:{self.port}/")
 			if threaded:
 				self.daemon = True
 				self.thread = threading.Thread(
@@ -363,14 +377,63 @@ class HttpWebsocketServer(ThreadingMixIn, HTTPServer, API, logging.Handler):
 
 
 class HTTPWebSocketHandler(SimpleHTTPRequestHandler):
+	browse_roots = OrderedDict()
+
+	@classmethod
+	def add_browse_root(cls, path):
+		"""Additional browse roots for css/js/etc resources."""
+		cls.browse_roots[path] = None
+
 	def __init__(self, socket, addr, server: HttpWebsocketServer, *args, **kwargs):
 		self.server: HttpWebsocketServer = server
 		assert not hasattr(self, "_send_lock"), "_send_lock already exists"
 		self._send_lock = threading.Lock()
+		webroot = str(Path(__file__).parent)
 
-		super().__init__(
-			socket, addr, server, *args, **kwargs, directory=Path(__file__).parent
-		)
+		HTTPWebSocketHandler.add_browse_root(webroot)
+
+		super().__init__(socket, addr, server, *args, **kwargs, directory=webroot)
+
+	def translate_path(self, path):
+		"""
+		Overlay of https://github.com/python/cpython/blob/47c5a0f307cff3ed477528536e8de095c0752efa/Lib/http/server.py#L841
+		patched to support multiple browse roots
+		Translate a /-separated PATH to the local filename syntax.
+
+		Components that mean special things to the local file system
+		(e.g. drive or directory names) are ignored.  (XXX They should
+		probably be diagnosed.)
+
+		"""
+		# abandon query parameters
+		if self.command == "GET":
+			path = path.split("?", 1)[0]
+			path = path.split("#", 1)[0]
+			# Handle explicit trailing slash when normalizing
+			trailing_slash = path.rstrip().endswith("/")
+			try:
+				path = unquote(path, errors="surrogatepass")
+			except UnicodeDecodeError:
+				path = unquote(path)
+			path = posixpath.normpath(path)
+			# normpath already replaces // (or /// etc) with /
+			pathParts = path.split("/")
+
+			# Iterate through each browsing root to find a matching path
+			for root in self.browse_roots:
+				rootPath = os.path.join(root, *pathParts)
+
+				# Normalize path and check if the file exists
+				if os.path.exists(rootPath):
+					if trailing_slash and os.path.isdir(rootPath):
+						rootPath += "/"
+					return rootPath
+
+			# If no valid path found in any root, send 404
+			self.send_error(HTTPStatus.NOT_FOUND, "Not found")
+			return ""
+		# fallback to super for other methods
+		return super().translate_path(path)
 
 	def do_GET(self):
 		if self.path == "/config":
@@ -398,13 +461,18 @@ class HTTPWebSocketHandler(SimpleHTTPRequestHandler):
 		# custom ajax action for /convert POST
 		if self.path == "/convert":
 			self.handle_convert_job()
-		else:
-			self.send_response(HTTPStatus.BAD_REQUEST)
-			self.send_header("Content-Type", "application/json")
-			self.end_headers()
-			self.wfile.write(
-				json.dumps({"value": f"{self.path}: POST unsupported"}).encode()
-			)
+			return
+
+		print("---- do_POST")
+		self.send_response(HTTPStatus.BAD_REQUEST)
+		self.send_header("Content-Type", "application/json")
+		self.end_headers()
+		json.dump(
+			{
+				"value": f"{self.path}: POST unsupported",
+			},
+			self.wfile,
+		)
 
 	def setup(self):
 		SimpleHTTPRequestHandler.setup(self)
@@ -431,104 +499,91 @@ class HTTPWebSocketHandler(SimpleHTTPRequestHandler):
 
 	def handle_convert_job(self):
 		try:
-			content_length = int(self.headers.get("Content-Length", 0))
-
-			post_data = self.rfile.read(content_length)
-
-			try:
-				payload = json.loads(post_data)
-				serverlog.debug(f"Handle convert request from {self.client_address[0]}")
-				serverlog.debug(f"POST PAYLOAD {payload}")
-			except json.JSONDecodeError:
-				self.send_response(HTTPStatus.BAD_REQUEST)
-				self.send_header("Content-type", "application/json")
-				self.end_headers()
-				self.wfile.write(b"Invalid JSON data.")
-				return
-
-			required_fields = [
-				"inputFilename",
-				"inputFormat",
-				"outputFilename",
-				"outputFormat",
-			]
-			missing_fields = [
-				field for field in required_fields if not payload.get(field)
-			]
-
-			if missing_fields:
-				self.send_response(HTTPStatus.BAD_REQUEST)
-				self.send_header("Content-type", "application/json")
-				self.end_headers()
-				error_message = {
-					"error": "Missing or empty fields",
-					"missing_fields": missing_fields,
-				}
-				self.wfile.write(json.dumps(error_message).encode())
-				return
-
-			self.server.ui_controller.start_convert_job(payload)
-
-			self.send_response(HTTPStatus.OK)
-			self.send_header("Content-type", "text/html")
-			self.end_headers()
-			self.wfile.write(b"POST request received and JSON data stored.")
-
+			payload: dict[str, Any] = json.loads(
+				self.rfile.read(int(self.headers.get("Content-Length", 0)))
+			)
+		except json.JSONDecodeError:
+			self.json_decode_error()
+			return
 		except Exception as e:
-			# Step 8: Handle any unexpected errors
-			serverlog.error(e)
-			self.send_response(
-				HTTPStatus.INTERNAL_SERVER_ERROR
-			)  # Internal Server Error
-			self.send_header("Content-type", "text/html")
-			self.end_headers()
-			self.wfile.write(f"Error: {e!s}".encode())
+			self.internal_exception(e)
+			return
+
+		serverlog.debug(f"Handle convert request from {self.client_address[0]}")
+		serverlog.debug(f"POST PAYLOAD {payload}")
+
+		try:
+			self.server.ui_controller.start_convert_job(payload)
+		except ValueError as e:
+			self.validation_exception(e)
+			return
+
+		self.send_response(HTTPStatus.OK)
+		self.send_header("Content-type", "text/html")
+		self.end_headers()
+		self.wfile.write(b"POST successful")
+
+	def validation_exception(self, e: Exception) -> None:
+		self.send_response(HTTPStatus.BAD_REQUEST)
+		self.send_header("Content-type", "application/json")
+		self.end_headers()
+		json.dump({"error": str(e)}, self.wfile)
+
+	def json_decode_error(self):
+		self.send_response(HTTPStatus.BAD_REQUEST)
+		self.send_header("Content-type", "application/json")
+		self.end_headers()
+		self.wfile.write(b"Invalid JSON data.")
+
+	def internal_exception(self, e: Exception) -> None:
+		serverlog.error(e)
+		self.send_response(HTTPStatus.INTERNAL_SERVER_ERROR)  # Internal Server Error
+		self.send_header("Content-type", "text/html")
+		self.end_headers()
+		self.wfile.write(f"Error: {e!s}".encode())
+
+	def _handle_one_request(self):
+		self.raw_requestline = self.rfile.readline(65537)
+
+		if len(self.raw_requestline) > 65536:
+			self.requestline = ""
+			self.request_version = ""
+			self.command = ""
+			self.send_error(HTTPStatus.REQUEST_URI_TOO_LONG)
+			return
+		if not self.raw_requestline:
+			self.close_connection = True
+			return
+		if not self.parse_request():
+			# An error code has been sent, just exit
+			return
+		if self.path.startswith("/ws") and self.headers.get("upgrade") == "websocket":
+			self.handle_ws()
+			return
+
+		mname = "do_" + self.command
+		if not hasattr(self, mname):
+			self.send_error(
+				HTTPStatus.NOT_IMPLEMENTED,
+				f"Unsupported method ({self.command})",
+			)
+			return
+		method = getattr(self, mname)
+		method()
+		self.wfile.flush()  # actually send the response if not already done.
 
 	def handle_one_request(self):
 		"""
-		Handle a single HTTP request.
-
-		You normally don't need to override this method; see the class
-		__doc__ string for information on how to handle specific HTTP
-		commands such as GET and POST.
-
+		Handle a single HTTP/WS request.
+		Override ootb method to delegate to WebSockets handler based
+		on /ws path and presence of custom header: "upgrade: websocket".
 		"""
 		try:
-			self.raw_requestline = self.rfile.readline(65537)
-
-			if len(self.raw_requestline) > 65536:
-				self.requestline = ""
-				self.request_version = ""
-				self.command = ""
-				self.send_error(HTTPStatus.REQUEST_URI_TOO_LONG)
-				return
-			if not self.raw_requestline:
-				self.close_connection = True
-				return
-			if not self.parse_request():
-				# An error code has been sent, just exit
-				return
-			if (
-				self.path.startswith("/ws")
-				and self.headers.get("upgrade") == "websocket"
-			):
-				self.handle_ws()
-			else:
-				mname = "do_" + self.command
-				if not hasattr(self, mname):
-					self.send_error(
-						HTTPStatus.NOT_IMPLEMENTED,
-						f"Unsupported method ({self.command})",
-					)
-					return
-				method = getattr(self, mname)
-				method()
-				self.wfile.flush()  # actually send the response if not already done.
+			self._handle_one_request()
 		except TimeoutError as e:
 			# a read or a write timed out.  Discard this connection
 			self.log_error("Request timed out: %r", e)
 			self.close_connection = True
-			return
 
 	def read_bytes(self, num):
 		return self.rfile.read(num)
@@ -719,7 +774,7 @@ def try_decode_UTF8(data):
 	except UnicodeDecodeError:
 		return False
 	except Exception as e:
-		raise (e)
+		raise e
 
 
 #  ======================= IMPLEMENTATION SECTION =========================
@@ -745,6 +800,13 @@ def message_received(client, server, message):
 	if message == "ping":
 		print(f"Client({client.get('id')}) said: {message}")
 		server.send_message_to_all({"type": "info", "text": "ws: pong ✔️"})
+
+	elif "browse" in message:
+		try:
+			handle_browse_request(client, server, message)
+		except Exception as e:
+			serverlog.error(f"{e!s} handling client message {client}")
+
 	elif message == "exit":
 		try:
 			server.send_message_to_all(
@@ -753,6 +815,85 @@ def message_received(client, server, message):
 			server.shutdown()
 		except Exception as e:
 			serverlog.warning(str(e))
+
+
+def handle_browse_request(client, server, message):
+	serverlog.debug(f"processing client #{client} message")
+	params = json.loads(message)
+	word = params.get("word")
+	glossary_path = params.get("path")
+	glossary_format = params.get("format")
+	max_results = int(params.get("max", DEFAULT_MAX_BROWSE_ENTRIES))
+
+	if not glossary_path or not os.path.exists(glossary_path):
+		serverlog.error(f"invalid PATH: '{glossary_path}'")
+		server.send_message_to_all(
+			{"type": "browse", "error": f"invalid path: '{glossary_path}'"}
+		)
+		return
+
+	glos_path = Path(glossary_path).expanduser().resolve()
+
+	# add parent folder as a browse root to allow resolution of
+	# .css/.js/.jpg resources for .mdx files
+	HTTPWebSocketHandler.add_browse_root(str(glos_path.parent))
+
+	glos = Glossary(ui=None)
+
+	if not glos.directRead(glossary_path, formatName=glossary_format):
+		server.send_message_to_all(
+			{
+				"type": "browse",
+				"error": f"Error reading {glossary_path} with format {glossary_format}",
+			}
+		)
+
+	num_results = 0
+	try:
+		for entry in glos:
+			single_entry = None
+			# get first max entries if no word or filter until max results
+			if not word or entry.s_word.lower().startswith(word.lower()):
+				if entry.defiFormat in {"h", "m", "x"}:
+					single_entry = f"""<dt>{entry.s_word}</dt><dd>{entry.defi}</dd>"""
+					num_results += 1
+				else:
+					single_entry = (
+						f"&#128206;<pre>{entry.s_word} ({entry.size()})</pre>"
+					)
+					if (
+						entry.isData()
+						and entry.size() < MAX_IMAGE_SIZE
+						and entry.s_word.lower().endswith((".jpg", "jpeg", ".png"))
+					):
+						extension = Path(entry.s_word).suffix[1:]
+						single_entry += f"""
+						<img class="data"
+						src="data:image/{extension};base64,{base64.b64encode(entry.data).decode('utf-8')}"
+						alt="{entry.s_word}"/>
+						"""
+			if single_entry:
+				server.send_message_to_all(
+					{
+						"type": "browse",
+						"data": single_entry,
+						"num": num_results,
+						"max": max_results,
+					}
+				)
+			if num_results >= max_results:
+				break
+	except Exception as e:
+		server.send_message_to_all({"type": "browse", "error": f"exception: '{e!s}'"})
+	finally:
+		server.send_message_to_all(
+			{
+				"type": "browse",
+				"data": f"<hr>Total: {num_results}",
+				"num": num_results,
+				"max": max_results,
+			}
+		)
 
 
 def create_server(host="127.0.0.1", port=9001, user_logger=None):
