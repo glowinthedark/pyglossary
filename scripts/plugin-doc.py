@@ -156,6 +156,14 @@ def renderTable(rows):
 	return "\n".join(["| " + " | ".join(row) + " |" for row in rows])
 
 
+def renderTableNoPadding(rows):
+	"""rows[0] must be headers."""
+	rows = [[renderCell(cell) for cell in row] for row in rows]
+	width = [len(x) for x in rows[0]]
+	rows.insert(1, ["-" * colWidth for colWidth in width])
+	return "\n".join(["| " + " | ".join(row) + " |" for row in rows])
+
+
 def renderRWOptions(options):
 	return renderTable(
 		[("Name", "Default", "Type", "Comment")]
@@ -246,23 +254,30 @@ for p in plugins:
 			tool.update({"name": toolName})
 		tools = tools_toml.values()
 
-	generalInfoTable = "### General Information\n\n" + renderTable(
-		[
-			("Attribute", "Value"),
-			("Name", p.name),
-			("snake_case_name", p.lname),
-			("Description", p.description),
-			("Extensions", ", ".join([codeValue(ext) for ext in p.extensions])),
-			("Read support", yesNo(p.canRead)),
-			("Write support", yesNo(p.canWrite)),
-			("Single-file", yesNo(p.singleFile)),
-			("Kind", f"{kindEmoji(module.kind)} {module.kind}"),
-			("Sort-on-write", p.sortOnWrite),
+	table = [
+		("Attribute", "Value"),
+		("Name", p.name),
+		("snake_case_name", p.lname),
+		("Description", p.description),
+		("Extensions", ", ".join([codeValue(ext) for ext in p.extensions])),
+		("Read support", yesNo(p.canRead)),
+		("Write support", yesNo(p.canWrite)),
+		("Single-file", yesNo(p.singleFile)),
+		("Kind", f"{kindEmoji(module.kind)} {module.kind}"),
+	]
+
+	if p.canWrite:
+		table += [
+			("Sort-on-write", p.sortOnWrite.desc),
 			("Sort key", sortKeyName(p)),
-			("Wiki", wiki_md),
-			("Website", website_md),
-		],
-	)
+		]
+
+	table += [
+		("Wiki", wiki_md),
+		("Website", website_md),
+	]
+
+	generalInfoTable = "### General Information\n\n" + renderTable(table)
 	topTables = generalInfoTable
 
 	try:
@@ -336,7 +351,7 @@ for p in plugins:
 	) as _file:
 		_file.write(text)
 
-indexText = renderTable(
+indexText = renderTableNoPadding(
 	[("Description", "Name", "Doc Link")]
 	+ [
 		(

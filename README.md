@@ -2,6 +2,10 @@
 
 # PyGlossary
 
+<p align="center">
+	<img src="res/pyglossary-256x256.png"></img>
+</p>
+
 A tool for converting dictionary files aka glossaries.
 
 The primary purpose is to be able to use our offline glossaries in any Open
@@ -61,7 +65,6 @@ Web interface
 | [DigitalNK](./doc/p/digitalnk.md) (SQLite3, N-Korean)   |  🔢  |       .db       |  ✔   |       |
 | [DIKT JSON](./doc/p/dikt_json.md)                       |  📝  |     (.json)     |      |   ✔   |
 | [EDICT2 (CEDICT)](./doc/p/edict2.md) (Chinese)          |  📝  |     (.u8)       |  ✔   |  ❌   |
-| [EDLIN](./doc/p/edlin.md)                               |  📁  |     .edlin      |  ✔   |   ✔   |
 | [EPUB-2 E-Book](./doc/p/epub2.md)                       |  📦  |      .epub      |  ❌   |   ✔   |
 | [FreeDict](./doc/p/freedict.md)                         |  📝  |      .tei       |  ✔   |   ❌   |
 | [Gettext Source](./doc/p/gettext_po.md)                 |  📝  |       .po       |  ✔   |   ✔   |

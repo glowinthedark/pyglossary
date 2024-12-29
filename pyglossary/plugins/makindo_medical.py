@@ -27,18 +27,17 @@ __all__ = [
 ]
 
 enable = True
-lname = "abc_medical_notes"
-name = "ABCMedicalNotes"
-description = "ABC Medical Notes (SQLite3)"
+lname = "makindo_medical"
+name = "MakindoMedical"
+description = "Makindo Medical Reference (SQLite3)"
 extensions = ()
 extensionCreate = ".db"
 singleFile = True
 kind = "binary"
 wiki = ""
-_url = "https://play.google.com/store/apps/details?id=com.pocketmednotes2014.secondapp"
 website = (
-	_url,
-	"ABC Medical Notes 2021 - Google Play",
+	"https://www.makindo.co.uk/topics/_index.php",
+	"Makindo.co.uk Comprehensive Medical Encyclopedia",
 )
 optionsProp: dict[str, Option] = {}
 
