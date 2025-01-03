@@ -31,10 +31,7 @@ from os.path import (
 	relpath,
 )
 from time import perf_counter as now
-from typing import (
-	TYPE_CHECKING,
-	cast,
-)
+from typing import TYPE_CHECKING, cast
 from uuid import uuid1
 
 from . import core
@@ -77,8 +74,6 @@ if TYPE_CHECKING:
 	from .glossary_types import (
 		EntryListType,
 		EntryType,
-		GlossaryExtendedType,
-		GlossaryType,
 		RawEntryType,
 	)
 	from .plugin_prop import PluginProp
@@ -117,7 +112,7 @@ class ConvertArgs:
 	infoOverride: dict[str, str] | None = None
 
 
-class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PLR0904
+class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 	"""
 	The signature of 'convert' method is different in glossary_v2.py
@@ -298,7 +293,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 		entryFilters = []
 		config = self._config
 
-		glosArg = cast("GlossaryExtendedType", self)
+		glosArg = self
 
 		for configParam, default, filterClass in entryFiltersRules:
 			args = []
@@ -338,8 +333,8 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 	def _addExtraEntryFilter(self, cls: type[EntryFilterType]) -> None:
 		if cls.name in self._entryFiltersName:
 			return
-		self._entryFilters.append(cls(cast("GlossaryType", self)))
-		self._entryFiltersExtra.append(cls(cast("GlossaryType", self)))
+		self._entryFilters.append(cls(self))
+		self._entryFiltersExtra.append(cls(self))
 		self._entryFiltersName.add(cls.name)
 
 	def removeHtmlTagsAll(self) -> None:
@@ -364,7 +359,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 			return
 		self._entryFilters.append(
 			StripFullHtml(  # pyright: ignore[reportArgumentType]
-				cast("GlossaryType", self),
+				self,
 				errorHandler=errorHandler,
 			),
 		)
@@ -423,7 +418,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 
 		filters = self._entryFiltersExtra
 		if self.progressbar:
-			filters.append(ShowProgressBar(cast("GlossaryExtendedType", self)))  # pyright: ignore[reportArgumentType]
+			filters.append(ShowProgressBar(self))  # pyright: ignore[reportArgumentType]
 
 		self.progressInit("Writing")
 		for _entry in self._data:
@@ -722,12 +717,12 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 		filename: str,
 		**options,  # noqa: ANN003
 	) -> bool:
-		self._setTmpDataDir(filename)
-		return self._read(
+		self._read(
 			filename=filename,
 			direct=True,
 			**options,
 		)
+		return True
 
 	# these keyword arguments are also used by `directRead`
 	# so renaming them would be a breaking change
@@ -738,7 +733,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 		formatName: str = "",
 		direct: bool = False,
 		**options,  # noqa: ANN003
-	) -> bool:
+	) -> None:
 		if format:
 			warnings.warn(
 				"format= argument is deprecated and will be removed in 6.0.0"
@@ -750,34 +745,35 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 		formatName = formatName or format
 		del format
 
-		filename = os.path.abspath(filename)
-		###
-		inputArgs = self.detectInputFormat(filename, formatName=formatName)
-		if inputArgs is None:
-			return False
-		origFilename = filename
-		filename, formatName, compression = inputArgs
+		filenameAbs = os.path.abspath(filename)
+
+		self._setTmpDataDir(filename)
+
+		filenameUC, formatName, compression = PluginManager.detectInputFormat(
+			filenameAbs, formatName=formatName
+		)
+		# filenameUC is the uncompressed file's absolute path
 
 		if compression:
 			from .compression import uncompress
 
-			uncompress(origFilename, filename, compression)
+			uncompress(filenameAbs, filenameUC, compression)
 
 		self._validateReadoptions(formatName, options)
 
-		filenameNoExt, ext = os.path.splitext(filename)
+		filenameBase, ext = os.path.splitext(filenameUC)
 		if ext.lower() not in self.plugins[formatName].extensions:
-			filenameNoExt = filename
+			filenameBase = filenameUC
 
-		self._filename = filenameNoExt
+		self._filename = filenameBase
 		if not self._info.get(c_name):
-			self._info[c_name] = os.path.split(filename)[1]
+			self._info[c_name] = os.path.split(filenameUC)[1]
 
 		if not self._entryFiltersAreSet:
 			self.updateEntryFilters()
 
 		reader = self._createReader(formatName, options)
-		self._openReader(reader, filename)
+		self._openReader(reader, filenameUC)
 
 		self._readOptions = options
 
@@ -786,12 +782,10 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 		if not direct:
 			self.loadReader(reader)
 			self._iter = self._loadedEntryGen()
-			return True
+			return
 
 		self._readers.append(reader)
 		self._iter = self._readersEntryGen()
-
-		return True
 
 	def loadReader(self, reader: Any) -> None:  # noqa: ANN401
 		"""
@@ -845,21 +839,14 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 		**kwargs,  # noqa: ANN003
 	) -> str:
 		"""
-		Write to a given glossary file, with given format (optional).
-		Return absolute path of output file, or None if failed.
+		Write to a given glossary file, with given formatName (optional).
+		Return absolute path of output file.
+		Raises Error exception if failed.
 
 		Parameters
 		----------
 		filename (str): file name or path to write.
-		format (str): format name
-		sort (bool):
-			True (enable sorting),
-			False (disable sorting),
-			None (auto, get from UI)
-		sortKeyName (str or None):
-			key function name for sorting
-		sortEncoding (str or None):
-			encoding for sorting, default utf-8
+		formatName (str): format name
 
 		You can pass write-options (of given format) as keyword arguments
 
@@ -903,7 +890,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 		if self._config.get("save_info_json", False):
 			from pyglossary.info_writer import InfoWriter
 
-			infoWriter = InfoWriter(cast("GlossaryType", self))
+			infoWriter = InfoWriter(self)
 			infoWriter.setWriteOptions(options)
 			filenameNoExt, _, _, _ = splitFilenameExt(filename)
 			infoWriter.open(f"{filenameNoExt}.info")
@@ -957,9 +944,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 		self._sort = sort
 
 		if sort:
-			t0 = now()
 			self._data.sort()
-			log.info(f"Sorting took {now() - t0:.1f} seconds")
 
 		if self._readers:
 			self._iter = self._readersEntryGen()
@@ -985,14 +970,11 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 
 		return filename
 
-	def _compressOutput(self, filename: str, compression: str) -> str:
+	@staticmethod
+	def _compressOutput(filename: str, compression: str) -> str:
 		from .compression import compress
 
-		return compress(
-			cast("GlossaryType", self),
-			filename,
-			compression,
-		)
+		return compress(filename, compression)
 
 	def _switchToSQLite(
 		self,
@@ -1141,7 +1123,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 		return namedSortKey, sortEncoding
 
 	@staticmethod
-	def _convertValidateStrings(args: ConvertArgs) -> None:
+	def _convertValidateArgs(args: ConvertArgs) -> None:
 		if type(args.inputFilename) is not str:
 			raise TypeError("inputFilename must be str")
 		if type(args.outputFilename) is not str:
@@ -1151,6 +1133,9 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 			raise TypeError("inputFormat must be str")
 		if args.outputFormat is not None and type(args.outputFormat) is not str:
 			raise TypeError("outputFormat must be str")
+
+		if args.outputFilename == args.inputFilename:
+			raise Error("Input and output files are the same")
 
 	def _convertPrepare(
 		self,
@@ -1163,17 +1148,12 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 				f"Directory already exists and not empty: {relpath(outputFilename)}",
 			)
 
-		outputPlugin = self.plugins[outputFormat]
-
-		sortParams = self._resolveSortParams(
+		direct, sort = self._resolveSortParams(
 			args=args,
-			plugin=outputPlugin,
+			plugin=self.plugins[outputFormat],
 		)
-		direct, sort = sortParams
 
 		showMemoryUsage()
-
-		self._setTmpDataDir(args.inputFilename)
 
 		readOptions = args.readOptions or {}
 
@@ -1190,7 +1170,8 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 
 	def convertV2(self, args: ConvertArgs) -> str:
 		"""
-		Return absolute path of output file, or None if failed.
+		Return absolute path of output file.
+		Raises Error exception if failed.
 
 		sortKeyName:
 			name of sort key/algorithm
@@ -1203,20 +1184,15 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 		sortEncoding:
 			encoding/charset for sorting, default to utf-8
 		"""
-		self._convertValidateStrings(args)
-		if args.outputFilename == args.inputFilename:
-			raise Error("Input and output files are the same")
+		self._convertValidateArgs(args)
 
 		tm0 = now()
 
-		outputArgs = self.detectOutputFormat(
+		outputFilename, outputFormat, compression = PluginManager.detectOutputFormat(
 			filename=args.outputFilename,
 			formatName=args.outputFormat,
 			inputFilename=args.inputFilename,
 		)
-		if not outputArgs:
-			raise Error(f"Writing file {relpath(args.outputFilename)!r} failed.")
-		outputFilename, outputFormat, compression = outputArgs
 
 		sort = self._convertPrepare(
 			args=args,
@@ -1254,7 +1230,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress, PluginManager):  # noqa: PL
 # ________________________________________________________________________#
 
 
-class Glossary(GlossaryCommon):
+class Glossary(GlossaryCommon, PluginManager):
 
 	"""
 	init method is inherited from PluginManager

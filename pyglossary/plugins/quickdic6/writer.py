@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import datetime as dt
 import os
-import typing
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-	from pyglossary.glossary_types import EntryType, GlossaryType
+	from collections.abc import Generator
+
+	from pyglossary.glossary_types import EntryType, WriterGlossaryType
 
 from pyglossary.core import log
 
@@ -41,7 +42,7 @@ default_normalizer_rules = (
 class Writer:
 	_normalizer_rules = ""
 
-	def __init__(self, glos: GlossaryType) -> None:
+	def __init__(self, glos: WriterGlossaryType) -> None:
 		self._glos = glos
 		self._filename = ""
 		self._dic = None
@@ -67,7 +68,7 @@ class Writer:
 			write_list(fp, write_entry_index, dic.indices)
 			write_string(fp, "END OF DICTIONARY")
 
-	def write(self) -> typing.Generator[None, EntryType, None]:
+	def write(self) -> Generator[None, EntryType, None]:
 		synonyms: dict[str, list[str]] = {}
 		htmls: list[tuple[int, str, str]] = []
 		log.info("Converting individual entries ...")

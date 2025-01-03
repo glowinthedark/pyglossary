@@ -23,9 +23,9 @@ __all__ = [
 	"Callable",
 	"EntryListType",
 	"EntryType",
-	"GlossaryExtendedType",
-	"GlossaryType",
 	"RawEntryType",
+	"ReaderGlossaryType",
+	"WriterGlossaryType",
 ]
 
 MultiStr: TypeAlias = "str | list[str]"
@@ -130,51 +130,10 @@ class EntryListType(typing.Protocol):
 	def close(self) -> None: ...
 
 
-class GlossaryType(typing.Protocol):  # noqa: PLR0904
-
-	"""
-	an abstract type class for Glossary class in plugins. it only
-	contains methods and properties that might be used in plugins.
-	"""
-
-	def __iter__(self) -> Iterator[EntryType]: ...
-
-	def __len__(self) -> int: ...
-
-	def setDefaultDefiFormat(self, defiFormat: str) -> None: ...
-
-	def getDefaultDefiFormat(self) -> str: ...
-
-	def collectDefiFormat(
-		self,
-		maxCount: int,
-	) -> dict[str, float] | None: ...
-
-	def iterInfo(self) -> Iterator[tuple[str, str]]: ...
-
+class GlossaryInfoCommonType(typing.Protocol):
 	def getInfo(self, key: str) -> str: ...
 
 	def setInfo(self, key: str, value: str) -> None: ...
-
-	def getExtraInfos(self, excludeKeys: list[str]) -> dict[str, str]: ...
-
-	@property
-	def author(self) -> str: ...
-
-	@property
-	def alts(self) -> bool: ...
-
-	@property
-	def filename(self) -> str: ...
-
-	@property
-	def tmpDataDir(self) -> str: ...
-
-	@property
-	def readOptions(self) -> dict | None: ...
-
-	@property
-	def sqlite(self) -> bool: ...
 
 	@property
 	def sourceLang(self) -> Lang | None: ...
@@ -194,19 +153,11 @@ class GlossaryType(typing.Protocol):  # noqa: PLR0904
 	@targetLangName.setter
 	def targetLangName(self, langName: str) -> None: ...
 
-	def titleTag(self, sample: str) -> str: ...
+	@property
+	def author(self) -> str: ...
 
-	def wordTitleStr(
-		self,
-		word: str,
-		sample: str = "",
-		class_: str = "",
-	) -> str: ...
 
-	def getConfig(self, name: str, default: str | None) -> str | None: ...
-
-	def addEntry(self, entry: EntryType) -> None: ...
-
+class ReaderGlossaryType(GlossaryInfoCommonType):
 	def newEntry(
 		self,
 		word: MultiStr,
@@ -216,6 +167,52 @@ class GlossaryType(typing.Protocol):  # noqa: PLR0904
 	) -> EntryType: ...
 
 	def newDataEntry(self, fname: str, data: bytes) -> EntryType: ...
+
+	@property
+	def progressbar(self) -> bool: ...
+
+	def setDefaultDefiFormat(self, defiFormat: str) -> None: ...
+
+	def titleTag(self, sample: str) -> str: ...
+
+	@property
+	def alts(self) -> bool: ...
+
+
+class WriterGlossaryType(GlossaryInfoCommonType):
+	# def __len__(self) -> int: ...
+
+	# @property
+	# def filename(self) -> str: ...
+
+	def __iter__(self) -> Iterator[EntryType]: ...
+
+	def collectDefiFormat(
+		self,
+		maxCount: int,
+	) -> dict[str, float] | None: ...
+
+	def iterInfo(self) -> Iterator[tuple[str, str]]: ...
+
+	def getExtraInfos(self, excludeKeys: list[str]) -> dict[str, str]: ...
+
+	def wordTitleStr(
+		self,
+		word: str,
+		sample: str = "",
+		class_: str = "",
+	) -> str: ...
+
+	@property
+	def tmpDataDir(self) -> str: ...
+
+	def addCleanupPath(self, path: str) -> None: ...
+
+	@property
+	def readOptions(self) -> dict | None: ...
+
+	@property
+	def sqlite(self) -> bool: ...
 
 	def stripFullHtml(
 		self,
@@ -227,25 +224,3 @@ class GlossaryType(typing.Protocol):  # noqa: PLR0904
 	def mergeEntriesWithSameHeadwordPlaintext(self) -> None: ...
 
 	def removeHtmlTagsAll(self) -> None: ...
-
-	def addCleanupPath(self, path: str) -> None: ...
-
-	@property
-	def progressbar(self) -> bool: ...
-
-
-class GlossaryExtendedType(GlossaryType, typing.Protocol):
-	def progressInit(
-		self,
-		*args,  # noqa: ANN002
-	) -> None: ...
-
-	def progress(self, pos: int, total: int, unit: str = "entries") -> None: ...
-
-	def progressEnd(self) -> None: ...
-
-	@property
-	def progressbar(self) -> bool: ...
-
-	@progressbar.setter
-	def progressbar(self, enabled: bool) -> None: ...
