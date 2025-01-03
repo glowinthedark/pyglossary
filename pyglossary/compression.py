@@ -10,8 +10,6 @@ if TYPE_CHECKING:
 	import io
 	from collections.abc import Callable
 
-	from .glossary_types import GlossaryType
-
 
 stdCompressions = ("gz", "bz2", "lzma")
 
@@ -116,7 +114,7 @@ def zipFileOrDir(filename: str) -> None:
 				_zipFileAdd(zf, fname)
 
 
-def compress(_glos: GlossaryType, filename: str, compression: str) -> str:
+def compress(filename: str, compression: str) -> str:
 	"""
 	Filename is the existing file path.
 
