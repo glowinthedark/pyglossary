@@ -18,7 +18,7 @@ else
   export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig:$PREFIX/opt/icu4c/lib/pkgconfig
   export LDFLAGS="-L$PREFIX/opt/icu4c/lib -L$PREFIX/opt/libffi/lib"
   export CPPFLAGS="-I$PREFIX/opt/icu4c/include -I$PREFIX/opt/libffi/include"
-  uv pip install -U beautifulsoup4 colorize_pinyin git+https://github.com/glowinthedark/python-romkan.git html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-lzo pyyaml PyYAML tqdm xxhash
+#  uv pip install -U beautifulsoup4 colorize_pinyin git+https://github.com/glowinthedark/python-romkan.git html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-lzo pyyaml PyYAML tqdm xxhash
   echo
   echo "USING VENV: $VIRTUAL_ENV"
   echo
@@ -68,7 +68,7 @@ python -m nuitka \
 	--nofollow-import-to=*.tests \
 	--noinclude-pytest-mode=nofollow \
 	--noinclude-setuptools-mode=nofollow \
-	--enable-plugins=no-qt,data-files
+	--enable-plugins=no-qt,data-files \
 	--plugin-disable=tk-inter \
 	--plugin-disable=pyqt5 \
 	--plugin-disable=gi \
@@ -80,6 +80,7 @@ python -m nuitka \
 	--include-module=bs4 \
 	--include-module=html5lib \
 	--include-module=icu \
+	--include-module=_json \
 	--include-module=colorize_pinyin \
 	--include-package-data=pyglossary \
 	--include-data-files=about=about \
@@ -93,29 +94,47 @@ python -m nuitka \
 	$APPNAME.py || (echo "Build failed!" && exit 1)
 
 if [ -d "$OUTPUT_DIR/$APPNAME.app/Contents/MacOS" ]; then
-    cp -r {about,AUTHORS,_license-dialog,LICENSE,config.json,help} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
-    cp -rv _license-dialog $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/license-dialog
-    cp -rv {plugins-meta,res,pyglossary} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
+    ditto -V --norsrc --noextattr --noqtn {about,AUTHORS,_license-dialog,LICENSE,config.json,help} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
+    ditto -V --norsrc --noextattr --noqtn _license-dialog $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/license-dialog
+    ditto -V --norsrc --noextattr --noqtn {plugins-meta,res} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
+#    cp -r {about,AUTHORS,_license-dialog,LICENSE,config.json,help} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
+#    cp -rv _license-dialog $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/license-dialog
+#    cp -rv {plugins-meta,res} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
 
     # symlinking doesn't seem to work
     # ln -s ../Resources/pyglossary $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/glossary
 
-    # make DMG
-  DMG_FILE="$APPNAME-WEB-macos13-arm64-$TAG.dmg"
-
   [[ -f "$DMG_FILE" ]] && rm "$DMG_FILE"
 
-  create-dmg --volname "$APPNAME-WEB $VERSION" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "$DMG_FILE" "$OUTPUT_DIR/$APPNAME.app"
+#  create-dmg --volname "$APPNAME $VERSION" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "$DMG_FILE" "$OUTPUT_DIR/$APPNAME.app"
+
+	TMP_DIST_DIR=$(mktemp -d)
+
+  ln -s /Applications "${TMP_DIST_DIR}"
+	ditto -V --norsrc --noextattr --noqtn "$OUTPUT_DIR/$APPNAME.app" "${TMP_DIST_DIR}/$APPNAME.app"
+
+  DMG_FILE="$APPNAME-$(sw_vers --productName)$(sw_vers --productVersion | cut -d.  -f1)-$(uname -m)-$TAG.dmg"
+
+  # make DMG
+  hdiutil create -verbose -volname "$APPNAME $VERSION" -srcfolder "${TMP_DIST_DIR}" -ov -format UDZO -fs HFS+J "${DMG_FILE}"
+
+  rm -rf "${TMP_DIST_DIR}"
+#  create-dmg --volname "$APPNAME-WEB $VERSION" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "$DMG_FILE" "$OUTPUT_DIR/$APPNAME.app"
 
 else
     echo "ERROR: build failed!"
 fi
 
+# LIST IDENTITIES:
+# security find-identity -p codesigning
+
 # Code sign the app (optional)
-#if command -v codesign &>/dev/null; then
+#if command -v codesign &>/dev/null ; then
 #    echo "Code signing the application bundle..."
-#    codesign --deep --force --sign - "$APP_BINARY"
+#    codesign --deep --force --sign - "$OUTPUT_DIR/$APPNAME.app"
 #fi
+#codesign -f -s FHB8TG64F4 "${DMG_FILE}"
+
 
 echo "[$0]: restoring patched files..."
 git checkout HEAD -- pyglossary/ui/argparse_main.py pyglossary/ui/runner.py __init__.py
