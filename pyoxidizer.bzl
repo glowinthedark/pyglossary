@@ -196,7 +196,7 @@ def make_exe():
     # python_config.run_module = "<module>"
 
     # Run a Python file when the interpreter starts.
-    python_config.run_filename = "main.py"
+    python_config.run_filename = "../main.py"
 
     # Produce a PythonExecutable from a Python distribution, embedded
     # resources, and other options. The returned object represents the
@@ -211,6 +211,9 @@ def make_exe():
         # If no argument passed, the default `PythonInterpreterConfig` is used.
         config=python_config,
     )
+    # Install tcl/tk support files to a specified directory so the `tkinter` Python
+    # module works.
+    exe.tcl_files_path = "lib"
 
     for resource in exe.pip_install([
         'pymorphy2',
@@ -230,9 +233,7 @@ def make_exe():
         resource.add_location = "filesystem-relative:lib"
         exe.add_python_resource(resource)
 
-    # Install tcl/tk support files to a specified directory so the `tkinter` Python
-    # module works.
-    # exe.tcl_files_path = "lib"
+
 
     # Never attempt to copy Windows runtime DLLs next to the built executable.
     # exe.windows_runtime_dlls_mode = "never"
@@ -263,7 +264,7 @@ def make_exe():
     # `add_python_resources()` adds these objects to the binary, with a load
     # location as defined by the packaging policy's resource location
     # attributes.
-    # exe.add_python_resources()
+    exe.add_python_resources(exe.pip_install(["appdirs"]))
 
     # Invoke `pip install` using a requirements file and add the collected resources
     # to our binary.
@@ -310,11 +311,11 @@ def make_msi(exe):
         # Simple identifier of your app.
         "pyglossary",
         # The name of your application.
-        "My Application",
+        "PyGlossary",
         # The version of your application.
-        "1.0",
+        "5.0.4",
         # The author/manufacturer of your application.
-        "Alice Jones"
+        "Ilius"
     )
 
 

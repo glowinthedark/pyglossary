@@ -30,8 +30,6 @@ fi
 MAIN_SCRIPT="main.py"
 APPNAME="PyGlossaryTK"
 OUTPUT_DIR="dist.nuitka.tk"
-RESOURCE_DIR="resources"  # Directory with app resources (images, etc.)
-#ARCH="universal"          # Options: arm64, x86_64, universal
 VERSION=$(git describe --abbrev=0)
 TAG=$(git describe)
 PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
@@ -113,10 +111,15 @@ if [ -d "$OUTPUT_DIR/$APPNAME.app/Contents/MacOS" ]; then
   ln -s /Applications "${TMP_DIST_DIR}"
 	ditto -V --norsrc --noextattr --noqtn "$OUTPUT_DIR/$APPNAME.app" "${TMP_DIST_DIR}/$APPNAME.app"
 
-  DMG_FILE="$APPNAME-$(sw_vers --productName)$(sw_vers --productVersion | cut -d.  -f1)-$(uname -m)-$TAG.dmg"
+  DMG_FILE="$APPNAME-$(sw_vers --productName)$(sw_vers --productVersion | cut -d. -f1)-$(uname -m)-$TAG.dmg"
 
   # make DMG
+if command -v create-dmg &>/dev/null; then
+  create-dmg --volname "$APPNAME $VERSION" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "$DMG_FILE" "$OUTPUT_DIR/$APPNAME.app"
+else
+  echo "create-dmg not found. Fall back to hdiutil..."
   hdiutil create -verbose -volname "$APPNAME $VERSION" -srcfolder "${TMP_DIST_DIR}" -ov -format UDZO -fs HFS+J "${DMG_FILE}"
+fi
 
   rm -rf "${TMP_DIST_DIR}"
 

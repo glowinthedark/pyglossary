@@ -1,6 +1,7 @@
+PyYAML
 beautifulsoup4
+biplist
 colorize_pinyin
-python-romkan-ng
 html5lib
 libzim
 lxml
@@ -12,8 +13,9 @@ pygments
 pyicu
 pymorphy2
 python-idzip
+python-idzip
 python-lzo
+python-romkan-ng
 pyyaml
-PyYAML
 tqdm
 xxhash
