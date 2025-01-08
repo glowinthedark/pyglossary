@@ -294,6 +294,8 @@ class DefinitionFields:
 
 
 class Reader:
+	useByteProgress = False
+
 	_default_encoding_overwrite: str = ""
 	_source_encoding_overwrite: str = ""
 	_target_encoding_overwrite: str = ""
@@ -1265,7 +1267,8 @@ class Reader:
 
 	# TODO: break it down
 	# PLR0912 Too many branches (20 > 12)
-	def processDefi(self, b_defi: bytes, b_key: bytes) -> str:  # noqa: PLR0912
+	# PLR0915 Too many statements (60 > 50)
+	def processDefi(self, b_defi: bytes, b_key: bytes) -> str:  # noqa: PLR0912, PLR0915
 		"""
 		b_defi: bytes
 		b_key: bytes.
@@ -1424,7 +1427,8 @@ class Reader:
 
 	# TODO: break it down
 	# PLR0912 Too many branches (41 > 12)
-	def collectDefiFields(  # noqa: PLR0912
+	# PLR0915 Too many statements (121 > 50)
+	def collectDefiFields(  # noqa: PLR0912, PLR0915
 		self,
 		b_defi: bytes,
 		b_key: bytes,

@@ -34,6 +34,8 @@ from time import perf_counter as now
 from typing import TYPE_CHECKING, cast
 from uuid import uuid1
 
+from pyglossary.queued_iter import QueuedIterator
+
 from . import core
 from .core import (
 	cacheDir,
@@ -45,7 +47,6 @@ from .entry_filters import (
 	PreventDuplicateWords,
 	RemoveHtmlTagsAll,
 	ShowMaxMemoryUsage,
-	ShowProgressBar,
 	StripFullHtml,
 	entryFiltersRules,
 )
@@ -60,12 +61,12 @@ from .glossary_progress import GlossaryProgress
 from .glossary_utils import Error, ReadError, WriteError, splitFilenameExt
 from .info import c_name
 from .os_utils import rmtree, showMemoryUsage
-from .plugin_manager import PluginManager
+from .plugin_handler import PluginHandler
 from .sort_keys import defaultSortKeyName, lookupSortKey
 from .sq_entry_list import SqEntryList
 
 if TYPE_CHECKING:
-	from collections.abc import Callable, Iterator
+	from collections.abc import Callable, Iterable, Iterator
 	from typing import (
 		Any,
 	)
@@ -304,9 +305,6 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 				args = [value]
 			entryFilters.append(filterClass(glosArg, *tuple(args)))
 
-		if self.progressbar:
-			entryFilters.append(ShowProgressBar(glosArg))
-
 		if log.level <= core.TRACE:
 			try:
 				import psutil  # noqa: F401
@@ -416,12 +414,17 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 			yield from self._data
 			return
 
+		iterable = self._progressIter(self._data)
+
 		filters = self._entryFiltersExtra
-		if self.progressbar:
-			filters.append(ShowProgressBar(self))  # pyright: ignore[reportArgumentType]
+		if not filters:
+			self.progressInit("Writing")
+			yield from iterable
+			self.progressEnd()
+			return
 
 		self.progressInit("Writing")
-		for _entry in self._data:
+		for _entry in iterable:
 			entry = _entry
 			for f in filters:
 				entry = f.run(entry)  # type: ignore # pyright: ignore[reportArgumentType]
@@ -432,8 +435,18 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 	def _readersEntryGen(self) -> Iterator[EntryType]:
 		for reader in self._readers:
 			self.progressInit("Converting")
+
+			iterator = self._progressIter(reader)
+
+			iterator = self._applyEntryFiltersGen(iterator)
+
+			# turn iterator into background-queued, like buffered channel in Go
+			queueSize = os.getenv("PYGLOSSARY_ASYNC_ITER_SIZE")
+			if queueSize:
+				iterator = QueuedIterator(iterator, int(queueSize))
+
 			try:
-				yield from self._applyEntryFiltersGen(reader)
+				yield from iterator
 			finally:
 				reader.close()
 			self.progressEnd()
@@ -444,10 +457,11 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 	# no point of returning None entries anymore.
 	def _applyEntryFiltersGen(
 		self,
-		gen: Iterator[EntryType],
+		iterable: Iterable[EntryType],
 	) -> Iterator[EntryType]:
 		entry: EntryType | None
-		for entry in gen:
+
+		for entry in iterable:
 			if entry is None:
 				continue
 			for entryFilter in self._entryFilters:
@@ -649,7 +663,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		formatName: str,
 		options: dict[str, Any],
 	) -> Any:  # noqa: ANN401
-		readerClass = self.plugins[formatName].readerClass
+		readerClass = PluginHandler.plugins[formatName].readerClass
 		if readerClass is None:
 			raise ReadError("_createReader: readerClass is None")
 		reader = readerClass(self)
@@ -676,12 +690,12 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		os.makedirs(self._tmpDataDir, mode=0o700, exist_ok=True)
 		self._cleanupPathList.add(self._tmpDataDir)
 
+	@staticmethod
 	def _validateReadoptions(
-		self,
 		formatName: str,
 		options: dict[str, Any],
 	) -> None:
-		validOptionKeys = set(self.formatsReadOptions[formatName])
+		validOptionKeys = set(PluginHandler.formatsReadOptions[formatName])
 		for key in list(options):
 			if key not in validOptionKeys:
 				log.error(
@@ -749,7 +763,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 		self._setTmpDataDir(filename)
 
-		filenameUC, formatName, compression = PluginManager.detectInputFormat(
+		filenameUC, formatName, compression = PluginHandler.detectInputFormat(
 			filenameAbs, formatName=formatName
 		)
 		# filenameUC is the uncompressed file's absolute path
@@ -762,7 +776,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		self._validateReadoptions(formatName, options)
 
 		filenameBase, ext = os.path.splitext(filenameUC)
-		if ext.lower() not in self.plugins[formatName].extensions:
+		if ext.lower() not in PluginHandler.plugins[formatName].extensions:
 			filenameBase = filenameUC
 
 		self._filename = filenameBase
@@ -795,8 +809,10 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		showMemoryUsage()
 
 		self.progressInit("Reading")
+		iterator = self._progressIter(reader)
+		iterator = self._applyEntryFiltersGen(iterator)
 		try:
-			for entry in self._applyEntryFiltersGen(reader):
+			for entry in iterator:
 				self.addEntry(entry)
 		finally:
 			reader.close()
@@ -812,7 +828,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		formatName: str,
 		options: dict[str, Any],
 	) -> Any:  # noqa: ANN401
-		validOptions = self.formatsWriteOptions.get(formatName)
+		validOptions = PluginHandler.formatsWriteOptions.get(formatName)
 		if validOptions is None:
 			raise WriteError(f"No write support for {formatName!r} format")
 		validOptionKeys = list(validOptions)
@@ -823,7 +839,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 				)
 				del options[key]
 
-		writerClass = self.plugins[formatName].writerClass
+		writerClass = PluginHandler.plugins[formatName].writerClass
 		if writerClass is None:
 			raise WriteError("_createWriter: writerClass is None")
 		writer = writerClass(self)
@@ -890,7 +906,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		if self._config.get("save_info_json", False):
 			from pyglossary.info_writer import InfoWriter
 
-			infoWriter = InfoWriter(self)
+			infoWriter = InfoWriter(self)  # pyright: ignore
 			infoWriter.setWriteOptions(options)
 			filenameNoExt, _, _, _ = splitFilenameExt(filename)
 			infoWriter.open(f"{filenameNoExt}.info")
@@ -926,7 +942,10 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 	) -> str:
 		filename = os.path.abspath(filename)
 
-		if formatName not in self.plugins or not self.plugins[formatName].canWrite:
+		if formatName not in PluginHandler.plugins:
+			raise WriteError(f"No plugin {formatName!r} was found")
+
+		if not PluginHandler.plugins[formatName].canWrite:
 			raise WriteError(f"No Writer class found for plugin {formatName}")
 
 		if self._readers and sort:
@@ -1073,7 +1092,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 				inputFilename=args.inputFilename,
 			)
 		elif not os.getenv("NO_SQLITE"):
-			self._data = self._newInMemorySqEntryList()
+			self._data = self._newInMemorySqEntryList()  # pyright: ignore
 
 		self._data.setSortKey(
 			namedSortKey=namedSortKey,
@@ -1150,7 +1169,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 		direct, sort = self._resolveSortParams(
 			args=args,
-			plugin=self.plugins[outputFormat],
+			plugin=PluginHandler.plugins[outputFormat],
 		)
 
 		showMemoryUsage()
@@ -1188,7 +1207,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 		tm0 = now()
 
-		outputFilename, outputFormat, compression = PluginManager.detectOutputFormat(
+		outputFilename, outputFormat, compression = PluginHandler.detectOutputFormat(
 			filename=args.outputFilename,
 			formatName=args.outputFormat,
 			inputFilename=args.inputFilename,
@@ -1204,7 +1223,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 			for key, value in args.infoOverride.items():
 				self.setInfo(key, value)
 
-		if compression and not self.plugins[outputFormat].singleFile:
+		if compression and not PluginHandler.plugins[outputFormat].singleFile:
 			os.makedirs(outputFilename, mode=0o700, exist_ok=True)
 
 		writeOptions = args.writeOptions or {}
@@ -1230,10 +1249,10 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 # ________________________________________________________________________#
 
 
-class Glossary(GlossaryCommon, PluginManager):
+class Glossary(GlossaryCommon, PluginHandler):
 
 	"""
-	init method is inherited from PluginManager
+	init method is inherited from PluginHandler
 		arguments:
 			usePluginsJson: bool = True
 			skipDisabledPlugins: bool = True.

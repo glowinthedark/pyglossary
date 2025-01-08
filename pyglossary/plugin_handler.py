@@ -37,7 +37,7 @@ from .glossary_utils import (
 )
 from .plugin_prop import PluginProp
 
-__all__ = ["DetectedFormat", "PluginManager"]
+__all__ = ["DetectedFormat", "PluginHandler"]
 
 log = logging.getLogger("pyglossary")
 
@@ -48,39 +48,52 @@ class DetectedFormat(NamedTuple):
 	compression: str
 
 
-class PluginManager:
-	plugins: dict[str, PluginProp] = {}
-	pluginByExt: dict[str, PluginProp] = {}
+class PluginLoader:
 	loadedModules: set[str] = set()
 
-	formatsReadOptions: dict[str, dict[str, Any]] = {}
-	formatsWriteOptions: dict[str, dict[str, Any]] = {}
-	# for example formatsReadOptions[format][optName] gives you the default value
+	@staticmethod
+	def fromModule(moduleName: str, skipDisabled: bool) -> PluginProp | None:
+		log.debug(f"importing {moduleName} in loadPlugin")
+		try:
+			module = __import__(moduleName)
+		except ModuleNotFoundError as e:
+			log.warning(f"Module {e.name!r} not found, skipping plugin {moduleName!r}")
+			return None
+		except Exception:
+			log.exception(f"Error while importing plugin {moduleName}")
+			return None
 
-	readFormats: list[str] = []
-	writeFormats: list[str] = []
+		enable = getattr(module, "enable", False)
+		if skipDisabled and not enable:
+			# log.debug(f"Plugin disabled or not a module: {moduleName}")
+			return None
 
-	@classmethod
-	def loadPluginsFromJson(cls: type[PluginManager], jsonPath: str) -> None:
+		return PluginProp.fromModule(module)
+
+	@staticmethod
+	def loadPluginsFromJson(jsonPath: str) -> list[PluginProp]:
 		import json
 
 		with open(jsonPath, encoding="utf-8") as _file:
 			data = json.load(_file)
 
+		plugins: list[PluginProp] = []
 		for attrs in data:
-			moduleName = attrs["module"]
-			cls._loadPluginByDict(
+			prop = PluginProp.fromDict(
 				attrs=attrs,
-				modulePath=join(pluginsDir, moduleName),
+				modulePath=join(pluginsDir, attrs["module"]),
 			)
-			cls.loadedModules.add(moduleName)
+			if prop is None:
+				continue
+			plugins.append(prop)
+		return plugins
 
 	@classmethod
 	def loadPlugins(
-		cls: type[PluginManager],
+		cls: type[PluginLoader],
 		directory: str,
 		skipDisabled: bool = True,
-	) -> None:
+	) -> list[PluginProp]:
 		"""
 		Load plugins from directory on startup.
 		Skip importing plugin modules that are already loaded.
@@ -90,7 +103,7 @@ class PluginManager:
 		# log.debug(f"Loading plugins from directory: {directory!r}")
 		if not isdir(directory):
 			log.critical(f"Invalid plugin directory: {directory!r}")
-			return
+			return []
 
 		moduleNames = [
 			moduleName
@@ -100,99 +113,78 @@ class PluginManager:
 		moduleNames.sort()
 
 		sys.path.append(directory)
+		plugins: list[PluginProp] = []
 		for moduleName in moduleNames:
-			cls._loadPlugin(moduleName, skipDisabled=skipDisabled)
+			cls.loadedModules.add(moduleName)
+			prop = cls.fromModule(moduleName, skipDisabled)
+			if prop is None:
+				continue
+			plugins.append(prop)
 		sys.path.pop()
 
+		return plugins
+
+
+class PluginHandler:
+	plugins: dict[str, PluginProp] = {}
+	pluginByExt: dict[str, PluginProp] = {}
+
+	formatsReadOptions: dict[str, dict[str, Any]] = {}
+	formatsWriteOptions: dict[str, dict[str, Any]] = {}
+	# for example formatsReadOptions[format][optName] gives you the default value
+
+	readFormats: list[str] = []
+	writeFormats: list[str] = []
+
 	@classmethod
-	def _loadPluginByDict(
-		cls: type[PluginManager],
-		attrs: dict[str, Any],
-		modulePath: str,
+	def loadPluginsFromJson(cls: type[PluginHandler], jsonPath: str) -> None:
+		for prop in PluginLoader.loadPluginsFromJson(jsonPath):
+			cls._addPlugin(prop)
+
+	@classmethod
+	def loadPlugins(
+		cls: type[PluginHandler],
+		directory: str,
+		skipDisabled: bool = True,
 	) -> None:
-		name = attrs["name"]
+		"""
+		Load plugins from directory on startup.
+		Skip importing plugin modules that are already loaded.
+		"""
+		for prop in PluginLoader.loadPlugins(directory, skipDisabled):
+			cls._addPlugin(prop)
 
-		extensions = attrs["extensions"]
-		prop = PluginProp.fromDict(
-			attrs=attrs,
-			modulePath=modulePath,
-		)
-		if prop is None:
-			return
-
+	@classmethod
+	def _addPlugin(
+		cls: type[PluginHandler],
+		prop: PluginProp,
+	) -> None:
+		name = prop.name
 		cls.plugins[name] = prop
-		cls.loadedModules.add(attrs["module"])
 
 		if not prop.enable:
 			return
 
-		for ext in extensions:
+		for ext in prop.extensions:
 			if ext.lower() != ext:
 				log.error(f"non-lowercase extension={ext!r} in {prop.name} plugin")
 			cls.pluginByExt[ext.lstrip(".")] = prop
 			cls.pluginByExt[ext] = prop
 
-		if attrs["canRead"]:
-			cls.formatsReadOptions[name] = attrs["readOptions"]
+		if prop.canRead:
+			cls.formatsReadOptions[name] = prop.getReadOptions()
 			cls.readFormats.append(name)
 
-		if attrs["canWrite"]:
-			cls.formatsWriteOptions[name] = attrs["writeOptions"]
+		if prop.canWrite:
+			cls.formatsWriteOptions[name] = prop.getWriteOptions()
 			cls.writeFormats.append(name)
 
 		if log.level <= core.TRACE:
 			prop.module  # noqa: B018, to make sure importing works
 
 	@classmethod
-	def _loadPlugin(
-		cls: type[PluginManager],
-		moduleName: str,
-		skipDisabled: bool = True,
-	) -> None:
-		log.debug(f"importing {moduleName} in loadPlugin")
-		try:
-			module = __import__(moduleName)
-		except ModuleNotFoundError as e:
-			log.warning(f"Module {e.name!r} not found, skipping plugin {moduleName!r}")
-			return
-		except Exception:
-			log.exception(f"Error while importing plugin {moduleName}")
-			return
-
-		enable = getattr(module, "enable", False)
-		if skipDisabled and not enable:
-			# log.debug(f"Plugin disabled or not a module: {moduleName}")
-			return
-
-		prop = PluginProp.fromModule(module)
-
-		name = prop.name
-
-		cls.plugins[name] = prop
-		cls.loadedModules.add(moduleName)
-
-		if not enable:
-			return
-
-		for ext in prop.extensions:
-			if ext.lower() != ext:
-				log.error(f"non-lowercase extension={ext!r} in {moduleName} plugin")
-			cls.pluginByExt[ext.lstrip(".")] = prop
-			cls.pluginByExt[ext] = prop
-
-		if prop.canRead:
-			options = prop.getReadOptions()
-			cls.formatsReadOptions[name] = options
-			cls.readFormats.append(name)
-
-		if prop.canWrite:
-			options = prop.getWriteOptions()
-			cls.formatsWriteOptions[name] = options
-			cls.writeFormats.append(name)
-
-	@classmethod
 	def _findPlugin(
-		cls: type[PluginManager],
+		cls: type[PluginHandler],
 		query: str,
 	) -> PluginProp | None:
 		"""Find plugin by name or extension."""
@@ -206,7 +198,7 @@ class PluginManager:
 
 	@classmethod
 	def detectInputFormat(
-		cls: type[PluginManager],
+		cls: type[PluginHandler],
 		filename: str,
 		formatName: str = "",
 	) -> DetectedFormat:
@@ -236,7 +228,7 @@ class PluginManager:
 
 	@classmethod
 	def _outputPluginByFormat(
-		cls: type[PluginManager],
+		cls: type[PluginHandler],
 		formatName: str,
 	) -> tuple[PluginProp | None, str]:
 		if not formatName:
@@ -252,7 +244,7 @@ class PluginManager:
 	# PLR0912	Too many branches (14 > 12)
 	@classmethod
 	def detectOutputFormat(  # noqa: PLR0912, PLR0913, C901
-		cls: type[PluginManager],
+		cls: type[PluginHandler],
 		filename: str = "",
 		formatName: str = "",
 		inputFilename: str = "",
@@ -309,7 +301,7 @@ class PluginManager:
 
 	@classmethod
 	def init(
-		cls: type[PluginManager],
+		cls: type[PluginHandler],
 		usePluginsJson: bool = True,
 		skipDisabledPlugins: bool = True,
 	) -> None:

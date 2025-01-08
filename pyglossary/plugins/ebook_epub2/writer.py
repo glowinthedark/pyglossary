@@ -19,12 +19,19 @@
 # SOFTWARE.
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Any
 
 from pyglossary.ebook_base import EbookWriter
 
 if TYPE_CHECKING:
 	from pyglossary.glossary_types import WriterGlossaryType
+
+
+def newUUID() -> str:
+	import uuid
+
+	return str(uuid.uuid4()).replace("-", "")
 
 
 class Writer(EbookWriter):
@@ -161,13 +168,14 @@ p.groupDefinition {
 	COVER_TEMPLATE = '<meta name="cover" content="{cover}" />'
 
 	def __init__(self, glos: WriterGlossaryType) -> None:
-		import uuid
-
+		glos.setInfo(
+			"uuid",
+			os.getenv("EPUB_UUID") or glos.getInfo("uuid") or newUUID(),
+		)
 		EbookWriter.__init__(
 			self,
 			glos,
 		)
-		glos.setInfo("uuid", str(uuid.uuid4()).replace("-", ""))
 
 	@classmethod
 	def cls_get_prefix(
