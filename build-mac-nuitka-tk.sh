@@ -92,19 +92,11 @@ python -m nuitka \
 	$APPNAME.py || (echo "Build failed!" && exit 1)
 
 if [ -d "$OUTPUT_DIR/$APPNAME.app/Contents/MacOS" ]; then
-    ditto -V --norsrc --noextattr --noqtn {about,AUTHORS,_license-dialog,LICENSE,config.json,help} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
-    ditto -V --norsrc --noextattr --noqtn _license-dialog $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/license-dialog
-    ditto -V --norsrc --noextattr --noqtn {plugins-meta,res} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
-#    cp -r {about,AUTHORS,_license-dialog,LICENSE,config.json,help} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
-#    cp -rv _license-dialog $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/license-dialog
-#    cp -rv {plugins-meta,res} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
-
-    # symlinking doesn't seem to work
-    # ln -s ../Resources/pyglossary $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/glossary
+    cp -r {about,AUTHORS,_license-dialog,LICENSE,config.json,help} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
+    cp -rv _license-dialog $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/license-dialog
+    cp -rv {plugins-meta,res} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
 
   [[ -f "$DMG_FILE" ]] && rm "$DMG_FILE"
-
-#  create-dmg --volname "$APPNAME $VERSION" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "$DMG_FILE" "$OUTPUT_DIR/$APPNAME.app"
 
 	TMP_DIST_DIR=$(mktemp -d)
 	
@@ -113,7 +105,7 @@ if [ -d "$OUTPUT_DIR/$APPNAME.app/Contents/MacOS" ]; then
 
   DMG_FILE="$APPNAME-$(sw_vers --productName)$(sw_vers --productVersion | cut -d. -f1)-$(uname -m)-$TAG.dmg"
 
-  # make DMG
+  # make DMG with create-dmg if present or fallback to raw hdiutil
 if command -v create-dmg &>/dev/null; then
   create-dmg --volname "$APPNAME $VERSION" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "$DMG_FILE" "$OUTPUT_DIR/$APPNAME.app"
 else
