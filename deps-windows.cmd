@@ -29,7 +29,7 @@ if %errorlevel% neq 0 (
 
 uv pip install .
 
-uv pip install -U pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit nuitka colorize_pinyin wheel setuptools
+uv pip install -U PyYAML beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pymorphy2 python-idzip python-idzip python-romkan-ng pyyaml tqdm xxhash
 
 rem if not present install pyicu from https://github.com/cgohlke/pyicu-build/releases
 
@@ -37,7 +37,7 @@ python -c "import icu" 2>NUL
 
 if %errorlevel% neq 0 (
     echo "pyicu module not found - installing WHL module..."
-    uv pip install https://github.com/cgohlke/pyicu-build/releases/download/v2.14/PyICU-2.14-cp312-cp312-win_amd64.whl
+    uv pip install pyicu --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match
 )
 
 
@@ -47,7 +47,7 @@ python -c "import lzo" 2>NUL
 
 if %errorlevel% neq 0 (
     echo "python-lzo module not found - installing WHL module..."
-    uv pip install https://github.com/glowinthedark/python-lzo/releases/download/v1.16/python_lzo-1.16-cp312-cp312-win_amd64.whl
+    uv pip install python-lzo --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match
 
     rem "OR build from source - vsbuildtools MUST be installed; see https://github.com/bycloudai/InstallVSBuildToolsWindows..."
     rem uv pip install git+https://github.com/jd-boyd/python-lzo
