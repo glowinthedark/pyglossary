@@ -51,29 +51,28 @@ jobs:
           architecture: 'x64'
           # python-version-file: ".python-version"             
 
-      - name: Install uv
-        # https://docs.astral.sh/uv/guides/integration/github/#caching
-        uses: astral-sh/setup-uv@v4
-        # with:
-        #   enable-cache: true
-   
-      # - name: Setup Python
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: '3.10' # Version range or exact version of a Python version to use, using SemVer's version range syntax
-      #     architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
-      #     cache: 'pip'
-      #     cache-dependency-path: |
-      #       **/requirements*.txt
+      # - name: Install uv
+      #   # https://docs.astral.sh/uv/guides/integration/github/#caching
+      #   uses: astral-sh/setup-uv@v4
+      #   # with:
+      #   #   enable-cache: true
+
+      - name: "create and activate venv"
+        run: |
+          python3 -m venv .venv && .venv\Scripts\activate.bat
+
+      - name: "install nuitka"
+        run: |
+          python3 -m pip install nuitka
+      
 
       - name: "Install Dependencies"
         run: |
-          uv venv
-          .venv\Scripts\activate.bat
-          uv pip install nuitka pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin wheel setuptools
-          uv pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
-          uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match PyICU
-          uv pip install git+https://github.com/ilius/pyglossary.git
+          python3 -m pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin wheel setuptools
+          python3 -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
+          python3 -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match PyICU
+          python3 -m pip install .
+          # python3 -m pip install git+https://github.com/ilius/pyglossary.git
 
       - name: patch
         shell: python
@@ -94,7 +93,7 @@ jobs:
       - name: Nuitka build
         shell: cmd
         run: |
-          nuitka --standalone --assume-yes-for-downloads --plugin-enable=dll-files --plugin-enable=anti-bloat --follow-imports --windows-console-mode=disable --windows-icon-from-ico=res\pyglossary.ico --enable-plugin=tk-inter --include-package=pyglossary --include-module=tkinter --include-module=lzo --include-module=pymorphy2 --include-module=_json --include-module=lxml --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module=colorize_pinyin --include-package-data=pyglossary --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --noinclude-custom-mode=unittest:nofollow --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --nofollow-import-to=pyglossary.ui.ui_gtk --nofollow-import-to=pyglossary.ui.ui_gtk4 --nofollow-import-to=pyglossary.ui.ui_qt --nofollow-import-to=gi --nofollow-import-to=gtk --nofollow-import-to=pyqt4 --nofollow-import-to=pyqt5 --nofollow-import-to=pyqt6 --nofollow-import-to=*.tests --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --plugin-disable=pyqt5 main.py --output-dir="${{ env.DIST_DIR }}" --output-filename=pyglossary.exe
+          python -m nuitka --standalone --assume-yes-for-downloads --plugin-enable=dll-files --plugin-enable=anti-bloat --follow-imports --windows-console-mode=disable --windows-icon-from-ico=res\pyglossary.ico --enable-plugin=tk-inter --include-package=pyglossary --include-module=tkinter --include-module=lzo --include-module=pymorphy2 --include-module=_json --include-module=lxml --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module=colorize_pinyin --include-package-data=pyglossary --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --noinclude-custom-mode=unittest:nofollow --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --nofollow-import-to=pyglossary.ui.ui_gtk --nofollow-import-to=pyglossary.ui.ui_gtk4 --nofollow-import-to=pyglossary.ui.ui_qt --nofollow-import-to=gi --nofollow-import-to=gtk --nofollow-import-to=pyqt4 --nofollow-import-to=pyqt5 --nofollow-import-to=pyqt6 --nofollow-import-to=*.tests --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --plugin-disable=pyqt5 main.py --output-dir="${{ env.DIST_DIR }}" --output-filename=pyglossary.exe
 
       - name: Copy assets
         shell: python
@@ -114,7 +113,7 @@ jobs:
             dist_path = Path(dist_dir)
             print(f'DIST_DIR={dist_path}, APPNAME={app_name}')
             
-            target_path = dist_path / f"{app_name}.app/Contents/MacOS"
+            target_path = dist_path / dist_dir
             sources = ["about", "AUTHORS", "_license-dialog", "config.json", "plugins-meta", "help", "res", "pyglossary"]
             
             if not target_path.exists():
@@ -136,15 +135,6 @@ jobs:
                 except Exception as e:
                     print(f"Failed {src}: {e}")
             print("Done")
-      # - name: Build Executable
-      #   uses: Nuitka/Nuitka-Action@main
-      #   with:
-      #     nuitka-version: main
-      #     script-name: main.py
-      #     enable-plugins: 'tk-inter'
-      #     include-package: 'pyglossary'
-      #     windows-icon-from-ico: 'res/pyglossary.ico'
-      #     # onefile: true
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
