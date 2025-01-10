@@ -75,9 +75,9 @@ jobs:
 
       - name: "Install Dependencies"
         run: |
-          python3 -m pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin wheel setuptools
-          python3 -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
-          python3 -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match PyICU
+          python3 -m pip install pymorphy2 lxml biplist polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin wheel setuptools
+          python3 -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ python-lzo
+          python3 -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build PyICU
           # python3 -m pip install .
 
       - name: patch
