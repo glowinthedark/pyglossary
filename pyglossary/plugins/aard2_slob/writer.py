@@ -21,6 +21,8 @@ from pyglossary.plugins.aard2_slob.tags import (
 	t_uri,
 )
 
+__all__ = ["Writer"]
+
 
 class Writer:
 	depends = {
@@ -56,6 +58,8 @@ class Writer:
 		"otf": "application/x-font-opentype",
 		"mp3": "audio/mpeg",
 		"ogg": "audio/ogg",
+		"opus": "audio/ogg",
+		"oga": "audio/ogg",
 		"spx": "audio/x-speex",
 		"wav": "audio/wav",
 		"ini": "text/plain",

@@ -29,17 +29,21 @@ if TYPE_CHECKING:
 
 	from pyglossary.glossary_types import EntryType, ReaderGlossaryType
 
+
+__all__ = ["Reader"]
+
+
 # original expression from
 # http://stackoverflow.com/questions/694344/regular-expression-that-matches-between-quotes-containing-escaped-quotes
 # "(?:[^\\"]+|\\.)*"
 # some examples don't have closing quote which
 # make the subn with this expression hang
-# quotedTextPattern = re.compile(r'"(?:[^"]+|\.)*["|\n]')
+# _re_quotedText = re.compile(r'"(?:[^"]+|\.)*["|\n]')
 
 # make it a capturing group so that we can get rid of quotes
-quotedTextPattern = re.compile(r'"([^"]+)"')
+_re_quotedText = re.compile(r'"([^"]+)"')
 
-refPattern = re.compile(r"`(\w+)'")
+_re_ref = re.compile(r"`(\w+)'")
 
 
 class SynSet:
@@ -221,11 +225,11 @@ class WordNet:
 			if not line or not line.strip():
 				continue
 			synset = SynSet(line)
-			gloss_with_examples, _ = quotedTextPattern.subn(
+			gloss_with_examples, _ = _re_quotedText.subn(
 				lambda x: f'<cite class="ex">{x.group(1)}</cite>',
 				synset.gloss,
 			)
-			gloss_with_examples, _ = refPattern.subn(
+			gloss_with_examples, _ = _re_ref.subn(
 				lambda x: a(x.group(1)),
 				gloss_with_examples,
 			)

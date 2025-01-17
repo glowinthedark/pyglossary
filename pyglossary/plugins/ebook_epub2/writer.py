@@ -27,8 +27,10 @@ from pyglossary.ebook_base import EbookWriter
 if TYPE_CHECKING:
 	from pyglossary.glossary_types import WriterGlossaryType
 
+__all__ = ["Writer"]
 
-def newUUID() -> str:
+
+def _newUUID() -> str:
 	import uuid
 
 	return str(uuid.uuid4()).replace("-", "")
@@ -170,7 +172,7 @@ p.groupDefinition {
 	def __init__(self, glos: WriterGlossaryType) -> None:
 		glos.setInfo(
 			"uuid",
-			os.getenv("EPUB_UUID") or glos.getInfo("uuid") or newUUID(),
+			os.getenv("EPUB_UUID") or glos.getInfo("uuid") or _newUUID(),
 		)
 		EbookWriter.__init__(
 			self,

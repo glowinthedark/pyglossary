@@ -15,8 +15,10 @@ if TYPE_CHECKING:
 
 	from pyglossary.glossary_types import EntryType, WriterGlossaryType
 
+__all__ = ["Writer"]
 
-def makeDir(direc: str) -> None:
+
+def _makeDir(direc: str) -> None:
 	if not isdir(direc):
 		os.makedirs(direc)
 
@@ -77,7 +79,7 @@ class Writer:
 		nextHash: str | None,
 	) -> None:
 		dpath = join(self._filename, thisHash[:2])
-		makeDir(dpath)
+		_makeDir(dpath)
 		with open(
 			join(dpath, thisHash[2:]),
 			"w",

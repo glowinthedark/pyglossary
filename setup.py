@@ -11,7 +11,7 @@ from os.path import dirname, exists, isdir, join
 from setuptools import setup
 from setuptools.command.install import install
 
-VERSION = "5.0.4"
+VERSION = "5.0.6"
 log = logging.getLogger("root")
 relRootDir = "share/pyglossary"
 
@@ -110,6 +110,7 @@ package_data = {
 		"ui/ui_web/*.js",
 		"xdxf/xdxf.xsl",
 		"xdxf/*.py",
+		"repro_zipfile/*.py",
 	]
 	+ [
 		# safest way found so far to include every resource of plugins
