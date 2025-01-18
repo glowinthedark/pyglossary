@@ -84,14 +84,6 @@ jobs:
         # https://docs.astral.sh/uv/guides/integration/github/#caching
         uses: astral-sh/setup-uv@v5
         
-      - name: activate venv
-        run: |
-          uv venv
-          . .venv/bin/activate
-
-      - name: Install nuitka
-        run: uv pip install nuitka
-
       - name: set vars
         id: envconf
         run: |
@@ -99,10 +91,6 @@ jobs:
           echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
           echo "TAG=$(git describe)" >> $GITHUB_ENV
           echo "PREFIX_ICU4C=$(brew --prefix icu4c)" >> $GITHUB_ENV
-        
-      - name: Set pip builld vars
-        id: envpip
-        run: |
           echo "C_INCLUDE_PATH=$(brew --prefix lzo)/include:$(brew --prefix lzo)/include/lzo" >> $GITHUB_ENV
           echo "LIBRARY_PATH=$BREW_PREFIX/Cellar/lib" >> $GITHUB_ENV
           echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$(brew --prefix icu4c)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig:" >> $GITHUB_ENV
@@ -111,7 +99,9 @@ jobs:
 
       - name: Install pyglossary dependencies
         run: |
-          uv pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-idzip python-lzo python-romkan-ng pyyaml tqdm xxhash
+          uv venv
+          source .venv/bin/activate
+          uv pip install nuitka beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-idzip python-lzo python-romkan-ng pyyaml tqdm xxhash
           # uv pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
           # uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match PyICU
           uv pip install .
@@ -121,7 +111,6 @@ jobs:
           cp $MAIN_SCRIPT $APPNAME.py
           rm __init__.py
           sed -i '' 's/default="auto"/default="cmd"/g' pyglossary/ui/argparse_main.py
-
 
       - name: nuitka Build
         run: |
