@@ -125,7 +125,7 @@ jobs:
 
       - name: nuitka Build
         run: |
-          python -m nuitka \
+          nuitka \
           	--standalone \
           	--assume-yes-for-downloads \
           	--follow-imports \
