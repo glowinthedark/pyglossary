@@ -83,6 +83,12 @@ jobs:
       - name: Install uv
         # https://docs.astral.sh/uv/guides/integration/github/#caching
         uses: astral-sh/setup-uv@v5
+
+      - name: install nuitka
+        run: |
+          uv pip install --system nuitka
+          which -a nuitka
+          nuitka --version
         
       - name: set vars
         id: envconf
@@ -102,18 +108,10 @@ jobs:
           uv venv
           source .venv/bin/activate
           uv pip install nuitka beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-idzip python-lzo python-romkan-ng pyyaml tqdm xxhash
-          # uv pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
-          # uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match PyICU
-          uv pip install .
-
-      - name: Prepare nuitka build
-        run: |
+          which -a nuitka
           cp $MAIN_SCRIPT $APPNAME.py
           rm __init__.py
           sed -i '' 's/default="auto"/default="cmd"/g' pyglossary/ui/argparse_main.py
-
-      - name: nuitka Build
-        run: |
           nuitka \
           	--standalone \
           	--assume-yes-for-downloads \
@@ -155,6 +153,19 @@ jobs:
           	--output-dir="$DIST_DIR" \
           	--output-filename=$APPNAME \
           	$APPNAME.py
+          # uv pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
+          # uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match PyICU
+          # uv pip install .
+
+      # # - name: Prepare nuitka build
+      # #   run: |
+      # #     cp $MAIN_SCRIPT $APPNAME.py
+      # #     rm __init__.py
+      # #     sed -i '' 's/default="auto"/default="cmd"/g' pyglossary/ui/argparse_main.py
+
+      # - name: nuitka Build
+      #   run: |
+
                   
       - name: Copy files
         shell: python
