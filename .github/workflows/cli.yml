@@ -36,7 +36,7 @@ jobs:
       # see https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow
       matrix:
         # python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
-        python-version: ['3.12']
+        python-version: ['3.13']
         os: ['macos-13']
         # os: ['macos-12', 'macos-13', 'macos-14']
       fail-fast: false
@@ -69,26 +69,26 @@ jobs:
       #   with:
       #     python-version: ${{ matrix.python-version }}
 
-      - name: Set cache dir
-        run: echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
-        shell: bash
+      # - name: Set cache dir
+      #   run: echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
+      #   shell: bash
 
-      - name: Fetch cache
-        id: cache-target
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.pip_cache_dir }}
-          key: ${{ runner.os }}-${{ matrix.python-version }}
+      # - name: Fetch cache
+      #   id: cache-target
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ${{ env.pip_cache_dir }}
+      #     key: ${{ runner.os }}-${{ matrix.python-version }}
 
-      - name: Install uv
-        # https://docs.astral.sh/uv/guides/integration/github/#caching
-        uses: astral-sh/setup-uv@v5
+      # - name: Install uv
+      #   # https://docs.astral.sh/uv/guides/integration/github/#caching
+      #   uses: astral-sh/setup-uv@v5
 
-      - name: install nuitka
-        run: |
-          uv pip install --system nuitka
-          which -a nuitka
-          nuitka --version
+      # - name: install nuitka
+      #   run: |
+      #     python3 -m pip install --break-system-packages nuitka
+      #     which -a nuitka
+      #     nuitka --version
         
       - name: set vars
         id: envconf
@@ -105,9 +105,9 @@ jobs:
 
       - name: Install pyglossary dependencies
         run: |
-          uv venv
-          source .venv/bin/activate
-          uv pip install nuitka beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-idzip python-lzo python-romkan-ng pyyaml tqdm xxhash
+          # uv venv
+          # source .venv/bin/activate
+          python3 -m pip install nuitka beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-idzip python-lzo python-romkan-ng pyyaml tqdm xxhash
           which -a nuitka
           cp $MAIN_SCRIPT $APPNAME.py
           rm __init__.py
