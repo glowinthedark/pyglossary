@@ -64,10 +64,10 @@ jobs:
              create-dmg
              # already installed?             python-tk@${{ matrix.python-version }} \
       
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+      # - name: Set up Python ${{ matrix.python-version }}
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: ${{ matrix.python-version }}
 
       - name: Set cache dir
         run: echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
