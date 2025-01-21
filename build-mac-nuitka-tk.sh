@@ -79,6 +79,7 @@ python -m nuitka \
 	--include-module=html5lib \
 	--include-module=icu \
 	--include-module=_json \
+	--include-module=_bisect \
 	--include-module=colorize_pinyin \
 	--include-package-data=pyglossary \
 	--include-data-files=about=about \
