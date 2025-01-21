@@ -116,27 +116,16 @@ on *Windows*, *Mac OS X* and other Unix-based operating systems as well.
 As shown in screenshots, there are multiple User Interface types (multiple
 ways to use the program).
 
-- **Gtk3-based interface**, uses [PyGI (Python Gobject Introspection)](http://pygobject.readthedocs.io/en/latest/getting_started.html)
-  You can install it on:
+- **Gtk3-based interface**, uses [PyGI](http://pygobject.readthedocs.io/en/latest/getting_started.html)+Gtk3.
+  See [doc/gtk3.md](./doc/gtk3.md) for how to install it on Linux and Mac OS X.
 
-  - Debian/Ubuntu: `apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0`
-  - openSUSE: `zypper install python3-gobject gtk3`
-  - Fedora: `dnf install pygobject3 python3-gobject gtk3`
-  - ArchLinux:
-    - `pacman -S python-gobject gtk3`
-    - https://aur.archlinux.org/packages/pyglossary/
-  - Mac OS X: `brew install pygobject3 gtk+3`
-  - Nix / NixOS: `nix-shell -p pkgs.gobject-introspection python38Packages.pygobject3 python38Packages.pycairo`
+- **Gtk4-based interface**, uses [PyGI](http://pygobject.readthedocs.io/en/latest/getting_started.html)+Gtk4.
+  See [doc/gtk4.md](./doc/gtk4.md).
+  This is still not as complete as Gtk3 interface.
 
 - **Tkinter-based interface**, meant to be used in the lack of Gtk. Specially on
   Windows where Tkinter library is installed with Python itself.
-  You can also install it on:
-
-  - Debian/Ubuntu: `apt-get install python3-tk tix`
-  - openSUSE: `zypper install python3-tk tix`
-  - Fedora: `yum install python3-tkinter tix`
-  - Mac OS X: read <https://www.python.org/download/mac/tcltk/>
-  - Nix / NixOS: `nix-shell -p python38Packages.tkinter tix`
+  You can [install Tkinter](./doc/tkinter.md) on Linux or Mac OS X.
 
 - **Command-line interface**, works in all operating systems without
   any specific requirements, just type `./main.py --help` or `pyglossary --help`
@@ -151,7 +140,8 @@ ways to use the program).
     - Manually select with `--cmd` or `--ui=cmd`
       - Minimally: `./main.py --cmd`
       - You can still pass input file, or any flag/option
-    - If both input and output files are passed, non-interactive cmd ui will be default
+    - If both input and output files are passed, non-interactive cmd ui will be default.
+      - Pass `--interactive` to change it.
     - If you are writing a script, you can pass `--no-interactive` to force disable interactive ui
       - Then you have to pass both input and output file arguments
     - Don't forget to use *Up/Down* or *Tab* keys in prompts!
