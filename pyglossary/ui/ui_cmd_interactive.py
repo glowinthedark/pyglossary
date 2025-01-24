@@ -86,6 +86,7 @@ from pyglossary.core import confDir
 from pyglossary.glossary_v2 import Error, Glossary
 from pyglossary.sort_keys import lookupSortKey, namedSortKeyList
 from pyglossary.ui import ui_cmd
+from pyglossary.ui.termcolors import colors
 
 __all__ = ["UI"]
 
@@ -95,54 +96,14 @@ endFormat = "\x1b[0;0;0m"
 class MiniCheckBoxPrompt:
 	def __init__(
 		self,
-		message: str = "",
-		fmt: str = "{message}: {check}",
+		formatted: StyleAndTextTuples,
 		value: bool = False,
 	) -> None:
-		self.message = message
-		self.fmt = fmt
+		self.formatted = formatted
 		self.value = value
 
-	def formatMessage(self) -> str:
-		msg = self.fmt.format(
-			check="[x]" if self.value else "[ ]",
-			message=self.message,
-		)
-		# msg = ANSI(msg)  # NOT SUPPORTED
-		return msg  # noqa: RET504
-
 	def __pt_formatted_text__(self) -> StyleAndTextTuples:  # noqa: PLW3201
-		return [("", self.formatMessage())]
-
-
-def checkbox_prompt(
-	message: str,
-	default: bool,
-) -> bool:
-	"""Create a `PromptSession` object for the 'confirm' function."""
-	bindings = KeyBindings()
-
-	check = MiniCheckBoxPrompt(message=message, value=default)
-
-	@bindings.add(" ")
-	def space(_event: KeyPressEvent) -> None:
-		check.value = not check.value
-		# cursor_pos = check.formatMessage().find("[") + 1
-		# cur_cursor_pos = session.default_buffer.cursor_position
-		# print(f"{cur_cursor_pos=}, {cursor_pos=}")
-		# session.default_buffer.cursor_position = cursor_pos
-
-	@bindings.add(Keys.Any)
-	def _(_event: KeyPressEvent) -> None:
-		"""Disallow inserting other text."""
-
-	complete_message = check
-	session: PromptSession[bool] = PromptSession(
-		complete_message,
-		key_bindings=bindings,
-	)
-	session.prompt()
-	return check.value
+		return self.formatted + [("", "[x]" if self.value else "[ ]")]
 
 
 log = logging.getLogger("pyglossary")
@@ -448,17 +409,71 @@ class UI(ui_cmd.UI):
 
 		return f"{indent_} {msg}{colon} ", True
 
+	def formatPromptMsgStyleList(
+		self,
+		level: int,
+		msg: str,
+		colon: str = ":",
+	) -> StyleAndTextTuples:
+		indent_ = self.promptIndentStr * level
+		if core.noColor:
+			return [("", f"{indent_} {msg}{colon} ")]
+
+		indentStyle = ""
+		if self.promptIndentColor >= 0:
+			indentStyle = "fg:" + colors[self.promptIndentColor].hex
+
+		msgStyle = ""
+		if self.promptMsgColor >= 0:
+			msgStyle = "fg:" + colors[self.promptMsgColor].hex
+
+		return [
+			(indentStyle, f"{indent_} "),
+			(msgStyle, msg),
+			("", f"{colon} "),
+		]
+
 	def prompt(self, level: int, msg: str, colon: str = ":", **kwargs) -> str:
 		msg2, colored = self.formatPromptMsg(level, msg, colon)
 		if colored:
-			msg2 = ANSI(msg)
+			msg2 = ANSI(msg2)
 		return prompt(msg2, **kwargs)
 
-	def checkbox_prompt(self, level: int, msg: str, colon: str = ":", **kwargs) -> bool:
-		# FIXME: colors are not working, they are being escaped
-		msg = f"{self.promptIndentStr * level} {msg}{colon} "
+	def checkbox_prompt(
+		self,
+		level: int,
+		msg: str,
+		default: bool,
+		colon: str = ":",
+	) -> bool:
+		"""Create a `PromptSession` object for the 'confirm' function."""
 		# msg, colored = self.formatPromptMsg(level, msg, colon)
-		return checkbox_prompt(msg, **kwargs)
+		bindings = KeyBindings()
+
+		check = MiniCheckBoxPrompt(
+			formatted=self.formatPromptMsgStyleList(level, msg, colon=colon),
+			value=default,
+		)
+
+		@bindings.add(" ")
+		def space(_event: KeyPressEvent) -> None:
+			check.value = not check.value
+			# cursor_pos = check.formatMessage().find("[") + 1
+			# cur_cursor_pos = session.default_buffer.cursor_position
+			# print(f"{cur_cursor_pos=}, {cursor_pos=}")
+			# session.default_buffer.cursor_position = cursor_pos
+
+		@bindings.add(Keys.Any)
+		def _(_event: KeyPressEvent) -> None:
+			"""Disallow inserting other text."""
+
+		complete_message = check
+		session: PromptSession[bool] = PromptSession(
+			complete_message,
+			key_bindings=bindings,
+		)
+		session.prompt()
+		return check.value
 
 	def askFile(
 		self,
@@ -667,11 +682,10 @@ class UI(ui_cmd.UI):
 					)
 				except (KeyboardInterrupt, EOFError):
 					break
-				if value == "":  # noqa: PLC1901
+				if value == "" and option.typ != "str":  # noqa: PLC1901
 					if optName in self._readOptions:
 						print(f"Unset read-option {optName!r}")
 						del self._readOptions[optName]
-					# FIXME: set empty value?
 					break
 				valueNew, ok = option.evaluate(value)
 				if not ok or not option.validate(valueNew):
@@ -743,11 +757,10 @@ class UI(ui_cmd.UI):
 					)
 				except (KeyboardInterrupt, EOFError):
 					break
-				if value == "":  # noqa: PLC1901
+				if value == "" and option.typ != "str":  # noqa: PLC1901
 					if optName in self._writeOptions:
 						print(f"Unset write-option {optName!r}")
 						del self._writeOptions[optName]
-					# FIXME: set empty value?
 					break
 				valueNew, ok = option.evaluate(value)
 				if not ok or not option.validate(valueNew):
@@ -816,11 +829,10 @@ class UI(ui_cmd.UI):
 					value = self.askConfigValue(configKey, option)
 				except (KeyboardInterrupt, EOFError):
 					break
-				if value == "":  # noqa: PLC1901
+				if value == "" and option.typ != "str":  # noqa: PLC1901
 					if configKey in self.config:
 						print(f"Unset config {configKey!r}")
 						del self.config[configKey]
-					# FIXME: set empty value?
 					break
 				valueNew, ok = option.evaluate(value)
 				if not ok or not option.validate(valueNew):
