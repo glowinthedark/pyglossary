@@ -188,40 +188,24 @@ tk.CallWrapper.__call__ = CallWrapper__call__
 
 
 class ProgressBar(ttk.Frame):
-
-	"""
-	Comes from John Grayson's book "Python and Tkinter programming"
-	Edited by Saeed Rasooli.
-	"""
-
 	def __init__(  # noqa: PLR0913
 		self,
-		rootWin=None,
-		orientation="horizontal",
-		min_=0,
-		max_=100,
-		width=100,
-		height=18,
-		appearance="sunken",
-		fillColor="blue",
-		background="gray",
-		labelColor="yellow",
-		labelFont="Verdana",
-		labelFormat="%d%%",
-		value=0,
+		rootWin,
+		min_: float,
+		max_: float,
+		width: int,
+		height: int,
+		appearance: str,  # "sunken"
+		fillColor: str,
+		background: str,
+		labelColor: str,
+		labelFont: str,
+		value: float = 0,
 	) -> None:
-		# preserve various values
-		self.rootWin = rootWin
-		self.orientation = orientation
 		self.min = min_
 		self.max = max_
 		self.width = width
 		self.height = height
-		self.fillColor = fillColor
-		self.labelFont = labelFont
-		self.labelColor = labelColor
-		self.background = background
-		self.labelFormat = labelFormat
 		self.value = value
 		ttk.Frame.__init__(self, rootWin, relief=appearance)
 		self.canvas = tk.Canvas(
@@ -245,11 +229,11 @@ class ProgressBar(ttk.Frame):
 			text="",
 			anchor="c",
 			fill=labelColor,
-			font=self.labelFont,
+			font=labelFont,
 		)
 		self.update()
 		self.bind("<Configure>", self.update)
-		self.canvas.pack(side="top", fill="x", expand="no")
+		self.canvas.pack(side="top", fill="x", expand=False)
 
 	def updateProgress(self, value, max_=None, text="") -> None:
 		if max_:
@@ -257,42 +241,43 @@ class ProgressBar(ttk.Frame):
 		self.value = value
 		self.update(None, text)
 
-	def update(self, event=None, labelText="") -> None:  # noqa: ARG002
-		# Trim the values to be between min and max
-		value = self.value
-		value = min(value, self.max)
-		value = max(value, self.min)
-		# Adjust the rectangle
-		width = int(self.winfo_width())
-		# width = self.width
-		ratio = float(value) / self.max
-		if self.orientation == "horizontal":
-			self.canvas.coords(
-				self.scale,
-				0,
-				0,
-				width * ratio,
-				self.height,
-			)
+	def update(self, event=None, labelText="") -> None:
+		if event:  # instance of tkinter.Event
+			width = getattr(event, "width", None) or int(self.winfo_width())
+			if width != self.width:  # window is resized
+				self.canvas.coords(self.label, width / 2, self.height / 2)
+				self.width = width
 		else:
-			self.canvas.coords(
-				self.scale,
-				0,
-				self.height * (1 - ratio),
-				width,
-				self.height,
+			width = self.width
+
+		self.canvas.coords(
+			self.scale,
+			0,
+			0,
+			width * max(min(self.value, self.max), self.min) / self.max,
+			self.height,
+		)
+
+		if labelText:
+			# TODO: replace below `// 10` with a number based on current font size
+			self.canvas.itemconfig(
+				self.label,
+				text=labelText[: width // 10],
 			)
-		# Now update the colors
-		self.canvas.itemconfig(self.scale, fill=self.fillColor)
-		self.canvas.itemconfig(self.label, fill=self.labelColor)
-		# And update the label
-		if not labelText:
-			labelText = self.labelFormat % int(ratio * 100)
-		self.canvas.itemconfig(self.label, text=labelText)
-		# FIXME: resizing window causes problem in progressbar
-		# self.canvas.move(self.label, width/2, self.height/2)
-		# self.canvas.scale(self.label, 0, 0, float(width)/self.width, 1)
+
 		self.canvas.update_idletasks()
+
+
+# class VerticalProgressBar(ProgressBar):
+# def update(self, event=None, labelText="") -> None:
+# ...
+# self.canvas.coords(
+# 	self.scale,
+# 	0,
+# 	self.height * (1 - value / self.max),
+# 	width,
+# 	self.height,
+# )
 
 
 class FormatDialog(tk.Toplevel):
@@ -1150,48 +1135,42 @@ class UI(tk.Frame, UIBase):
 		####
 		self.console = console
 		##################
-		versionFrame = ttk.Frame(notebook)
-		label = newLabelWithImage(versionFrame, file=logo)
-		label.pack(fill="both", expand=True)
-		##
-		##
-		label = ttk.Label(versionFrame, text=f"PyGlossary\nVersion {getVersion()}")
-		label.pack(fill="both", expand=True)
-		##
-		versionFrame.pack(side="top", fill="x")
-
 		aboutFrame = ttk.Frame(notebook)
-		authorsFrame = ttk.Frame(notebook)
-		licenseFrame = ttk.Frame(notebook)
-
-		notebook.add(convertFrame, text="Convert", underline=0)
-		notebook.add(authorsFrame, text="Authors", underline=0)
-		notebook.add(licenseFrame, text="License", underline=0)
-		notebook.add(aboutFrame, text="About", underline=0)
-		notebook.add(versionFrame, text="Version", underline=0)
-
-		label = newReadOnlyText(
+		versionFrame = ttk.Frame(aboutFrame)
+		newLabelWithImage(versionFrame, file=logo).pack(
+			side="left", fill="both", expand=False
+		)
+		ttk.Label(versionFrame, text=f"PyGlossary\nVersion {getVersion()}").pack(
+			side="left", fill="both", expand=False
+		)
+		versionFrame.pack(side="top", fill="x")
+		##
+		newReadOnlyText(
 			aboutFrame,
 			text=f"{aboutText}\nHome page: {core.homePage}",
 			font=("DejaVu Sans", 11, ""),
-		)
-		label.pack(fill="x")
+		).pack(fill="both", expand=True)
+		aboutFrame.pack(side="top", fill="x")
 
-		authorsText = "\n".join(authors)
-		authorsText = authorsText.replace("\t", "    ")
-		label = newReadOnlyText(
+		authorsFrame = ttk.Frame(notebook)
+		authorsText = "\n".join(authors).replace("\t", "    ")
+		newReadOnlyText(
 			authorsFrame,
 			text=authorsText,
 			font=("DejaVu Sans", 11, ""),
-		)
-		label.pack(fill="x")
+		).pack(fill="both", expand=True)
 
-		label = newReadOnlyText(
+		licenseFrame = ttk.Frame(notebook)
+		newReadOnlyText(
 			licenseFrame,
 			text=licenseText,
 			font=("DejaVu Sans", 11, ""),
-		)
-		label.pack(fill="x")
+		).pack(fill="both", expand=True)
+
+		notebook.add(convertFrame, text="Convert", underline=-1)
+		notebook.add(aboutFrame, text="About", underline=-1)
+		notebook.add(authorsFrame, text="Authors", underline=-1)
+		notebook.add(licenseFrame, text="License", underline=-1)
 
 		######################
 		tk.Grid.columnconfigure(convertFrame, 0, weight=1)
@@ -1212,7 +1191,7 @@ class UI(tk.Frame, UIBase):
 
 		# _________________________________________________________________ #
 
-		statusBarframe = ttk.Frame(self)
+		statusBarframe = self.statusBarframe = ttk.Frame(self)
 		clearB = newButton(
 			statusBarframe,
 			text="Clear",
@@ -1235,31 +1214,17 @@ class UI(tk.Frame, UIBase):
 			statusBarframe,
 			comboVar,
 			log.getVerbosity(),  # default
-			0,
-			1,
-			2,
-			3,
-			4,
-			5,
+			"0",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
 		)
 		comboVar.trace_add("write", self.verbosityChanged)
 		combo.pack(side="left")
 		self.verbosityCombo = comboVar
 		comboVar.set(log.getVerbosity())
-		#####
-		pbar = ProgressBar(statusBarframe, width=700, height=28)
-		pbar.pack(side="left", fill="x", expand=True)
-		self.pbar = pbar
-		statusBarframe.pack(fill="x")
-		self.progressTitle = ""
-		# _________________________________________________________________ #
-
-		centerWindow(rootWin)
-		# show the window
-		if os.sep == "\\":  # Windows
-			rootWin.attributes("-alpha", 1.0)
-		else:  # Linux
-			rootWin.deiconify()
 
 	def textSelectAll(self, tktext) -> None:
 		tktext.tag_add(tk.SEL, "1.0", tk.END)
@@ -1483,6 +1448,7 @@ class UI(tk.Frame, UIBase):
 		convertOptions: dict[str, Any] | None = None,
 		glossarySetAttrs: dict[str, Any] | None = None,
 	) -> None:
+		config = config or {}
 		self.config = config
 
 		if inputFilename:
@@ -1505,6 +1471,31 @@ class UI(tk.Frame, UIBase):
 
 		if reverse:
 			log.error("Tkinter interface does not support Reverse feature")
+
+		pbar = ProgressBar(
+			self.statusBarframe,
+			min_=0,
+			max_=100,
+			width=700,
+			height=28,
+			appearance="sunken",
+			fillColor=config.get("tk.progressbar.color.fill", "blue"),
+			background=config.get("tk.progressbar.color.background", "gray"),
+			labelColor=config.get("tk.progressbar.color.text", "yellow"),
+			labelFont=config.get("tk.progressbar.font", "Sans"),
+		)
+		pbar.pack(side="left", fill="x", expand=True, padx=10)
+		self.pbar = pbar
+		self.statusBarframe.pack(fill="x")
+		self.progressTitle = ""
+		# _________________________________________________________________ #
+
+		centerWindow(self.rootWin)
+		# show the window
+		if os.sep == "\\":  # Windows
+			self.rootWin.attributes("-alpha", 1.0)
+		else:  # Linux
+			self.rootWin.deiconify()
 
 		# must be before setting self.readOptions and self.writeOptions
 		self.anyEntryChanged()

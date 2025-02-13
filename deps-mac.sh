@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 
+set -e 
+set -x
+
 [[ -f .venv/bin/activate ]] || { echo "venv not activated! run: 'uv venv && source .venv/bin/activate'"; exit 1; }
 
 source .venv/bin/activate
 
-brew install lzo glib libffi gettext pygobject3 gtk+3 pkg-config py3cairo cairo intltool icu4c python-tk
+brew install lzo libffi gettext pkg-config intltool icu4c python-tk
+
+# WITH GTK deps
+# brew install lzo glib libffi gettext pygobject3 gtk+3 pkg-config py3cairo cairo intltool icu4c python-tk
 
 PREFIX=$(brew --prefix)
 
@@ -19,5 +25,7 @@ command -v uv &>/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 
 [ "$0" = "-zsh" ] && rehash
 
-uv pip install -U pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit gobject pygobject pycairo pyinstaller colorize_pinyin
+uv pip install -U pymorphy2 biplist lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit colorize_pinyin
+# WITH GTK
+# uv pip install -U pymorphy2 biplib lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit gobject pygobject pycairo colorize_pinyin
 uv pip install .
