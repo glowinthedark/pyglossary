@@ -73,11 +73,15 @@ class TextGlossaryReader:
 		self._fileCount = 1
 		self._fileIndex = -1
 		self._bufferLine = ""
+		self._entryIndex = 0
 		self._resDir = ""
 		self._resFileNames: list[str] = []
 
 	def _setResDir(self, resDir: str) -> bool:
+		if self._glos.getConfig("skip_resources", False):
+			return False
 		if isdir(resDir):
+			log.info(f"Listing res dir {self._resDir}")
 			self._resDir = resDir
 			self._resFileNames = os.listdir(self._resDir)
 			return True
@@ -102,6 +106,17 @@ class TextGlossaryReader:
 		except StopIteration:
 			return ""
 
+	def _calcFilzeSize(self, cfile: io.TextIOBase, filename: str) -> None:
+		if cfile.seekable():
+			log.info("Calculating file size")
+			cfile.seek(0, 2)
+			self._fileSize = cfile.tell()
+			cfile.seek(0)
+			log.debug(f"File size of {filename}: {self._fileSize}")
+			self._glos.setInfo("input_file_size", str(self._fileSize))
+		else:
+			log.warning("TextGlossaryReader: file is not seekable")
+
 	def _openGen(self, filename: str) -> Iterator[tuple[int, int]]:
 		self._fileIndex += 1
 		log.info(f"Reading file: {filename}")
@@ -114,16 +129,13 @@ class TextGlossaryReader:
 			),
 		)
 
-		if cfile.seekable():
-			cfile.seek(0, 2)
-			self._fileSize = cfile.tell()
-			cfile.seek(0)
-			log.debug(f"File size of {filename}: {self._fileSize}")
-			self._glos.setInfo("input_file_size", str(self._fileSize))
+		if self._glos.progressbar:
+			self._calcFilzeSize(cfile, filename)
+			self._progress = self._fileSize > 0
 		else:
-			log.warning("TextGlossaryReader: file is not seekable")
-
-		self._progress = self._glos.progressbar and self._fileSize > 0
+			if os.getenv("CALC_FILE_SIZE"):
+				self._calcFilzeSize(cfile, filename)
+			self._progress = False
 
 		self._file = TextFilePosWrapper(cfile, self._encoding)
 		if self._hasInfo:
@@ -172,7 +184,9 @@ class TextGlossaryReader:
 	def newEntry(self, word: MultiStr, defi: str) -> EntryType:
 		byteProgress: tuple[int, int] | None = None
 		if self._progress:
-			byteProgress = (self._file.tell(), self._fileSize)
+			self._entryIndex += 1
+			if self._entryIndex % 1000 == 0:
+				byteProgress = (self._file.tell(), self._fileSize)
 		return self._glos.newEntry(
 			word,
 			defi,
@@ -212,7 +226,7 @@ class TextGlossaryReader:
 		except StopIteration:
 			pass
 
-		if self._fileIndex == 0:
+		if self._fileIndex == 0 and not os.getenv("NO_READ_MULTI_PART"):
 			fileCountStr = self._glos.getInfo("file_count")
 			if fileCountStr:
 				self._fileCount = int(fileCountStr)
@@ -243,9 +257,9 @@ class TextGlossaryReader:
 			try:
 				block = self.nextBlock()
 			except StopIteration:
-				if self._fileCount == -1 or (
-					self._fileIndex < self._fileCount - 1 and self.openNextFile()
-				):
+				if (
+					self._fileCount == -1 or self._fileIndex < self._fileCount - 1
+				) and self.openNextFile():
 					continue
 				self._wordCount = self._pos
 				break
