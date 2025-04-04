@@ -20,16 +20,26 @@ from __future__ import annotations
 
 import logging
 
+from gi.repository import Gdk as gdk
 from gi.repository import Gio as gio
+from gi.repository import GLib as glib
 from gi.repository import Gtk as gtk
 
+from pyglossary import core
 from pyglossary.ui.base import UIBase
 
 from .mainwin import MainWindow
+from .utils import gtk_event_iteration_loop
 
 log = logging.getLogger("pyglossary")
 
-# gtk.Window.set_default_icon_from_file(logo)  # removed in Gtk 4.0
+glib.set_prgname("PyGlossary (Gtk4)")
+gtk.Window.set_default_icon_name("pyglossary")
+
+# ~/.local/share/icons/hicolor/scalable/apps/pyglossary.svg must exist
+# unless we call iconTheme.add_search_path with our res dir, and make sure
+# this file exists: res/hicolor/scalable/apps/pyglossary.svg
+gtk.IconTheme.get_for_display(gdk.Display.get_default()).add_search_path(core.appResDir)
 
 
 class UI(UIBase, gtk.Application):
@@ -40,19 +50,39 @@ class UI(UIBase, gtk.Application):
 		UIBase.__init__(self)
 		gtk.Application.__init__(
 			self,
-			application_id="apps.pyglossary",
-			flags=gio.ApplicationFlags.FLAGS_NONE,
+			application_id="com.github.ilius.pyglossary",
+			flags=gio.ApplicationFlags.DEFAULT_FLAGS,
 		)
-		self.progressbar = progressbar
+		if progressbar:
+			self.progressBar = gtk.ProgressBar()
+			self.progressBar.set_fraction(0)
+		else:
+			self.progressBar = None
 		self.runArgs = {}
+		self.mainWindow: MainWindow | None = None
 
 	def run(self, **kwargs) -> None:
 		self.runArgs = kwargs
 		gtk.Application.run(self)
 
 	def do_activate(self) -> None:
-		MainWindow(
+		self.mainWindow = MainWindow(
 			ui=self,
 			app=self,
-			progressbar=self.progressbar,
-		).run(**self.runArgs)
+			progressBar=self.progressBar,
+		)
+		self.mainWindow.run(**self.runArgs)
+
+	def progressInit(self, title: str) -> None:
+		self.progressTitle = title
+
+	def progress(self, ratio: float, text: str = "") -> None:
+		if self.mainWindow is None:
+			return
+		if not text:
+			text = "%" + str(int(ratio * 100))
+		text += " - " + self.progressTitle
+		self.progressBar.set_fraction(ratio)
+		# self.progressBar.set_text(text)  # not working
+		self.mainWindow.status(text)
+		gtk_event_iteration_loop()

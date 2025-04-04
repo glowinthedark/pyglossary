@@ -33,7 +33,6 @@ class Reader:
 	}
 
 	_word_title: bool = False
-	_pron_color: str = "gray"
 	_gram_color: str = "green"
 
 	# 'top right' or 'top right bottom left'
@@ -130,6 +129,14 @@ class Reader:
 		if word:
 			keywords.append(word)
 
+		# Check if the entry is need preprocessing
+		lang = data.get("lang")
+		langCode = data.get("lang_code")
+		if lang == "Chinese" or langCode == "zh":
+			from .zh_utils import processChinese
+
+			data = processChinese(data)
+
 		for formDict in data.get("forms", []):
 			form: str = formDict.get("form", "")
 			if not form:
@@ -156,7 +163,11 @@ class Reader:
 
 				hf_ = cast("T_htmlfile", hf)
 
-				self.writeSoundList(hf_, data.get("sounds"))
+				# TODO: change this
+				if lang == "Chinese" or langCode == "zh":
+					self.writeSoundsChinese(hf_, data.get("sounds"))
+				else:
+					self.writeSoundList(hf_, data.get("sounds"))
 
 				pos: str | None = data.get("pos")
 				if pos:
@@ -200,20 +211,51 @@ class Reader:
 			byteProgress=(file.tell(), self._fileSize),
 		)
 
-	def writeSoundPron(
+	# "homophone" key found in Dutch and Arabic dictionaries
+	# (similar-sounding words for Arabic)
+	# rhymes are links on Wiktionary website, for example:
+	# <a href="/wiki/Rhymes:English/u%CB%90b" title="Rhymes:English/uːb">
+	pronTypes = {
+		"ipa": "IPA",
+		"other": "Other",
+		"rhymes": "Rhymes",
+		"homophone": "Homophone",
+	}
+
+	def writeSoundListPron(
 		self,
 		hf: T_htmlfile,
-		sound: dict[str, Any],
+		soundList: list[dict[str, Any]],
 	) -> None:
-		# "homophone" key found in Dutch and Arabic dictionaries
-		# (similar-sounding words for Arabic)
-		for key in ("ipa", "other", "rhymes", "homophone"):
-			value = sound.get(key)
-			if not value:
-				continue
-			with hf.element("font", color=self._pron_color):
-				hf.write(str(value))
-			hf.write(f" ({key})")
+		def writeSound(sound: dict[str, Any]) -> None:
+			for pronType, className in self.pronTypes.items():
+				text = sound.get(pronType)
+				if not text:
+					continue
+				with hf.element("li"):
+					tags = sound.get("tags")
+					note = sound.get("note")
+					if tags:
+						with hf.element("small"):
+							hf.write("(" + ", ".join(tags) + ") ")
+					elif note:
+						with hf.element("small"):
+							hf.write("(" + note + ") ")
+					hf.write(className + ": ")
+					with hf.element(
+						"span",
+						attrib={
+							"class": className,
+						},
+					):
+						hf.write(str(text))
+
+		with hf.element("div", attrib={"class": "pronunciations"}):
+			# with hf.element("b"):
+			hf.write("Pronunciation:")
+			with hf.element("ul"):
+				for sound in soundList:
+					writeSound(sound)
 
 	def writeSoundAudio(
 		self,
@@ -242,6 +284,43 @@ class Reader:
 				):
 					pass
 
+	def writeSoundsChinese(  # noqa: PLR6301
+		self,
+		hf: T_htmlfile,
+		soundList: dict[str, Any] | None,
+	) -> None:
+		if not soundList:
+			return
+
+		def writePhonDialect(hf: T_htmlfile, dialect: dict[str, Any]) -> None:
+			with hf.element("ul"):
+				for phonSystem, text in dialect.items():
+					# TODO: user uppercase/capitalized phonSystem for className
+					className = f"pron {phonSystem}" if phonSystem else "pron"
+					with hf.element("li"):
+						if phonSystem:
+							with hf.element("small"):
+								hf.write("(" + phonSystem + "): ")
+						with hf.element(
+							"span",
+							attrib={
+								"class": className,
+							},
+						):
+							hf.write(str(", ".join(text)))
+
+		with hf.element("div", attrib={"class": "pronunciations"}):
+			for lang in soundList:
+				with hf.element("ul"), hf.element("li"):
+					hf.write(f"{lang}: ")
+					for dialect in soundList[lang]:
+						if not dialect:
+							writePhonDialect(hf, soundList[lang][dialect])
+							continue
+						with hf.element("ul"), hf.element("li"):
+							hf.write(dialect)
+							writePhonDialect(hf, soundList[lang][dialect])
+
 	def writeSoundList(
 		self,
 		hf: T_htmlfile,
@@ -262,11 +341,7 @@ class Reader:
 			# can it contain both audio and pronunciation?
 
 		if pronList:
-			with hf.element("div", attrib={"class": "pronunciations"}):
-				for i, sound in enumerate(pronList):
-					if i > 0:
-						hf.write(", ")
-					self.writeSoundPron(hf, sound)
+			self.writeSoundListPron(hf, pronList)
 
 		for sound in audioList:
 			with hf.element("div", attrib={"class": "audio"}):
@@ -337,9 +412,17 @@ class Reader:
 		example.pop("ref", "")
 		example.pop("type", "")
 
+		# Implement rudimentary ruby text handler by simply put them in "()"
+		# TODO: implement correctly formatted ruby text (i.e., as small script on top)
+		if "ruby" in example:
+			for word, phon in example["ruby"]:
+				example["text"] = example["text"].replace(word, f"{word}({phon})")
+			del example["ruby"]
+
 		for key, value in example.items():
 			if not value:
 				continue
+
 			prefix: str | None = key
 			if prefix in ("text",):  # noqa: PLR6201, FURB171
 				prefix = None

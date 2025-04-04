@@ -4,7 +4,7 @@ import sys
 from os.path import abspath, dirname, join
 from pathlib import Path
 
-import toml
+import tomllib as toml
 from mako.template import Template
 
 rootDir = dirname(dirname(abspath(__file__)))
@@ -242,7 +242,7 @@ for p in plugins:
 
 	toolsFile = join(pluginsDir, p.moduleName, "tools.toml")
 	try:
-		with open(toolsFile, encoding="utf-8") as _file:
+		with open(toolsFile, "rb") as _file:
 			tools_toml = toml.load(_file)
 	except FileNotFoundError:
 		tools = []

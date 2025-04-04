@@ -35,6 +35,7 @@ __all__ = [
 	"VBox",
 	"dialog_add_button",
 	"gtk_event_iteration_loop",
+	"hasLightTheme",
 	"imageFromFile",
 	"pack",
 	"rgba_parse",
@@ -66,6 +67,16 @@ def VBox(**kwargs) -> gtk.Box:
 
 def HBox(**kwargs) -> gtk.Box:
 	return gtk.Box(orientation=gtk.Orientation.HORIZONTAL, **kwargs)
+
+
+class FixedSizePicture(gtk.Picture):
+	def __init__(self, path: str) -> None:
+		gtk.Picture.__init__(self)
+		# self.size = size
+		if not isabs(path):
+			path = join(appResDir, path)
+		self.set_filename(path)
+		self.set_can_shrink(False)
 
 
 def imageFromFile(path: str) -> gtk.Image:  # the file must exist
@@ -103,8 +114,8 @@ def rgba_parse(colorStr: str) -> gdk.RGBA:
 def pack(
 	box: gtk.Box | gtk.CellLayout,
 	child: gtk.Widget | gtk.CellRenderer,
-	expand: bool = False,
-	fill: bool = False,  # noqa: ARG001
+	expand: bool | int = False,
+	fill: bool | int = False,  # noqa: ARG001
 	padding: int = 0,
 ) -> None:  # noqa: ARG001
 	if padding > 0:
@@ -150,7 +161,6 @@ def dialog_add_button(
 def showMsg(  # noqa: PLR0913
 	msg: str,
 	iconName: str = "",
-	parent: gtk.Widget | None = None,
 	transient_for: gtk.Widget | None = None,
 	title: str = "",
 	borderWidth: int = 10,  # noqa: ARG001
@@ -158,7 +168,6 @@ def showMsg(  # noqa: PLR0913
 	selectable: bool = False,
 ) -> None:
 	win = gtk.Dialog(
-		parent=parent,
 		transient_for=transient_for,
 	)
 	# flags=0 makes it skip task bar
@@ -213,3 +222,14 @@ def showInfo(msg, **kwargs) -> None:  # noqa: ANN001
 	# gtk-dialog-info is deprecated since version 3.10:
 	# Use named icon “dialog-information”.
 	showMsg(msg, iconName="gtk-dialog-info", **kwargs)
+
+
+def _getLightness(c: gdk.Color) -> float:
+	return (max(c.red, c.green, c.blue) + min(c.red, c.green, c.blue)) / 2
+
+
+def hasLightTheme(widget: gtk.Widget) -> bool:
+	fg = widget.get_color()
+	# bg = ... no idea how to get it in Gtk4
+	# return _getLightness(fg) < _getLightness(bg)
+	return _getLightness(fg) < 0.5

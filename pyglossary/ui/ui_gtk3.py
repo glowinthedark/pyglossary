@@ -43,6 +43,9 @@ from .version import getVersion
 
 gi.require_version("Gtk", "3.0")
 
+from gi.repository import Gio as gio
+from gi.repository import GLib as glib
+
 from .gtk3_utils import gdk, gtk  # noqa: E402
 from .gtk3_utils.about import AboutWidget  # noqa: E402
 from .gtk3_utils.dialog import MyDialog  # noqa: E402
@@ -66,6 +69,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("pyglossary")
 
+glib.set_prgname("PyGlossary (Gtk3)")
+glib.set_application_name("PyGlossary (Gtk3)")
 gtk.Window.set_default_icon_from_file(logo)
 
 _ = str  # later replace with translator function
@@ -1016,7 +1021,55 @@ class GeneralOptionsButton(gtk.Button):
 		self.dialog.present()
 
 
-class UI(gtk.Dialog, MyDialog, UIBase):
+class UI(UIBase, gtk.Application):
+	def __init__(
+		self,
+		progressbar: bool = True,
+	) -> None:
+		UIBase.__init__(self)
+		gtk.Application.__init__(
+			self,
+			application_id="apps.pyglossary",
+			flags=gio.ApplicationFlags.FLAGS_NONE,
+		)
+		if progressbar:
+			self.progressBar = gtk.ProgressBar()
+			self.progressBar.set_fraction(0)
+		else:
+			self.progressBar = None
+		self.runArgs = {}
+		self.progressTitle = ""
+		self.mainWin: MainWindow | None = None
+
+	def run(self, **kwargs) -> None:
+		self.runArgs = kwargs
+		gtk.Application.run(self)
+
+	def do_activate(self) -> None:
+		self.mainWin = MainWindow(
+			ui=self,
+			app=self,
+			progressBar=self.progressBar,
+		)
+		self.mainWin.run(**self.runArgs)
+
+	def progressInit(self, title: str) -> None:
+		self.progressTitle = title
+
+	def progress(self, ratio: float, text: str = "") -> None:
+		if self.mainWin is None:
+			return
+		if not text:
+			text = "%" + str(int(ratio * 100))
+		text += " - " + self.progressTitle
+		self.progressBar.set_fraction(ratio)
+		# self.progressBar.set_text(text)  # not working
+		self.mainWin.status(text)
+		while gtk.events_pending():
+			gtk.main_iteration_do(False)
+
+
+class MainWindow(gtk.Dialog, MyDialog):
 	def status(self, msg: str) -> None:
 		# try:
 		# 	_id = self.statusMsgDict[msg]
@@ -1028,13 +1081,18 @@ class UI(gtk.Dialog, MyDialog, UIBase):
 
 	def __init__(
 		self,
-		progressbar: bool = True,
+		ui: UIBase,
+		app: gtk.Application,
+		progressBar: gtk.ProgressBar | None,
 	) -> None:
+		self.app = app
+		self.ui = ui
+		###
 		gtk.Dialog.__init__(self)
-		UIBase.__init__(self)
 		self.set_title("PyGlossary (Gtk3)")
 		###
-		self.progressbarEnable = progressbar
+		self.progressBar = progressBar
+		self.progressbarEnable = progressBar is not None
 		#####
 		screenSize = getWorkAreaSize()
 		if screenSize:
@@ -1165,100 +1223,7 @@ class UI(gtk.Dialog, MyDialog, UIBase):
 		swin.set_border_width(0)
 		swin.add(textview)
 		pack(vbox, swin, 1, 1)
-		# ____________________ Tab 2 - Reverse ____________________ #
-		self.reverseStatus = ""
-		####
-		labelSizeGroup = gtk.SizeGroup(mode=gtk.SizeGroupMode.HORIZONTAL)
-		####
-		vbox = VBox()
-		vbox.label = _("Reverse")
-		vbox.icon = ""  # "*.png"
-		# self.pages.append(vbox)
-		######
-		hbox = HBox(spacing=3)
-		hbox.label = gtk.Label(label=_("Input Format:"))
-		pack(hbox, hbox.label)
-		labelSizeGroup.add_widget(hbox.label)
-		hbox.label.set_property("xalign", 0)
-		self.reverseInputFormatCombo = InputFormatBox()
-		pack(hbox, self.reverseInputFormatCombo)
-		pack(vbox, hbox)
-		###
-		hbox = HBox(spacing=3)
-		hbox.label = gtk.Label(label=_("Input File:"))
-		pack(hbox, hbox.label)
-		labelSizeGroup.add_widget(hbox.label)
-		hbox.label.set_property("xalign", 0)
-		self.reverseInputEntry = gtk.Entry()
-		pack(hbox, self.reverseInputEntry, 1, 1)
-		button = BrowseButton(
-			self.reverseInputEntry.set_text,
-			label="Browse",
-			actionSave=False,
-			title="Select Input File",
-		)
-		pack(hbox, button)
-		pack(vbox, hbox)
-		##
-		self.reverseInputEntry.connect(
-			"changed",
-			self.reverseInputEntryChanged,
-		)
-		#####
-		vbox.sep1 = gtk.Label(label="")
-		vbox.sep1.show()
-		pack(vbox, vbox.sep1)
-		#####
-		hbox = HBox(spacing=3)
-		hbox.label = gtk.Label(label=_("Output Tabfile:"))
-		pack(hbox, hbox.label)
-		labelSizeGroup.add_widget(hbox.label)
-		hbox.label.set_property("xalign", 0)
-		self.reverseOutputEntry = gtk.Entry()
-		pack(hbox, self.reverseOutputEntry, 1, 1)
-		button = BrowseButton(
-			self.reverseOutputEntry.set_text,
-			label="Browse",
-			actionSave=True,
-			title="Select Output File",
-		)
-		pack(hbox, button)
-		pack(vbox, hbox)
-		##
-		self.reverseOutputEntry.connect(
-			"changed",
-			self.reverseOutputEntryChanged,
-		)
-		#####
-		hbox = HBox(spacing=3)
-		label = gtk.Label(label="")
-		pack(hbox, label, 1, 1, 5)
-		###
-		self.reverseStartButton = gtk.Button()
-		self.reverseStartButton.set_label(_("Start"))
-		self.reverseStartButton.connect("clicked", self.reverseStartClicked)
-		pack(hbox, self.reverseStartButton, 1, 1, 2)
-		###
-		self.reversePauseButton = gtk.Button()
-		self.reversePauseButton.set_label(_("Pause"))
-		self.reversePauseButton.set_sensitive(False)
-		self.reversePauseButton.connect("clicked", self.reversePauseClicked)
-		pack(hbox, self.reversePauseButton, 1, 1, 2)
-		###
-		self.reverseResumeButton = gtk.Button()
-		self.reverseResumeButton.set_label(_("Resume"))
-		self.reverseResumeButton.set_sensitive(False)
-		self.reverseResumeButton.connect("clicked", self.reverseResumeClicked)
-		pack(hbox, self.reverseResumeButton, 1, 1, 2)
-		###
-		self.reverseStopButton = gtk.Button()
-		self.reverseStopButton.set_label(_("Stop"))
-		self.reverseStopButton.set_sensitive(False)
-		self.reverseStopButton.connect("clicked", self.reverseStopClicked)
-		pack(hbox, self.reverseStopButton, 1, 1, 2)
-		###
-		pack(vbox, hbox, 0, 0, 5)
-		######
+		# ____________________________________________________________ #
 		about = AboutWidget(
 			logo=logo,
 			header=f"PyGlossary\nVersion {getVersion()}",
@@ -1270,33 +1235,6 @@ class UI(gtk.Dialog, MyDialog, UIBase):
 		about.label = _("About")
 		about.icon = ""  # "*.png"
 		self.pages.append(about)
-		#####
-		# ____________________________________________________________ #
-		notebook = gtk.Notebook()
-		self.notebook = notebook
-		#########
-		for vbox in self.pages:
-			label = gtk.Label(label=vbox.label)
-			label.set_use_underline(True)
-			vb = VBox(spacing=3)
-			if vbox.icon:
-				vbox.image = imageFromFile(vbox.icon)
-				pack(vb, vbox.image)
-			pack(vb, label)
-			vb.show_all()
-			notebook.append_page(vbox, vb)
-			try:
-				notebook.set_tab_reorderable(vbox, True)
-			except AttributeError:
-				pass
-		#######################
-		pack(self.vbox, notebook, 1, 1)
-		# for i in ui.pagesOrder:
-		# 	try:
-		# 		j = pagesOrder[i]
-		# 	except IndexError:
-		# 		continue
-		# 	notebook.reorder_child(self.pages[i], j)
 		# ____________________________________________________________ #
 		handler = GtkSingleTextviewLogHandler(self, textview)
 		log.addHandler(handler)
@@ -1316,13 +1254,11 @@ class UI(gtk.Dialog, MyDialog, UIBase):
 		textview.get_buffer().set_text("Output & Error Console:\n")
 		textview.set_editable(False)
 		# ____________________________________________________________ #
-		self.progressTitle = ""
-		self.progressBar = pbar = gtk.ProgressBar()
-		pbar.set_fraction(0)
-		# pbar.set_text(_("Progress Bar"))
-		# pbar.get_style_context()
-		# pbar.set_property("height-request", 20)
-		pack(self.vbox, pbar, 0, 0)
+		if progressBar:
+			# progressBar.set_text(_("Progress Bar"))
+			# progressBar.get_style_context()
+			# progressBar.set_property("height-request", 20)
+			pack(vbox, progressBar, 0, 0)
 		############
 		hbox = HBox(spacing=5)
 		clearButton = gtk.Button(
@@ -1362,7 +1298,33 @@ class UI(gtk.Dialog, MyDialog, UIBase):
 		hbox.resizeButton = ResizeButton(self)
 		pack(hbox, hbox.resizeButton, 0, 0)
 		######
-		pack(self.vbox, hbox, 0, 0)
+		pack(vbox, hbox, 0, 0)
+		# ____________________________________________________________ #
+		notebook = gtk.Notebook()
+		self.notebook = notebook
+		#########
+		for vbox in self.pages:
+			label = gtk.Label(label=vbox.label)
+			label.set_use_underline(True)
+			vb = VBox(spacing=3)
+			if vbox.icon:
+				vbox.image = imageFromFile(vbox.icon)
+				pack(vb, vbox.image)
+			pack(vb, label)
+			vb.show_all()
+			notebook.append_page(vbox, vb)
+			try:
+				notebook.set_tab_reorderable(vbox, True)
+			except AttributeError:
+				pass
+		#######################
+		pack(self.vbox, notebook, 1, 1)
+		# for i in ui.pagesOrder:
+		# 	try:
+		# 		j = pagesOrder[i]
+		# 	except IndexError:
+		# 		continue
+		# 	notebook.reorder_child(self.pages[i], j)
 		# ____________________________________________________________ #
 		self.vbox.show_all()
 		notebook.set_current_page(0)  # Convert tab
@@ -1445,6 +1407,7 @@ class UI(gtk.Dialog, MyDialog, UIBase):
 			return
 		outFormat = self.convertOutputFormatCombo.getActive()
 
+		self.status("Converting...")
 		while gtk.events_pending():
 			gtk.main_iteration_do(False)
 
@@ -1453,7 +1416,7 @@ class UI(gtk.Dialog, MyDialog, UIBase):
 		readOptions = self.convertInputFormatCombo.optionsValues
 		writeOptions = self.convertOutputFormatCombo.optionsValues
 
-		glos = Glossary(ui=self)
+		glos = Glossary(ui=self.ui)
 		glos.config = self.config
 		glos.progressbar = self.progressbarEnable
 
@@ -1533,91 +1496,3 @@ class UI(gtk.Dialog, MyDialog, UIBase):
 			self.status('Press "Convert"')
 		else:
 			self.status("Select output format")
-
-	def reverseLoad(self) -> None:
-		pass
-
-	def reverseStartLoop(self) -> None:
-		pass
-
-	def reverseStart(self) -> None:
-		if not self.reverseLoad():
-			return
-		###
-		self.reverseStatus = "doing"
-		self.reverseStartLoop()
-		###
-		self.reverseStartButton.set_sensitive(False)
-		self.reversePauseButton.set_sensitive(True)
-		self.reverseResumeButton.set_sensitive(False)
-		self.reverseStopButton.set_sensitive(True)
-
-	def reverseStartClicked(self, _widget: Any = None) -> None:
-		self.waitingDo(self.reverseStart)
-
-	def reversePause(self) -> None:
-		self.reverseStatus = "pause"
-		###
-		self.reverseStartButton.set_sensitive(False)
-		self.reversePauseButton.set_sensitive(False)
-		self.reverseResumeButton.set_sensitive(True)
-		self.reverseStopButton.set_sensitive(True)
-
-	def reversePauseClicked(self, _widget: Any = None) -> None:
-		self.waitingDo(self.reversePause)
-
-	def reverseResume(self) -> None:
-		self.reverseStatus = "doing"
-		###
-		self.reverseStartButton.set_sensitive(False)
-		self.reversePauseButton.set_sensitive(True)
-		self.reverseResumeButton.set_sensitive(False)
-		self.reverseStopButton.set_sensitive(True)
-
-	def reverseResumeClicked(self, _widget: Any = None) -> None:
-		self.waitingDo(self.reverseResume)
-
-	def reverseStop(self) -> None:
-		self.reverseStatus = "stop"
-		###
-		self.reverseStartButton.set_sensitive(True)
-		self.reversePauseButton.set_sensitive(False)
-		self.reverseResumeButton.set_sensitive(False)
-		self.reverseStopButton.set_sensitive(False)
-
-	def reverseStopClicked(self, _widget: Any = None) -> None:
-		self.waitingDo(self.reverseStop)
-
-	def reverseInputEntryChanged(self, _widget: Any = None) -> None:
-		inPath = self.reverseInputEntry.get_text()
-		if inPath.startswith("file://"):
-			inPath = urlToPath(inPath)
-			self.reverseInputEntry.set_text(inPath)
-
-		if (
-			self.config["ui_autoSetFormat"]
-			and not self.reverseInputFormatCombo.getActive()
-		):
-			try:
-				inputArgs = Glossary.detectInputFormat(inPath)
-			except Error:
-				pass
-			else:
-				inFormat = inputArgs[1]
-				self.reverseInputFormatCombo.setActive(inFormat)
-
-	def reverseOutputEntryChanged(self, _widget: Any = None) -> None:
-		pass
-
-	def progressInit(self, title: str) -> None:
-		self.progressTitle = title
-
-	def progress(self, ratio: float, text: str = "") -> None:
-		if not text:
-			text = "%" + str(int(ratio * 100))
-		text += " - " + self.progressTitle
-		self.progressBar.set_fraction(ratio)
-		# self.progressBar.set_text(text)  # not working
-		self.status(text)
-		while gtk.events_pending():
-			gtk.main_iteration_do(False)

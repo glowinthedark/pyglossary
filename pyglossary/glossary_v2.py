@@ -114,7 +114,6 @@ class ConvertArgs:
 
 
 class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
-
 	"""
 	The signature of 'convert' method is different in glossary_v2.py
 		See help(Glossary.convert).
@@ -598,7 +597,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 			return f'<{tag} class="{class_}">{word}</{tag}><br>'
 		return f"<{tag}>{word}</{tag}><br>"
 
-	def getConfig(self, name: str, default: str | None) -> str | None:
+	def getConfig(self, name: str, default: Any) -> Any:
 		return self._config.get(name, default)
 
 	def addEntry(self, entry: EntryType) -> None:
@@ -742,7 +741,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 	def _read(
 		self,
 		filename: str,
-		format: str = "",  # to be removed in 6.0.0 # noqa: A002
+		format: str | None = None,  # to be removed in 6.0.0 # noqa: A002
 		formatName: str = "",
 		direct: bool = False,
 		**options,  # noqa: ANN003
@@ -849,7 +848,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 	def write(
 		self,
 		filename: str,
-		format: str = "",  # to be removed in 6.0.0 # noqa: A002
+		format: str | None = None,  # to be removed in 6.0.0 # noqa: A002
 		formatName: str = "",
 		**kwargs,  # noqa: ANN003
 	) -> str:
@@ -975,7 +974,9 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		writerList = [writer]
 		try:
 			self._writeEntries(writerList, filename, options)
-		except (FileNotFoundError, LookupError) as e:
+		except FileNotFoundError as e:
+			# catching LookupError also catches IndexError:
+			# issubclass(IndexError, LookupError)
 			raise WriteError(str(e)) from e
 		finally:
 			showMemoryUsage()
@@ -1248,7 +1249,6 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 
 class Glossary(GlossaryCommon, PluginHandler):
-
 	"""
 	init method is inherited from PluginHandler
 		arguments:

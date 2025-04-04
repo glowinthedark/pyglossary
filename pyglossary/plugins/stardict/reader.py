@@ -210,6 +210,47 @@ class Reader:
 
 		return indexData
 
+	"""
+	Type: 'r'
+	https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat#L431
+	Resource file list.
+	The content can be:
+	img:pic/example.jpg	// Image file
+	snd:apple.wav		// Sound file
+	vdo:film.avi		// Video file
+	att:file.bin		// Attachment file
+	More than one line is supported as a list of available files.
+	StarDict will find the files in the Resource Storage.
+	The image will be shown, the sound file will have a play button.
+	You can "save as" the attachment file and so on.
+	The file list must be a utf-8 string ending with '\0'.
+	Use '\n' for separating new lines.
+	Use '/' character as directory separator.
+	"""
+
+	def decodeDefiTypeR(  # noqa: PLR6301
+		self,
+		b_defiPart: bytes,
+	) -> tuple[str, str]:
+		result = '<div class="sdct_r">'
+
+		for b_item in b_defiPart.split(b"\n"):
+			item = b_item.decode("utf-8")
+			type_, _, fname = item.partition(":")
+			if type_ == "img":
+				result += f'<img src="{fname}"/>'
+			elif type_ == "snd":
+				result += f'<audio controls src="{fname}"></audio>'
+			elif type_ == "vdo":
+				result += f'<video controls src="{fname}"></video>'
+			elif type_ == "att":
+				result += f'<a download href="{fname}">{fname}</a>'
+			else:
+				log.warning(f"Unsupported resource type {type_}")
+
+		result += "</div>"
+		return "h", result
+
 	def decodeRawDefiPart(
 		self,
 		b_defiPart: bytes,
@@ -217,24 +258,8 @@ class Reader:
 		unicode_errors: str,
 	) -> tuple[str, str]:
 		type_ = chr(i_type)
-
-		"""
-		_type: 'r'
-		https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat#L431
-		Resource file list.
-		The content can be:
-		img:pic/example.jpg	// Image file
-		snd:apple.wav		// Sound file
-		vdo:film.avi		// Video file
-		att:file.bin		// Attachment file
-		More than one line is supported as a list of available files.
-		StarDict will find the files in the Resource Storage.
-		The image will be shown, the sound file will have a play button.
-		You can "save as" the attachment file and so on.
-		The file list must be a utf-8 string ending with '\0'.
-		Use '\n' for separating new lines.
-		Use '/' character as directory separator.
-		"""
+		if type_ == "r":
+			return self.decodeDefiTypeR(b_defiPart)
 
 		format_ = {
 			"m": "m",

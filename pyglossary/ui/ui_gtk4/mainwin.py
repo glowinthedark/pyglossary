@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 from os.path import abspath, isfile
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from gi.repository import Gdk as gdk
 from gi.repository import Gtk as gtk
@@ -29,30 +29,31 @@ from pyglossary import core
 from pyglossary.glossary_v2 import ConvertArgs, Error, Glossary
 from pyglossary.text_utils import urlToPath
 from pyglossary.ui.base import (
-	UIBase,
 	aboutText,
 	authors,
 	licenseText,
 	logo,
 )
+from pyglossary.ui.ui_gtk4.console import ConvertConsole
+from pyglossary.ui.ui_gtk4.file_widgets import InputFileBox, OutputFileBox
 from pyglossary.ui.version import getVersion
 
 from .about import AboutWidget
-from .browse import BrowseButton
 from .format_widgets import InputFormatBox, OutputFormatBox
 from .general_options import GeneralOptionsButton
-from .log_handler import GtkSingleTextviewLogHandler
 from .utils import (
 	HBox,
 	VBox,
 	getWorkAreaSize,
 	gtk_event_iteration_loop,
-	imageFromFile,
+	hasLightTheme,
 	pack,
-	rgba_parse,
 )
 
-# from gi.repository import GdkPixbuf
+if TYPE_CHECKING:
+	from collections.abc import Callable
+
+	from pyglossary.ui_type import UIType
 
 log = logging.getLogger("pyglossary")
 
@@ -66,20 +67,64 @@ _ = str  # later replace with translator function
 # or the CSS border-spacing property on containers.
 
 
+class ConvertStatusBox(gtk.Box):
+	def __init__(
+		self,
+		clearClicked: Callable,
+	) -> None:
+		gtk.Box.__init__(self, orientation=gtk.Orientation.HORIZONTAL, spacing=5)
+		self.statusNewId = 0
+		# https://gitlab.gnome.org/GNOME/gtk/-/issues/4205
+		clearButton = gtk.Button(
+			label=_("Clear"),
+			# icon_name="gtk-clear",
+		)
+		clearButton.show()
+		clearButton.connect("clicked", clearClicked)
+		clearButton.set_tooltip_text("Clear Console")
+		pack(self, clearButton)
+		####
+		# pack(hbox, gtk.Label(), 1, 1)
+		######
+		self.verbosityLabel = gtk.Label(label=_("Verbosity:"))
+		pack(self, self.verbosityLabel)
+		##
+		self.verbosityCombo = combo = gtk.ComboBoxText()
+		for level, levelName in enumerate(log.levelNamesCap):
+			combo.append_text(f"{level} - {_(levelName)}")
+		combo.set_active(log.getVerbosity())
+		combo.connect("changed", self.verbosityComboChanged)
+		pack(self, combo)
+		####
+		# pack(hbox, gtk.Label(), 1, 1)
+		####
+		self.statusBar = gtk.Statusbar()
+		pack(self, self.statusBar, 1, 1)
+		####
+		# ResizeButton does not work in Gtk 4.0
+
+	def status(self, msg: str) -> None:
+		self.statusBar.push(self.statusNewId % 4294967295, msg)
+		self.statusNewId += 1
+
+	def verbosityComboChanged(self, _widget: Any = None) -> None:
+		verbosity = self.verbosityCombo.get_active()
+		# or int(self.verbosityCombo.get_active_text())
+		log.setVerbosity(verbosity)
+
+
 class MainWindow(gtk.ApplicationWindow):
 	# @property
 	# def config(self):
 	# 	return self.ui.config
 
 	css = """
-textview.console text {
-	background-color: rgb(0, 0, 0);
-}
-
 check {
 	min-width: 1.25em;
 	min-height: 1.25em;
 }
+
+progressbar progress, trough {min-height: 0.6em;}
 
 .margin_03 {
 	margin-top: 0.5em;
@@ -104,27 +149,30 @@ check {
 	"""
 
 	def status(self, msg: str) -> None:
-		# try:
-		# 	_id = self.statusMsgDict[msg]
-		# except KeyError:
-		# 	_id = self.statusMsgDict[msg] = self.statusNewId
-		# 	self.statusNewId += 1
-		id_ = self.statusBar.get_context_id(msg)
-		self.statusBar.push(id_, msg)
+		self.statusBox.status(msg)
 
 	def __init__(
 		self,
-		ui: UIBase,
+		ui: UIType,
 		app: gtk.Application,
-		progressbar: bool = True,
+		progressBar: gtk.ProgressBar | None,
 		**kwargs,
 	) -> None:
 		self.app = app
 		self.ui = ui
 		#####
 		gtk.ApplicationWindow.__init__(self, application=app, **kwargs)
-		self.set_title("PyGlossary (Gtk3)")
-		self.progressbarEnable = progressbar
+		#####
+		self.lightTheme = hasLightTheme(self)
+		# this may not be needed in most themes,
+		# but just to be sure the colors are not messed up
+		if self.lightTheme:
+			self.css += "textview.console text {background-color: rgb(255, 255, 255);}"
+		else:
+			self.css += "textview.console text {background-color: rgb(0, 0, 0);}"
+		#####
+		self.set_title("PyGlossary (Gtk4)")
+		self.progressBar = progressBar
 		#####
 		self.vbox = VBox()
 		self.set_child(self.vbox)
@@ -133,10 +181,6 @@ check {
 		winSize = min(800, screenW - 50, screenH - 50)
 		self.set_default_size(winSize, winSize)
 		#####
-		# gesture = gtk.GestureClick.new()
-		# gesture.connect("pressed", self.onButtonPress)
-		# self.add_controller(gesture)
-		###
 		ckey = gtk.EventControllerKey()
 		ckey.connect("key-pressed", self.onKeyPress)
 		self.add_controller(ckey)
@@ -144,9 +188,6 @@ check {
 		self.connect("close-request", self.onCloseRequest)
 		####
 		self.pages = []
-		# self.statusNewId = 0
-		# self.statusMsgDict = {}## message -> id
-		#####
 		self.convertOptions = {}
 		#####
 		self.styleProvider = gtk.CssProvider()
@@ -155,102 +196,60 @@ check {
 			self.styleProvider,
 			gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
 		)
-		# gtk.StyleContext.add_provider_for_screen(
-		# 	gdk.Screen.get_default(),
-		# 	self.styleProvider,
-		# 	gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-		# )
-		self.styleProvider.load_from_data(self.css, len(self.css.encode("utf-8")))
+		self.styleProvider.load_from_data(self.css)
 		#####
-		self.assert_quit = False
-		self.path = ""
+		self.assert_quit = False  # FIXME: not used
 		# ____________________ Tab 1 - Convert ____________________ #
 		labelSizeGroup = gtk.SizeGroup(mode=gtk.SizeGroupMode.HORIZONTAL)
 		buttonSizeGroup = gtk.SizeGroup(mode=gtk.SizeGroupMode.HORIZONTAL)
+		self.inOutBoxes: list[gtk.Box] = []
 		####
-		vbox = VBox(spacing=5)
-		vbox.label = _("Convert")
-		vbox.icon = ""  # "*.png"
-		self.pages.append(vbox)
+		page = VBox(spacing=5)
+		page.label = _("Convert")
+		page.icon = ""  # "*.png"
+		self.pages.append(page)
 		######
-		hbox = HBox(spacing=3)
-		hbox.label = gtk.Label(label=_("Input File:"))
-		pack(hbox, hbox.label)
-		labelSizeGroup.add_widget(hbox.label)
-		hbox.label.set_property("xalign", 0)
-		self.convertInputEntry = gtk.Entry()
-		pack(hbox, self.convertInputEntry, 1, 1)
-		button = BrowseButton(
-			self.convertInputEntry.set_text,
-			label="Browse",
-			actionSave=False,
-			title="Select Input File",
+		self.inputFileBox = InputFileBox(
+			entryChanged=self.inputFileEntryChanged,
+			labelSizeGroup=labelSizeGroup,
+			buttonSizeGroup=buttonSizeGroup,
 		)
-		pack(hbox, button)
-		buttonSizeGroup.add_widget(button)
-		pack(vbox, hbox)
-		##
-		self.convertInputEntry.connect(
-			"changed",
-			self.convertInputEntryChanged,
-		)
+		self.inOutBoxes.append(self.inputFileBox)
+		pack(page, self.inputFileBox)
 		###
-		hbox = HBox(spacing=3)
-		hbox.label = gtk.Label(label=_("Input Format:"))
-		pack(hbox, hbox.label)
-		labelSizeGroup.add_widget(hbox.label)
-		hbox.label.set_property("xalign", 0)
-		self.convertInputFormatCombo = InputFormatBox(self.app, parent=self)
-		buttonSizeGroup.add_widget(self.convertInputFormatCombo.optionsButton)
-		pack(hbox, self.convertInputFormatCombo)
-		pack(hbox, gtk.Label(), 1, 1)
-		pack(hbox, self.convertInputFormatCombo.dependsButton)
-		pack(hbox, self.convertInputFormatCombo.optionsButton)
-		pack(vbox, hbox)
+		self.inputFormatBox = InputFormatBox(
+			self.app,
+			parent=self,
+			labelSizeGroup=labelSizeGroup,
+			buttonSizeGroup=buttonSizeGroup,
+		)
+		self.inOutBoxes.append(self.inputFormatBox)
+		pack(page, self.inputFormatBox)
 		#####
 		hbox = HBox()
 		hbox.get_style_context().add_class("margin_03")
-		pack(vbox, hbox)
+		pack(page, hbox)
 		#####
-		hbox = HBox(spacing=3)
-		hbox.label = gtk.Label(label=_("Output File:"))
-		pack(hbox, hbox.label)
-		labelSizeGroup.add_widget(hbox.label)
-		hbox.label.set_property("xalign", 0)
-		self.convertOutputEntry = gtk.Entry()
-		pack(hbox, self.convertOutputEntry, 1, 1)
-		button = BrowseButton(
-			self.convertOutputEntry.set_text,
-			label="Browse",
-			actionSave=True,
-			title="Select Output File",
+		self.outputFileBox = OutputFileBox(
+			entryChanged=self.outputFileEntryChanged,
+			labelSizeGroup=labelSizeGroup,
+			buttonSizeGroup=buttonSizeGroup,
 		)
-		pack(hbox, button)
-		buttonSizeGroup.add_widget(button)
-		pack(vbox, hbox)
-		##
-		self.convertOutputEntry.connect(
-			"changed",
-			self.convertOutputEntryChanged,
-		)
+		self.inOutBoxes.append(self.outputFileBox)
+		pack(page, self.outputFileBox)
 		###
-		hbox = HBox(spacing=3)
-		hbox.label = gtk.Label(label=_("Output Format:"))
-		pack(hbox, hbox.label)
-		labelSizeGroup.add_widget(hbox.label)
-		hbox.label.set_property("xalign", 0)
-		self.convertOutputFormatCombo = OutputFormatBox(self.app, parent=self)
-		buttonSizeGroup.add_widget(self.convertOutputFormatCombo.optionsButton)
-		pack(hbox, self.convertOutputFormatCombo)
-		pack(hbox, gtk.Label(), 1, 1)
-		pack(hbox, self.convertOutputFormatCombo.dependsButton)
-		pack(hbox, self.convertOutputFormatCombo.optionsButton)
-		pack(vbox, hbox)
+		self.outputFormatBox = OutputFormatBox(
+			self.app,
+			parent=self,
+			labelSizeGroup=labelSizeGroup,
+			buttonSizeGroup=buttonSizeGroup,
+		)
+		self.inOutBoxes.append(self.outputFormatBox)
+		pack(page, self.outputFormatBox)
 		#####
 		hbox = HBox(spacing=10)
 		hbox.get_style_context().add_class("margin_03")
-		label = gtk.Label(label="")
-		pack(hbox, label, expand=True)
+		pack(hbox, gtk.Label(), expand=True)
 		##
 		button = GeneralOptionsButton(self)
 		button.set_size_request(300, 40)
@@ -262,14 +261,32 @@ check {
 		self.convertButton.set_size_request(300, 40)
 		pack(hbox, self.convertButton)
 		##
-		pack(vbox, hbox)
+		self.inOutBoxes.append(hbox)
+		pack(page, hbox)
 		#####
-		self.convertConsoleTextview = textview = gtk.TextView()
-		swin = gtk.ScrolledWindow()
-		swin.set_policy(gtk.PolicyType.AUTOMATIC, gtk.PolicyType.AUTOMATIC)
-		swin.set_child(textview)
-		pack(vbox, swin, expand=True)
+		self.convertConsole = ConvertConsole(
+			self,
+			lightTheme=self.lightTheme,
+		)
+		log.addHandler(self.convertConsole.handler)
+		pack(page, self.convertConsole, expand=True)
 		######
+		self.progressTitle = ""
+		if progressBar:
+			pack(page, progressBar)
+		######
+		self.statusBox = ConvertStatusBox(
+			clearClicked=self.consoleClearButtonClicked,
+		)
+		pack(page, self.statusBox)
+		# ____________________________________ ____________________ #
+		self.pages.append(self.makeAboutWidget())
+		pack(self.vbox, self.setupNotebook(self.pages), 1, 1)
+		######
+		self.vbox.show()
+		self.status("Select input file")
+
+	def makeAboutWidget(self) -> gtk.Widget:
 		about = AboutWidget(
 			logo=logo,
 			header=f"PyGlossary\nVersion {getVersion()}",
@@ -279,106 +296,25 @@ check {
 			license_text=licenseText,
 		)
 		about.label = _("About")
-		about.icon = ""  # "*.png"
-		self.pages.append(about)
-		#####
-		# ____________________________________________________________ #
+		about.icon = ""  # "dialog-information-22.png"
+		return about
+
+	def setupNotebook(self, pages: list[gtk.Widget]) -> gtk.Notebook:
 		notebook = gtk.Notebook()
-		self.notebook = notebook
-		#########
-		for vbox in self.pages:
-			label = gtk.Label(label=vbox.label)
-			label.set_use_underline(True)
-			vb = VBox(spacing=3)
-			if vbox.icon:
-				vbox.image = imageFromFile(vbox.icon)
-				pack(vb, vbox.image)
-			pack(vb, label)
-			vb.show()
-			notebook.append_page(vbox, vb)
+		####
+		for page in pages:
+			tabWidget = gtk.Label(label=page.label, use_underline=True)
+			# if vbox.icon:
+			# 	tabWidget = VBox(spacing=3)
+			# 	pack(tabWidget, imageFromFile(vbox.icon))
+			# 	pack(tabWidget, label)
+			# 	tabWidget.show()
+			notebook.append_page(page, tabWidget)
 			try:
-				notebook.set_tab_reorderable(vbox, True)
+				notebook.set_tab_reorderable(page, True)
 			except AttributeError:
 				pass
-		#######################
-		pack(self.vbox, notebook, 1, 1)
-		# for i in ui.pagesOrder:
-		# 	try:
-		# 		j = pagesOrder[i]
-		# 	except IndexError:
-		# 		continue
-		# 	notebook.reorder_child(self.pages[i], j)
-		# ____________________________________________________________ #
-		##########
-		textview.get_style_context().add_class("console")
-		handler = GtkSingleTextviewLogHandler(self, textview)
-		log.addHandler(handler)
-		###
-		handler.setColor("CRITICAL", rgba_parse("red"))
-		handler.setColor("ERROR", rgba_parse("red"))
-		handler.setColor("WARNING", rgba_parse("yellow"))
-		handler.setColor("INFO", rgba_parse("white"))
-		handler.setColor("DEBUG", rgba_parse("white"))
-		handler.setColor("TRACE", rgba_parse("white"))
-		###
-		textview.get_buffer().set_text("Output & Error Console:\n")
-		textview.set_editable(False)
-		# ____________________________________________________________ #
-		self.progressTitle = ""
-		self.progressBar = pbar = gtk.ProgressBar()
-		pbar.set_fraction(0)
-		# pbar.set_text(_("Progress Bar"))
-		# pbar.get_style_context()
-		# pbar.set_property("height-request", 20)
-		pack(self.vbox, pbar)
-		############
-		hbox = HBox(spacing=5)
-		clearButton = gtk.Button(
-			# always_show_image=True,
-			label=_("Clear"),
-			# icon_name="clear",
-		)
-		clearButton.show()
-		# image = gtk.Image()
-		# image.set_icon_name(...)
-		# clearButton.add(image)
-		clearButton.connect("clicked", self.consoleClearButtonClicked)
-		clearButton.set_tooltip_text("Clear Console")
-		pack(hbox, clearButton)
-		####
-		# hbox.sepLabel1 = gtk.Label(label="")
-		# pack(hbox, hbox.sepLabel1, 1, 1)
-		######
-		hbox.verbosityLabel = gtk.Label(label=_("Verbosity:"))
-		pack(hbox, hbox.verbosityLabel)
-		##
-		self.verbosityCombo = combo = gtk.ComboBoxText()
-		for level, levelName in enumerate(log.levelNamesCap):
-			combo.append_text(f"{level} - {_(levelName)}")
-		combo.set_active(log.getVerbosity())
-		combo.connect("changed", self.verbosityComboChanged)
-		pack(hbox, combo)
-		####
-		# hbox.sepLabel2 = gtk.Label(label="")
-		# pack(hbox, hbox.sepLabel2, 1, 1)
-		####
-		self.statusBar = gtk.Statusbar()
-		pack(hbox, self.statusBar, 1, 1)
-		####
-		# ResizeButton does not work in Gtk 4.0
-		# hbox.resizeButton = ResizeButton(self)
-		# pack(hbox, hbox.resizeButton)
-		######
-		pack(self.vbox, hbox)
-		# ____________________________________________________________ #
-		self.vbox.show()
-		notebook.set_current_page(0)  # Convert tab
-		self.convertInputFormatCombo.dependsButton.hide()
-		self.convertOutputFormatCombo.dependsButton.hide()
-		self.convertInputFormatCombo.optionsButton.hide()
-		self.convertOutputFormatCombo.optionsButton.hide()
-		########
-		self.status("Select input file")
+		return notebook
 
 	def run(  # noqa: PLR0913
 		self,
@@ -393,25 +329,25 @@ check {
 		convertOptions: dict[str, Any] | None = None,
 		glossarySetAttrs: dict[str, Any] | None = None,
 	) -> None:
-		self.config = config
+		self.config = config or {}
 
 		if inputFilename:
-			self.convertInputEntry.set_text(abspath(inputFilename))
+			self.inputFileBox.set_text(abspath(inputFilename))
 		if outputFilename:
-			self.convertOutputEntry.set_text(abspath(outputFilename))
+			self.outputFileBox.set_text(abspath(outputFilename))
 
 		if inputFormat:
-			self.convertInputFormatCombo.setActive(inputFormat)
+			self.inputFormatBox.setActive(inputFormat)
 		if outputFormat:
-			self.convertOutputFormatCombo.setActive(outputFormat)
+			self.outputFormatBox.setActive(outputFormat)
 
 		if reverse:
 			log.error("Gtk interface does not support Reverse feature")
 
 		if readOptions:
-			self.convertInputFormatCombo.setOptionsValues(readOptions)
+			self.inputFormatBox.setOptionsValues(readOptions)
 		if writeOptions:
-			self.convertOutputFormatCombo.setOptionsValues(writeOptions)
+			self.outputFormatBox.setOptionsValues(writeOptions)
 
 		self.convertOptions = convertOptions
 		if convertOptions:
@@ -447,36 +383,35 @@ check {
 		print(f"MainWindow.onButtonPress: {gesture}")
 
 	def consoleClearButtonClicked(self, _widget: Any = None) -> None:
-		self.convertConsoleTextview.get_buffer().set_text("")
+		self.convertConsole.set_text("")
 
-	def verbosityComboChanged(self, _widget: Any = None) -> None:
-		verbosity = self.verbosityCombo.get_active()
-		# or int(self.verbosityCombo.get_active_text())
-		log.setVerbosity(verbosity)
+	def setInOutBoxesSensivive(self, sensitive: bool) -> None:
+		for hbox in self.inOutBoxes:
+			hbox.set_sensitive(sensitive)
 
 	def convertClicked(self, _widget: Any = None) -> None:
-		inPath = self.convertInputEntry.get_text()
+		inPath = self.inputFileBox.get_text()
 		if not inPath:
 			log.critical("Input file path is empty!")
 			return
-		inFormat = self.convertInputFormatCombo.getActive()
+		inFormat = self.inputFormatBox.getActive()
 
-		outPath = self.convertOutputEntry.get_text()
+		outPath = self.outputFileBox.get_text()
 		if not outPath:
 			log.critical("Output file path is empty!")
 			return
-		outFormat = self.convertOutputFormatCombo.getActive()
+		outFormat = self.outputFormatBox.getActive()
 
+		self.status("Converting...")
+		self.setInOutBoxesSensivive(False)
 		gtk_event_iteration_loop()
 
-		self.convertButton.set_sensitive(False)
 		self.progressTitle = "Converting"
-		readOptions = self.convertInputFormatCombo.optionsValues
-		writeOptions = self.convertOutputFormatCombo.optionsValues
-
+		readOptions = self.inputFormatBox.optionsValues
+		writeOptions = self.outputFormatBox.optionsValues
 		glos = Glossary(ui=self.ui)
 		glos.config = self.config
-		glos.progressbar = self.progressbarEnable
+		glos.progressbar = self.progressBar is not None
 
 		for attr, value in self._glossarySetAttrs.items():
 			setattr(glos, attr, value)
@@ -505,16 +440,16 @@ check {
 			glos.cleanup()
 
 		finally:
-			self.convertButton.set_sensitive(True)
+			self.setInOutBoxesSensivive(True)
 			self.assert_quit = False
 			self.progressTitle = ""
 
-	def convertInputEntryChanged(self, _widget: Any = None) -> None:
-		inPath = self.convertInputEntry.get_text()
-		inFormat = self.convertInputFormatCombo.getActive()
+	def inputFileEntryChanged(self, entry: gtk.Entry) -> None:
+		inPath = entry.get_text()
+		inFormat = self.inputFormatBox.getActive()
 		if inPath.startswith("file://"):
 			inPath = urlToPath(inPath)
-			self.convertInputEntry.set_text(inPath)
+			entry.set_text(inPath)
 
 		if self.config["ui_autoSetFormat"] and not inFormat:
 			try:
@@ -522,47 +457,35 @@ check {
 			except Error:
 				pass
 			else:
-				self.convertInputFormatCombo.setActive(inputArgs.formatName)
+				self.inputFormatBox.setActive(inputArgs.formatName)
 
 		if not isfile(inPath):
 			return
 
 		self.status("Select output file")
 
-	def convertOutputEntryChanged(self, _widget: Any = None) -> None:
-		outPath = self.convertOutputEntry.get_text()
-		outFormat = self.convertOutputFormatCombo.getActive()
+	def outputFileEntryChanged(self, entry: gtk.Entry) -> None:
+		outPath = entry.get_text()
+		outFormat = self.outputFormatBox.getActive()
 		if not outPath:
 			return
 		if outPath.startswith("file://"):
 			outPath = urlToPath(outPath)
-			self.convertOutputEntry.set_text(outPath)
+			entry.set_text(outPath)
 
 		if self.config["ui_autoSetFormat"] and not outFormat:
 			try:
 				outputArgs = Glossary.detectOutputFormat(
 					filename=outPath,
-					inputFilename=self.convertInputEntry.get_text(),
+					inputFilename=self.inputFileBox.get_text(),
 				)
 			except Error:
 				pass
 			else:
 				outFormat = outputArgs.formatName
-				self.convertOutputFormatCombo.setActive(outFormat)
+				self.outputFormatBox.setActive(outFormat)
 
 		if outFormat:
 			self.status('Press "Convert"')
 		else:
 			self.status("Select output format")
-
-	def progressInit(self, title: str) -> None:
-		self.progressTitle = title
-
-	def progress(self, ratio: float, text: str = "") -> None:
-		if not text:
-			text = "%" + str(int(ratio * 100))
-		text += " - " + self.progressTitle
-		self.progressBar.set_fraction(ratio)
-		# self.progressBar.set_text(text)  # not working
-		self.status(text)
-		gtk_event_iteration_loop()

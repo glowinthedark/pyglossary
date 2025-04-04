@@ -22,8 +22,8 @@ from __future__ import annotations
 from gi.repository import Gtk as gtk
 
 from .utils import (
+	FixedSizePicture,
 	VBox,
-	imageFromFile,
 	pack,
 )
 
@@ -36,16 +36,10 @@ class AboutTabTitleBox(gtk.Box):
 		self.set_spacing(10)
 		pack(self, VBox(), expand=0)
 		if icon:
-			image = imageFromFile(icon)
-			image.get_pixel_size()
-			image.set_size_request(24, 24)
-			# I don't know how to stop Gtk from resizing the image
-			# I should probably use svg files to avoid blurry images
-			pack(self, image, expand=0)
+			pack(self, FixedSizePicture(icon))
 		if title:
 			pack(self, gtk.Label(label=title), expand=0)
 		pack(self, VBox(), expand=0)
-		self.set_size_request(60, 60)
 
 	# def do_get_preferred_height_for_width(self, size: int) -> tuple[int, int]:
 	# 	height = int(size * 1.5)
@@ -71,8 +65,10 @@ class AboutWidget(gtk.Box):
 		self.set_spacing(15)
 		##
 		headerBox = gtk.Box(orientation=gtk.Orientation.HORIZONTAL)
+		headerBox.set_spacing(20)
 		if logo:
-			pack(headerBox, imageFromFile(logo))
+			pack(headerBox, gtk.Label())
+			pack(headerBox, FixedSizePicture(logo))
 		headerLabel = gtk.Label(label=header)
 		headerLabel.set_selectable(True)
 		pack(headerBox, headerLabel)
@@ -84,9 +80,11 @@ class AboutWidget(gtk.Box):
 		pack(self, notebook, expand=True)
 		notebook.set_tab_pos(gtk.PositionType.LEFT)
 		##
-		tab1_about = self.newTabLabelWidget(about)
-		tab2_authors = self.newTabWidgetTextView(authors)
-		tab3_license = self.newTabWidgetTextView(license_text)
+		tab1_about = self.newTabLabelWidget(about, wrap=True)
+		# ^ it keeps selecting all text in this label when I switch back to this tab
+		# with textview, it does not automatically render hyperlink (<a>)
+		tab2_authors = self.newTabWidgetTextView(authors, wrap=True)
+		tab3_license = self.newTabWidgetTextView(license_text, wrap=True)
 		##
 		tabs = [
 			(tab1_about, self.newTabTitle("About", "dialog-information-22.png")),
@@ -127,7 +125,7 @@ class AboutWidget(gtk.Box):
 	@staticmethod
 	def newTabLabelWidget(
 		text: str,
-		# wrap: bool = False,
+		wrap: bool = False,
 		# justification: "gtk.Justification | None" = None,
 	) -> gtk.ScrolledWindow:
 		box = VBox()
@@ -136,6 +134,7 @@ class AboutWidget(gtk.Box):
 		label.set_selectable(True)
 		label.set_xalign(0)
 		label.set_yalign(0)
+		label.set_wrap(wrap)
 		pack(box, label, 0, 0)
 		# if wrap:
 		# 	tv.set_wrap_mode(gtk.WrapMode.WORD)
