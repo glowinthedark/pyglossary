@@ -44,7 +44,7 @@ jobs:
 
       - name: Install uv
         # https://docs.astral.sh/uv/guides/integration/github/#caching
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         # with:
         #   enable-cache: true
    
@@ -87,7 +87,7 @@ jobs:
             dist_path = Path(dist_dir)
             print(f'DIST_DIR={dist_path}, APPNAME={app_name}')
             
-            target_path = dist_path / f"{app_name}.app/Contents/MacOS"
+            target_path = dist_path / f"{app_name}"
             sources = ["about", "AUTHORS", "_license-dialog", "config.json", "plugins-meta", "help", "res", "pyglossary"]
             
             if not target_path.exists():
