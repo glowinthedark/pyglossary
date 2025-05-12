@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set -e
+# DEBUG
+# set -x
+set -euo pipefail
 
 if [[ -z "$VIRTUAL_ENV" ]]; then
   echo Not in a venv! Quitting...
@@ -19,7 +21,7 @@ else
   export LDFLAGS="-L$PREFIX/opt/icu4c/lib -L$PREFIX/opt/libffi/lib"
   export CPPFLAGS="-I$PREFIX/opt/icu4c/include -I$PREFIX/opt/libffi/include"
   # uv pip install -U --extra-index-url https://glowinthedark.github.io/python-lzo/ --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match beautifulsoup4 colorize_pinyin git+https://github.com/glowinthedark/python-romkan.git html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-lzo pyyaml PyYAML tqdm xxhash
-  # uv pip install -U --extra-index-url https://glowinthedark.github.io/python-lzo/ --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match nuitka beautifulsoup4 colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-lzo pyyaml PyYAML tqdm xxhash
+  # uv pip install -U --extra-index-url https://glowinthedark.github.io/python-lzo/ --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match nuitka beautifulsoup4 colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pyicu pymorphy2 python-idzip python-lzo pyyaml tqdm xxhash
 
   echo
   echo "USING VENV: $VIRTUAL_ENV"
@@ -45,6 +47,11 @@ sed -i '' 's/self\.tk_inter_version in ("8\.5", "8\.6")/self.tk_inter_version in
 
 # NOT SUPPORTED (YET)
 #	--macos-target-arch=$ARCH \
+
+if ! command -v python3 -m nuitka >/dev/null 2>&1; then
+    echo "Error: Nuitka is not installed in this venv!"
+    exit 1
+fi
 
 python -m nuitka \
 	--standalone \
@@ -83,7 +90,6 @@ python -m nuitka \
 	--include-module=colorize_pinyin \
 	--include-package-data=pyglossary \
 	--include-data-files=about=about \
-	--include-data-files=about=about \
 	--include-data-files=_license-dialog=_license-dialog \
 	--include-data-dir=res=. \
 	--include-data-files=_license-dialog=license-dialog \
@@ -97,6 +103,8 @@ if [ -d "$OUTPUT_DIR/$APPNAME.app/Contents/MacOS" ]; then
     cp -rv _license-dialog $OUTPUT_DIR/$APPNAME.app/Contents/MacOS/license-dialog
     cp -rv {plugins-meta,res} $OUTPUT_DIR/$APPNAME.app/Contents/MacOS
 
+
+  DMG_FILE="$APPNAME-$(sw_vers --productName)$(sw_vers --productVersion | cut -d. -f1)-$(uname -m)-$TAG.dmg"
   [[ -f "$DMG_FILE" ]] && rm "$DMG_FILE"
 
 	TMP_DIST_DIR=$(mktemp -d)
@@ -104,7 +112,6 @@ if [ -d "$OUTPUT_DIR/$APPNAME.app/Contents/MacOS" ]; then
   ln -s /Applications "${TMP_DIST_DIR}"
 	ditto -V --norsrc --noextattr --noqtn "$OUTPUT_DIR/$APPNAME.app" "${TMP_DIST_DIR}/$APPNAME.app"
 
-  DMG_FILE="$APPNAME-$(sw_vers --productName)$(sw_vers --productVersion | cut -d. -f1)-$(uname -m)-$TAG.dmg"
 
   # make DMG with create-dmg if present or fallback to raw hdiutil
 if command -v create-dmg &>/dev/null; then

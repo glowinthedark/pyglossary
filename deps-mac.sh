@@ -28,4 +28,4 @@ command -v uv &>/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 uv pip install -U pymorphy2 biplist lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit colorize_pinyin
 # WITH GTK
 # uv pip install -U pymorphy2 biplib lxml polib PyYAML beautifulsoup4 html5lib PyICU python-lzo prompt_toolkit gobject pygobject pycairo colorize_pinyin
-uv pip install .
+# uv pip install .
