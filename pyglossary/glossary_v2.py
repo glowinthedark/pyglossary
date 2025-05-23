@@ -67,9 +67,7 @@ from .sq_entry_list import SqEntryList
 
 if TYPE_CHECKING:
 	from collections.abc import Callable, Iterable, Iterator
-	from typing import (
-		Any,
-	)
+	from typing import Any
 
 	from .entry_base import MultiStr
 	from .glossary_types import (
@@ -754,7 +752,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 				stacklevel=3,
 			)
 
-		formatName = formatName or format
+		formatName: str = formatName or format or ""
 		del format
 
 		filenameAbs = os.path.abspath(filename)
@@ -865,7 +863,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		You can pass write-options (of given format) as keyword arguments
 
 		"""
-		if type(filename) is not str:
+		if not isinstance(filename, str):
 			raise TypeError("filename must be str")
 
 		if format is not None:
@@ -876,10 +874,11 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 				stacklevel=2,
 			)
 
-		formatName = formatName or format
+		formatArg: str | None = formatName or format
 		del format
-		if formatName is not None and type(formatName) is not str:
+		if formatArg is not None and not isinstance(formatArg, str):
 			raise TypeError("formatName must be str")
+		formatName: str = formatArg or ""
 
 		return self._write(
 			filename=filename,
@@ -1142,14 +1141,14 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 	@staticmethod
 	def _convertValidateArgs(args: ConvertArgs) -> None:
-		if type(args.inputFilename) is not str:
+		if not isinstance(args.inputFilename, str):
 			raise TypeError("inputFilename must be str")
-		if type(args.outputFilename) is not str:
+		if not isinstance(args.outputFilename, str):
 			raise TypeError("outputFilename must be str")
 
-		if args.inputFormat is not None and type(args.inputFormat) is not str:
+		if args.inputFormat is not None and not isinstance(args.inputFormat, str):
 			raise TypeError("inputFormat must be str")
-		if args.outputFormat is not None and type(args.outputFormat) is not str:
+		if args.outputFormat is not None and not isinstance(args.outputFormat, str):
 			raise TypeError("outputFormat must be str")
 
 		if args.outputFilename == args.inputFilename:

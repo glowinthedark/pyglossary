@@ -18,6 +18,7 @@
 # GNU General Public License for more details.
 from __future__ import annotations
 
+import ctypes
 import logging
 import os
 import tkinter as tk
@@ -47,6 +48,11 @@ if TYPE_CHECKING:
 
 	from pyglossary.logger import Logger
 
+# on Windows: make app DPI-aware, fix blurry fonts
+try:
+	ctypes.windll.shcore.SetProcessDpiAwareness(1)  # 1 = system DPI aware
+except Exception:
+	pass
 
 log: Logger = logging.getLogger("pyglossary")
 

@@ -1,17 +1,12 @@
+# -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import typing
 from collections.abc import (
 	Callable,
 	Iterator,
 	Sequence,
 )
-
-# -*- coding: utf-8 -*-
-from typing import (
-	TYPE_CHECKING,
-	Any,
-)
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
 	from typing import TypeAlias
@@ -36,7 +31,7 @@ MultiStr: TypeAlias = "str | list[str]"
 RawEntryType: TypeAlias = Sequence[bytes]
 
 
-class EntryType(typing.Protocol):  # noqa: PLR0904
+class EntryType(Protocol):  # noqa: PLR0904
 	# def __init__(self) -> None: ...
 
 	@classmethod
@@ -83,9 +78,15 @@ class EntryType(typing.Protocol):  # noqa: PLR0904
 
 	def addAlt(self, alt: str) -> None: ...
 
-	def editFuncWord(self, func: Callable[[str], str]) -> None: ...
+	def editFuncWord(
+		self,
+		func: Callable[[str], str],
+	) -> None: ...
 
-	def editFuncDefi(self, func: Callable[[str], str]) -> None: ...
+	def editFuncDefi(
+		self,
+		func: Callable[[str], str],
+	) -> None: ...
 
 	def strip(self) -> None: ...
 
@@ -105,7 +106,7 @@ class EntryType(typing.Protocol):  # noqa: PLR0904
 	def tmpPath(self) -> str | None: ...
 
 
-class EntryListType(typing.Protocol):
+class EntryListType(Protocol):
 	def __init__(
 		self,
 		entryToRaw: Callable[[EntryType], RawEntryType],
@@ -134,7 +135,7 @@ class EntryListType(typing.Protocol):
 	def close(self) -> None: ...
 
 
-class GlossaryInfoCommonType(typing.Protocol):
+class GlossaryInfoCommonType(Protocol):
 	def getInfo(self, key: str) -> str: ...
 
 	def setInfo(self, key: str, value: str) -> None: ...
@@ -161,7 +162,7 @@ class GlossaryInfoCommonType(typing.Protocol):
 	def author(self) -> str: ...
 
 
-class ReaderGlossaryType(GlossaryInfoCommonType):
+class ReaderGlossaryType(GlossaryInfoCommonType, Protocol):
 	def newEntry(
 		self,
 		word: MultiStr,
@@ -185,7 +186,7 @@ class ReaderGlossaryType(GlossaryInfoCommonType):
 	def getConfig(self, name: str, default: str | None) -> str | None: ...
 
 
-class WriterGlossaryType(GlossaryInfoCommonType):
+class WriterGlossaryType(GlossaryInfoCommonType, Protocol):
 	# def __len__(self) -> int: ...
 
 	# @property

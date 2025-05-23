@@ -29,6 +29,7 @@ __all__ = [
 	"escapeNTB",
 	"excMessage",
 	"fixUtf8",
+	"fixUtf8Str",
 	"joinByBar",
 	"replacePostSpaceChar",
 	"splitByBar",
@@ -59,6 +60,10 @@ def fixUtf8(st: AnyStr) -> str:
 	if isinstance(st, str):
 		return st.encode("utf-8").replace(b"\x00", b"").decode("utf-8", "replace")
 	return st.replace(b"\x00", b"").decode("utf-8", "replace")
+
+
+def fixUtf8Str(st: str) -> str:
+	return st.encode("utf-8").replace(b"\x00", b"").decode("utf-8", "replace")
 
 
 pattern_n_us = re.compile(r"((?<!\\)(?:\\\\)*)\\n")

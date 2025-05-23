@@ -57,17 +57,6 @@ from os.path import (
 )
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:
-	from collections.abc import Iterable
-
-	from prompt_toolkit.completion import CompleteEvent
-	from prompt_toolkit.document import Document
-	from prompt_toolkit.formatted_text import StyleAndTextTuples
-	from prompt_toolkit.key_binding.key_processor import KeyPressEvent
-
-	from pyglossary.option import Option
-	from pyglossary.plugin_prop import PluginProp
-
 from prompt_toolkit import ANSI
 from prompt_toolkit import prompt as promptLow
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -86,7 +75,19 @@ from pyglossary.core import confDir
 from pyglossary.glossary_v2 import Error, Glossary
 from pyglossary.sort_keys import lookupSortKey, namedSortKeyList
 from pyglossary.ui import ui_cmd
+from pyglossary.ui.config import configDefDict
 from pyglossary.ui.termcolors import colors
+
+if TYPE_CHECKING:
+	from collections.abc import Iterable
+
+	from prompt_toolkit.completion import CompleteEvent
+	from prompt_toolkit.document import Document
+	from prompt_toolkit.formatted_text import StyleAndTextTuples
+	from prompt_toolkit.key_binding.key_processor import KeyPressEvent
+
+	from pyglossary.option import Option
+	from pyglossary.plugin_prop import PluginProp
 
 __all__ = ["UI"]
 
@@ -800,7 +801,7 @@ class UI(ui_cmd.UI):
 		)
 
 	def askConfig(self) -> None:
-		configKeys = sorted(self.configDefDict)
+		configKeys = sorted(configDefDict)
 		history = FileHistory(join(histDir, "config-key"))
 		auto_suggest = AutoSuggestFromHistory()
 		completer = WordCompleter(
@@ -823,7 +824,7 @@ class UI(ui_cmd.UI):
 				return
 			if not configKey:
 				return
-			option = self.configDefDict[configKey]
+			option = configDefDict[configKey]
 			while True:
 				try:
 					value = self.askConfigValue(configKey, option)
@@ -1023,7 +1024,7 @@ class UI(ui_cmd.UI):
 					continue
 				if value == self.savedConfig.get(key):
 					continue
-				option = self.configDefDict.get(key)
+				option = configDefDict.get(key)
 				if option is None:
 					log.error(f"config key {key} was not found")
 				if not option.hasFlag:

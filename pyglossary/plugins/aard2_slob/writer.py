@@ -7,7 +7,14 @@ import shutil
 from os.path import isfile, splitext
 from typing import TYPE_CHECKING
 
+from pyglossary.core import cacheDir, exc_note, log, pip
 from pyglossary.glossary_utils import WriteError
+from pyglossary.plugins.aard2_slob.tags import (
+	t_created_at,
+	t_created_by,
+	t_label,
+	t_uri,
+)
 
 if TYPE_CHECKING:
 	from collections.abc import Generator
@@ -15,13 +22,6 @@ if TYPE_CHECKING:
 	from pyglossary import slob
 	from pyglossary.glossary_types import EntryType, WriterGlossaryType
 
-from pyglossary.core import cacheDir, exc_note, log, pip
-from pyglossary.plugins.aard2_slob.tags import (
-	t_created_at,
-	t_created_by,
-	t_label,
-	t_uri,
-)
 
 __all__ = ["Writer"]
 
@@ -81,7 +81,7 @@ class Writer:
 	def _slobObserver(
 		event: slob.WriterEvent,  # noqa: F401, F821
 	) -> None:
-		log.debug(f"slob: {event.name}{': ' + event.data if event.data else ''}")
+		log.debug(f"slob: {event.name}{': ' + str(event.data) if event.data else ''}")
 
 	def _open(self, filepath: str, namePostfix: str) -> slob.Writer:
 		from pyglossary import slob

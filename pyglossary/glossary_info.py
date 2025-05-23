@@ -19,10 +19,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-	from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 from .info import (
 	c_author,
@@ -33,10 +30,10 @@ from .info import (
 	infoKeysAliasDict,
 )
 from .langs import Lang, langDict
-from .text_utils import (
-	fixUtf8,
-)
+from .text_utils import fixUtf8
 
+if TYPE_CHECKING:
+	from collections.abc import Iterator
 __all__ = ["GlossaryInfo"]
 
 log = logging.getLogger("pyglossary")
@@ -60,7 +57,7 @@ class GlossaryInfo:
 			"",
 		)
 
-	def setInfo(self, key: str, value: Any) -> None:
+	def setInfo(self, key: str, value: object) -> None:
 		if value is None:
 			try:
 				del self._info[key]
@@ -72,10 +69,10 @@ class GlossaryInfo:
 			raise TypeError(f"invalid {key=}, must be str")
 
 		key = fixUtf8(key)
-		value = fixUtf8(str(value))
+		valueStr = fixUtf8(str(value))
 
 		key = infoKeysAliasDict.get(key.lower(), key)
-		self._info[key] = value
+		self._info[key] = valueStr
 
 	def getExtraInfos(self, excludeKeys: list[str]) -> dict[str, str]:
 		"""
