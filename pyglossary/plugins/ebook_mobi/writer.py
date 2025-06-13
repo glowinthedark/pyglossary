@@ -24,7 +24,7 @@ from datetime import datetime
 from os.path import join, split
 from typing import TYPE_CHECKING
 
-from pyglossary.core import log
+from pyglossary.core import isDebug, log
 from pyglossary.ebook_base import EbookWriter
 from pyglossary.langs import Lang
 
@@ -253,6 +253,7 @@ xmlns:oebpackage="http://openebook.org/namespaces/oeb-package/1.0/">
 			if entry is None:
 				break
 			if entry.isData():
+				entry.save("OEBPS")
 				continue
 
 			if state.group_size >= self._file_size_approx:
@@ -300,10 +301,10 @@ xmlns:oebpackage="http://openebook.org/namespaces/oeb-package/1.0/">
 			join(filename, "OEBPS", "content.opf"),
 			"-gen_ff_mobi7",
 			"-dont_append_source",
-			"-verbose",
-			"-o",
-			"content.mobi",
 		]
+		if isDebug():
+			cmd.append("-verbose")
+		cmd += ["-o", "content.mobi"]
 		proc = subprocess.Popen(
 			cmd,
 			cwd=direc,
