@@ -12,7 +12,6 @@ pygments
 pyicu
 pymorphy2
 python-idzip
-python-idzip
 python-lzo
 python-romkan-ng
 pyyaml
