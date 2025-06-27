@@ -62,7 +62,7 @@ jobs:
              gettext \
              pkg-config \
              intltool \
-             icu4c \
+             icu4c@77 \
              create-dmg
              # already installed?             python-tk@${{ matrix.python-version }} \
       
@@ -102,8 +102,8 @@ jobs:
         run: |
           echo "C_INCLUDE_PATH=$(brew --prefix lzo)/include:$(brew --prefix lzo)/include/lzo" >> $GITHUB_ENV
           echo "LIBRARY_PATH=$BREW_PREFIX/Cellar/lib" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$(brew --prefix icu4c)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig:" >> $GITHUB_ENV
-          echo "LDFLAGS=-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c)/lib -L$(brew --prefix icu4c)/lib" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$(brew --prefix icu4c@77)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig:" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c@77))/lib" >> $GITHUB_ENV
           echo "CPPFLAGS=-I$(brew --prefix icu4c)/include -I$(brew --prefix libffi)/include -I$(brew --prefix lzo)/include" >> $GITHUB_ENV
 
       - name: Install pyglossary dependencies
