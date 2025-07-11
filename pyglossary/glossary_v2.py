@@ -34,8 +34,6 @@ from time import perf_counter as now
 from typing import TYPE_CHECKING, cast
 from uuid import uuid1
 
-from pyglossary.queued_iter import QueuedIterator
-
 from . import core
 from .core import (
 	cacheDir,
@@ -62,12 +60,15 @@ from .glossary_utils import Error, ReadError, WriteError, splitFilenameExt
 from .info import c_name
 from .os_utils import rmtree, showMemoryUsage
 from .plugin_handler import PluginHandler
+from .queued_iter import QueuedIterator
 from .sort_keys import defaultSortKeyName, lookupSortKey
 from .sq_entry_list import SqEntryList
 
 if TYPE_CHECKING:
 	from collections.abc import Callable, Iterable, Iterator
 	from typing import Any
+
+	from pyglossary.config_type import ConfigType
 
 	from .entry_base import MultiStr
 	from .glossary_types import (
@@ -186,7 +187,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		"""
 		GlossaryInfo.__init__(self)
 		GlossaryProgress.__init__(self, ui=ui)
-		self._config: dict[str, Any] = {}
+		self._config: ConfigType = {}
 		self._data: EntryListType = EntryList(
 			entryToRaw=self._entryToRaw,
 			entryFromRaw=self._entryFromRaw,
@@ -380,7 +381,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 	# 	Should be only called in writer.open.
 	# 	"""
-	# 	from pyglossary.entry_merge import mergeHtmlEntriesWithSameHeadword
+	# 	from .entry_merge import mergeHtmlEntriesWithSameHeadword
 
 	# 	self._iter = mergeHtmlEntriesWithSameHeadword(self._iter)
 
@@ -392,7 +393,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 		Should be only called in writer.open.
 		"""
-		from pyglossary.entry_merge import mergePlaintextEntriesWithSameHeadword
+		from .entry_merge import mergePlaintextEntriesWithSameHeadword
 
 		assert self._iter
 		self._iter = mergePlaintextEntriesWithSameHeadword(self._iter)
@@ -537,7 +538,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		raise NotImplementedError
 
 	@config.setter
-	def config(self, config: dict[str, Any]) -> None:
+	def config(self, config: ConfigType) -> None:
 		if self._config:
 			log.error("glos.config is set more than once")
 			return
@@ -752,7 +753,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 				stacklevel=3,
 			)
 
-		formatName: str = formatName or format or ""
+		formatName = formatName or format or ""
 		del format
 
 		filenameAbs = os.path.abspath(filename)
@@ -879,7 +880,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		del format
 		if formatArg is not None and not isinstance(formatArg, str):
 			raise TypeError("formatName must be str")
-		formatName: str = formatArg or ""
+		formatName = formatArg or ""
 
 		sort = self._writeCheckPluginSort(formatName, sort, **options)
 
@@ -924,7 +925,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 			genList.append(gen)
 
 		if self._config.get("save_info_json", False):
-			from pyglossary.info_writer import InfoWriter
+			from .info_writer import InfoWriter
 
 			infoWriter = InfoWriter(self)  # pyright: ignore
 			infoWriter.setWriteOptions(options)
