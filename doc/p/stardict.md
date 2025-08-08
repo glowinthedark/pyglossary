@@ -30,7 +30,7 @@
 | Name             | Default | Type | Comment                                                                  |
 | ---------------- | ------- | ---- | ------------------------------------------------------------------------ |
 | large_file       | `False` | bool | Use idxoffsetbits=64 bits, for large files only                          |
-| dictzip          | `True`  | bool | Compress .dict file to .dict.dz                                          |
+| dictzip          | `False` | bool | Compress .dict file to .dict.dz                                          |
 | sametypesequence |         | str  | Definition format: h=html, m=plaintext, x=xdxf                           |
 | stardict_client  | `False` | bool | Modify html entries for StarDict 3.0                                     |
 | audio_goldendict | `False` | bool | Convert audio links for GoldenDict (desktop)                             |
@@ -59,3 +59,8 @@ Use [StarDict (Merge Syns)](./stardict_merge_syns.md) plugin (instead of this on
 | [Fora Dictionary Pro](https://play.google.com/store/apps/details?id=com.ngc.fora.android) | ―                                                                        | Proprietary | Android                                                     |          |
 | [KOReader](http://koreader.rocks/)                                                        | [@koreader/koreader](https://github.com/koreader/koreader)               | AGPLv3      | Android, Amazon Kindle, Kobo eReader, PocketBook, Cervantes | Lua      |
 | [sdcv](https://dushistov.github.io/sdcv/)                                                 | [@Dushistov/sdcv](https://github.com/Dushistov/sdcv)                     | GPLv2       | Linux, Windows, Mac, Android                                | C++      |
+
+### Related Formats
+
+- [StarDict Textual File (.xml)](./stardict_textual.md)
+- [StarDict (Merge Syns)](./stardict_merge_syns.md)

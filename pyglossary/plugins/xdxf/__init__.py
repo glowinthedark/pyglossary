@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from pyglossary.option import (
-	BoolOption,
-	Option,
-)
+from typing import TYPE_CHECKING
+
+from pyglossary.option import BoolOption
 
 from .reader import Reader
+
+if TYPE_CHECKING:
+	from pyglossary.option import Option
 
 __all__ = [
 	"Reader",
@@ -36,6 +38,7 @@ website = (
 	"https://github.com/soshial/xdxf_makedict/tree/master/format_standard",
 	"XDXF standard - @soshial/xdxf_makedict",
 )
+relatedFormats: list[str] = ["XdxfCss", "XdxfLax"]
 optionsProp: dict[str, Option] = {
 	"html": BoolOption(comment="Entries are HTML"),
 	"xsl": BoolOption(

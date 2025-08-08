@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pyglossary.option import (
 	BoolOption,
 	EncodingOption,
 	FileSizeOption,
-	Option,
 )
 
 from .reader import Reader
 from .writer import Writer
+
+if TYPE_CHECKING:
+	from pyglossary.option import Option
 
 __all__ = [
 	"Reader",
@@ -38,6 +42,8 @@ singleFile = True
 kind = "text"
 wiki = "https://en.wikipedia.org/wiki/Tab-separated_values"
 website = None
+relatedFormats: list[str] = ["Csv"]
+
 optionsProp: dict[str, Option] = {
 	"encoding": EncodingOption(),
 	"enable_info": BoolOption(

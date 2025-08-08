@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pyglossary.flags import DEFAULT_NO
-from pyglossary.option import BoolOption, Option
+from pyglossary.option import BoolOption
 
 from .reader import Reader
 from .writer import Writer
+
+if TYPE_CHECKING:
+	from pyglossary.option import Option
 
 __all__ = [
 	"Reader",
@@ -42,3 +47,4 @@ website = (
 	"http://dict.org/bin/Dict",
 	"The DICT Development Group",
 )
+relatedFormats: list[str] = ["DictOrgSource", "Dictunformat"]

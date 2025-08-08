@@ -28,15 +28,15 @@ from typing import TYPE_CHECKING, Any
 
 from pyglossary import gregorian
 from pyglossary.core import log
-from pyglossary.text_utils import (
-	uintFromBytes,
-)
+from pyglossary.text_utils import uintFromBytes
 
 from .bgl_charset import charsetByCode
-from .bgl_language import BabylonLanguage, languageByCode
+from .bgl_language import languageByCode
 
 if TYPE_CHECKING:
 	from collections.abc import Callable
+
+	from .bgl_language import BabylonLanguage
 
 __all__ = ["charsetInfoDecode", "infoType3ByCode"]
 

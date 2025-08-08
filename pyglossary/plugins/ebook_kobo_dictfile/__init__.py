@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pyglossary.option import (
 	BoolOption,
 	EncodingOption,
-	Option,
 )
 
 from .reader import Reader
 from .writer import Writer
+
+if TYPE_CHECKING:
+	from pyglossary.option import Option
 
 __all__ = [
 	"Reader",
@@ -41,6 +45,8 @@ website = (
 	"dictgen - dictutil",
 )
 # https://github.com/pgaskin/dictutil
+
+relatedFormats: list[str] = ["Kobo"]
 
 optionsProp: dict[str, Option] = {
 	"encoding": EncodingOption(),

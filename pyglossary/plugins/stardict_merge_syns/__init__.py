@@ -2,15 +2,18 @@
 from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING
 
 from pyglossary.flags import ALWAYS, DEFAULT_YES
 from pyglossary.option import (
 	BoolOption,
-	Option,
 	StrOption,
 )
 
 from .writer import Writer
+
+if TYPE_CHECKING:
+	from pyglossary.option import Option
 
 __all__ = [
 	"Writer",
@@ -46,6 +49,7 @@ website = (
 	"huzheng.org/stardict",
 )
 # https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat
+relatedFormats: list[str] = ["Stardict", "StardictTextual"]
 optionsProp: dict[str, Option] = {
 	"large_file": BoolOption(
 		comment="Use idxoffsetbits=64 bits, for large files only",

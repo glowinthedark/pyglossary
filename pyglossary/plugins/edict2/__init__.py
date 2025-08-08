@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pyglossary.option import (
 	BoolOption,
 	EncodingOption,
-	Option,
 )
 
 from .reader import Reader
+
+if TYPE_CHECKING:
+	from pyglossary.option import Option
 
 __all__ = [
 	"Reader",
@@ -50,6 +54,8 @@ website = None
 # CC-Canto is Pleco Software's addition of Cantonese language readings
 # in Jyutping transcription to CC-CEDICT
 # "https://cantonese.org/download.html",
+
+relatedFormats: list[str] = ["JMDict", "JMnedict"]
 
 optionsProp: dict[str, Option] = {
 	"encoding": EncodingOption(),

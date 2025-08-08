@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from pyglossary.compression import (
-	# compressionOpen,
-	stdCompressions,
-)
+from typing import TYPE_CHECKING
+
+from pyglossary.compression import stdCompressions
 from pyglossary.core import log
 from pyglossary.file_utils import fileCountLines
-from pyglossary.text_reader import TextGlossaryReader, nextBlockResultType
+from pyglossary.text_reader import TextGlossaryReader
 from pyglossary.text_utils import splitByBar
+
+if TYPE_CHECKING:
+	from pyglossary.text_reader import nextBlockResultType
 
 __all__ = ["Reader"]
 

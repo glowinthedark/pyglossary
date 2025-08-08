@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from pyglossary.option import BoolOption, Option
+from typing import TYPE_CHECKING
+
+from pyglossary.option import BoolOption
 
 from .writer import Writer
+
+if TYPE_CHECKING:
+	from pyglossary.option import Option
 
 __all__ = [
 	"Writer",
@@ -33,6 +38,7 @@ website = (
 	"https://github.com/cheusov/dictd",
 	"@cheusov/dictd",
 )
+relatedFormats: list[str] = ["DictOrg", "Dictunformat"]
 optionsProp: dict[str, Option] = {
 	"remove_html_all": BoolOption(comment="Remove all HTML tags"),
 }

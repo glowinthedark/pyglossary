@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pyglossary.option import (
 	BoolOption,
 	IntOption,
-	Option,
 	StrOption,
 )
 
 from .reader import Reader
+
+if TYPE_CHECKING:
+	from pyglossary.option import Option
 
 __all__ = [
 	"Reader",
@@ -38,6 +42,7 @@ website = (
 	"https://www.edrdg.org/jmdict/j_jmdict.html",
 	"The JMDict Project",
 )
+relatedFormats: list[str] = ["EDICT2", "JMnedict"]
 optionsProp: dict[str, Option] = {
 	"example_color": StrOption(
 		comment="Examples color",

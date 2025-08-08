@@ -20,14 +20,18 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pyglossary.option import (
 	BoolOption,
 	DictOption,
-	Option,
 	StrOption,
 )
 
 from .writer import Writer
+
+if TYPE_CHECKING:
+	from pyglossary.option import Option
 
 __all__ = [
 	"Writer",
@@ -58,6 +62,7 @@ website = (
 	"https://support.apple.com/en-gu/guide/dictionary/welcome/mac",
 	"Dictionary User Guide for Mac",
 )
+relatedFormats: list[str] = ["AppleDictBin"]
 # FIXME: rename indexes arg/option to indexes_lang?
 optionsProp: dict[str, Option] = {
 	"clean_html": BoolOption(comment="use BeautifulSoup parser"),
