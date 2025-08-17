@@ -62,7 +62,7 @@ jobs:
              gettext \
              pkg-config \
              intltool \
-             icu4c icu4c@74 icu4c@75 icu4c@76 \
+             icu4c \
              lzo \
              create-dmg
 
@@ -116,9 +116,10 @@ jobs:
           export DYLD_LIBRARY_PATH="$(brew --prefix icu4c)/lib:$(brew --prefix libffi)/lib:$BREW_PREFIX/lib"
           
           uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
-          uv pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
-          # Install PyICU
-          uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match --force-reinstall --no-cache-dir PyICU
+          # Install python-lzo (requires C-compilation with deps)
+          uv pip install python-lzo
+          # Install PyICU (requires C-compilation with deps)
+          uv pip install PyICU
           uv pip install .
 
       - name: Prepare nuitka build
@@ -194,7 +195,7 @@ jobs:
           	--output-filename=$APPNAME \
           	$APPNAME.py
 
-      - name: Copy files
+      - name: Copy required files
         shell: python
         run: |
           from pathlib import Path
