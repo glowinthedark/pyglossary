@@ -88,6 +88,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
+          enable-cache: true
 
       - name: Install nuitka
         run: uv pip install -U nuitka
