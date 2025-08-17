@@ -190,7 +190,6 @@ jobs:
           	--include-data-dir=res=. \
           	--include-data-files=_license-dialog=license-dialog \
           	--noinclude-custom-mode=unittest:nofollow \
-          	--macos-dependency-tool=install_name_tool \
           	--output-dir="$DIST_DIR" \
           	--output-filename=$APPNAME \
           	$APPNAME.py
