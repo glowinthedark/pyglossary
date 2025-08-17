@@ -62,7 +62,7 @@ jobs:
              gettext \
              pkg-config \
              intltool \
-             icu4c@77 \
+             icu4c \
              create-dmg
              # already installed?             python-tk@${{ matrix.python-version }} \
       
@@ -95,16 +95,16 @@ jobs:
           echo "BREW_PREFIX=$(brew --prefix)" >> $GITHUB_ENV
           echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
           echo "TAG=$(git describe)" >> $GITHUB_ENV
-          echo "PREFIX_ICU4C=$(brew --prefix icu4c@77)" >> $GITHUB_ENV
+          echo "PREFIX_ICU4C=$(brew --prefix icu4c)" >> $GITHUB_ENV
         
-      - name: Set pip builld vars
+      - name: Set pip build vars
         id: envpip
         run: |
           echo "C_INCLUDE_PATH=$(brew --prefix lzo)/include:$(brew --prefix lzo)/include/lzo" >> $GITHUB_ENV
           echo "LIBRARY_PATH=$BREW_PREFIX/Cellar/lib" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$(brew --prefix icu4c@77)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig:" >> $GITHUB_ENV
-          echo "LDFLAGS=-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c@77)/lib" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$(brew --prefix icu4c@77)/include -I$(brew --prefix libffi)/include -I$(brew --prefix lzo)/include" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$(brew --prefix icu4c)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig:" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c)/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$(brew --prefix icu4c)/include -I$(brew --prefix libffi)/include -I$(brew --prefix lzo)/include" >> $GITHUB_ENV
 
       - name: Install pyglossary dependencies
         run: |
@@ -118,8 +118,8 @@ jobs:
           cp $MAIN_SCRIPT $APPNAME.py
           rm __init__.py
           sed -i '' 's/default="auto"/default="tk"/g' pyglossary/ui/argparse_main.py
-          sed -i '' 's/self\.tk_inter_version in ("8\.5", "8\.6")/self.tk_inter_version in ("8.5", "8.6", "9.0")/' .venv/lib/python3.12/site-packages/nuitka/plugins/standard/TkinterPlugin.py || true
-
+          # Fix Nuitka TkinterPlugin for Python 3.13/Tk 9.0 compatibility
+          find .venv -name "TkinterPlugin.py" -exec sed -i '' 's/self\.tk_inter_version in ("8\.5", "8\.6")/self.tk_inter_version in ("8.5", "8.6", "9.0")/' {} \; || true
 
       - name: nuitka Build
         run: |
@@ -157,7 +157,6 @@ jobs:
           	--include-module=icu \
           	--include-module=colorize_pinyin \
           	--include-package-data=pyglossary \
-          	--include-data-files=about=about \
           	--include-data-files=about=about \
           	--include-data-files=_license-dialog=_license-dialog \
           	--include-data-dir=res=. \
@@ -213,7 +212,7 @@ jobs:
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           overwrite: true
-          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}-${{runner.name}}
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}-${{ runner.name }}
           path: |
             ${{ env.DIST_DIR }}
 
@@ -228,7 +227,7 @@ jobs:
         with:
           overwrite: true
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
-          name: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.sha }}-${{runner.name}}
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}-${{ runner.name }}-DMG
           path: |
             **/*.dmg
 
@@ -240,9 +239,18 @@ jobs:
       contents: write    
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          
+      - name: Set release vars
+        run: |
+          echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
+          echo "TAG=$(git describe)" >> $GITHUB_ENV
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
-        
         with:
           path: ./artifacts
           merge-multiple: true
@@ -257,7 +265,7 @@ jobs:
       - name: make release
         uses: ncipollo/release-action@v1
         with:
-          name: ${{ github.event.repository.name }}-${{ github.ref_name }}
+          name: ${{ github.event.repository.name }}-${{ env.TAG }}
           # body: macos-${{ matrix.architecture }}
           artifacts: "artifacts/*.zip,artifacts/*.dmg"
           artifactContentType: application/zip
@@ -265,4 +273,3 @@ jobs:
           makeLatest: true
           allowUpdates: true
           tag: ${{ env.TAG }}
-        
