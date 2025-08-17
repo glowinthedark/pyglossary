@@ -60,6 +60,9 @@ jobs:
           brew install \
              libffi \
              gettext \
+             libxml2 \
+             cmake \
+             ccache \
              pkg-config
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -80,13 +83,20 @@ jobs:
 
       - name: Install uv
         # https://docs.astral.sh/uv/guides/integration/github/#caching
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+
+      - name: Create venv with uv
+        run: |
+          uv venv .venv --python ${{ env.PYTHON_VERSION }}
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Install nuitka
         run: |
-          uv venv
+          # Activate venv
           source .venv/bin/activate
-          uv pip install -U nuitka
 
       - name: set vars
         id: envconf
@@ -105,6 +115,8 @@ jobs:
           echo "LDFLAGS=-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c)/lib -L$BREW_PREFIX/lib" >> $GITHUB_ENV
           echo "CPPFLAGS=-I$(brew --prefix icu4c)/include -I$(brew --prefix libffi)/include -I$(brew --prefix lzo)/include" >> $GITHUB_ENV
           echo "DYLD_LIBRARY_PATH=$(brew --prefix icu4c)/lib:$(brew --prefix libffi)/lib:$BREW_PREFIX/lib" >> $GITHUB_ENV
+          export CC=clang
+          export CXX=clang++
 
       - name: Install pyglossary dependencies
         run: |
@@ -114,8 +126,10 @@ jobs:
           export CPPFLAGS="-I$(brew --prefix icu4c)/include -I$(brew --prefix libffi)/include -I$(brew --prefix lzo)/include"
           export DYLD_LIBRARY_PATH="$(brew --prefix icu4c)/lib:$(brew --prefix libffi)/lib:$BREW_PREFIX/lib"
           
+          uv pip install nuitka ordered-set zstandard
+          
           uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
-          # uv pip install python-lzo
+          STATIC_DEPS=true uv pip install --no-binary lxml
           # # Install PyICU
           # uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match --force-reinstall --no-cache-dir PyICU
           uv pip install .
@@ -147,6 +161,14 @@ jobs:
 
       - name: nuitka Build
         run: |
+          # Set architecture-specific flags
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+          ARCH_FLAGS="--target-arch=arm64"
+          else
+          ARCH_FLAGS="--target-arch=x86_64"
+          fi
+          source .venv/bin/activate
+          
           # Ensure library paths are set for nuitka
           export DYLD_LIBRARY_PATH="$(brew --prefix icu4c)/lib:$(brew --prefix libffi)/lib:$BREW_PREFIX/lib"
           
@@ -186,6 +208,7 @@ jobs:
           	--include-data-files=_license-dialog=_license-dialog \
           	--include-data-dir=res=. \
           	--include-data-files=_license-dialog=license-dialog \
+            --nofollow-import-to=unittest \
           	--noinclude-custom-mode=unittest:nofollow \
           	--output-dir="$DIST_DIR" \
           	--output-filename=$APPNAME \
