@@ -118,8 +118,6 @@ jobs:
           cp $MAIN_SCRIPT $APPNAME.py
           rm __init__.py
           sed -i '' 's/default="auto"/default="tk"/g' pyglossary/ui/argparse_main.py
-          # Fix Nuitka TkinterPlugin for Python 3.13/Tk 9.0 compatibility
-          find . -name "TkinterPlugin.py" -exec sed -i '' 's/self\.tk_inter_version in ("8\.5", "8\.6")/self.tk_inter_version in ("8.5", "8.6", "9.0")/' {} \; || true
 
       - name: nuitka Build
         run: |
