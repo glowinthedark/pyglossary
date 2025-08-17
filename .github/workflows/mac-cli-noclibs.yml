@@ -89,7 +89,7 @@ jobs:
 
       - name: Create venv with uv
         run: |
-          uv venv .venv --python ${{ env.PYTHON_VERSION }}
+          uv venv .venv --python ${{ matrix.python-version }}
           echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
