@@ -1,4 +1,4 @@
-name: 'macOS Tk no pyicu, no lzo wip'
+name: 'macOS Tk no pyicu no lzo wip'
 
 on:
   workflow_dispatch:
@@ -268,7 +268,7 @@ jobs:
       - name: Create DMG
         if: true
         run: |
-#          create-dmg  --no-internet-enable --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
+           # create-dmg  --no-internet-enable --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
            hdiutil create -verbose -volname "${{ env.APPNAME }}-${{env.VERSION}}" -srcfolder "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app" -ov -format UDZO -fs HFS+J "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg"
 
       - name: Upload Artifacts DMG
