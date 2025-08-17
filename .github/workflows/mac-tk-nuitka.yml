@@ -5,11 +5,11 @@ on:
   push:
     branches:
       - 'tbd'
-  # pull_request:
-  #   branches:
-  #     - '**'
-  #     - '!master'
-  #     - '!pyup/**'
+    # pull_request:
+    #   branches:
+    #     - '**'
+    #     - '!master'
+    #     - '!pyup/**'
     paths-ignore:
       - 'docs/**'
       - "*.md"
@@ -26,15 +26,15 @@ env:
   HOMEBREW_NO_ANALYTICS: true
   HOMEBREW_NO_AUTO_UPDATE: true
   MAIN_SCRIPT: main.py
-  RESOURCE_DIR: "resources" 
+  RESOURCE_DIR: "resources"
 
 jobs:
   build_macos:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      # create-dmg chokes when running parallel workers 
-      # max-parallel: 1 
+      # create-dmg chokes when running parallel workers
+      # max-parallel: 1
       # see https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow
       matrix:
         # python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
@@ -50,11 +50,11 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           # ref: master
-          
+
       - name: Update brew
         run: |
           brew update
-          
+
       - name: Install brew dependencies
         run: |
           brew install \
@@ -63,9 +63,9 @@ jobs:
              pkg-config \
              intltool \
              icu4c \
+             lzo \
              create-dmg
-             # already installed?             python-tk@${{ matrix.python-version }} \
-      
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -96,21 +96,29 @@ jobs:
           echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
           echo "TAG=$(git describe)" >> $GITHUB_ENV
           echo "PREFIX_ICU4C=$(brew --prefix icu4c)" >> $GITHUB_ENV
-        
+
       - name: Set pip build vars
         id: envpip
         run: |
           echo "C_INCLUDE_PATH=$(brew --prefix lzo)/include:$(brew --prefix lzo)/include/lzo" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=$BREW_PREFIX/Cellar/lib" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$BREW_PREFIX/Cellar/lib/pkgconfig:$(brew --prefix icu4c)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig:" >> $GITHUB_ENV
-          echo "LDFLAGS=-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c)/lib" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$BREW_PREFIX/lib" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$BREW_PREFIX/lib/pkgconfig:$(brew --prefix icu4c)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c)/lib -L$BREW_PREFIX/lib" >> $GITHUB_ENV
           echo "CPPFLAGS=-I$(brew --prefix icu4c)/include -I$(brew --prefix libffi)/include -I$(brew --prefix lzo)/include" >> $GITHUB_ENV
+          echo "DYLD_LIBRARY_PATH=$(brew --prefix icu4c)/lib:$(brew --prefix libffi)/lib:$BREW_PREFIX/lib" >> $GITHUB_ENV
 
       - name: Install pyglossary dependencies
         run: |
+          # Set environment variables for the session
+          export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$(brew --prefix icu4c)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig"
+          export LDFLAGS="-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c)/lib -L$BREW_PREFIX/lib"
+          export CPPFLAGS="-I$(brew --prefix icu4c)/include -I$(brew --prefix libffi)/include -I$(brew --prefix lzo)/include"
+          export DYLD_LIBRARY_PATH="$(brew --prefix icu4c)/lib:$(brew --prefix libffi)/lib:$BREW_PREFIX/lib"
+          
           uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
           uv pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ --index-strategy unsafe-best-match python-lzo
-          uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match PyICU
+          # Install PyICU
+          uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match --force-reinstall --no-cache-dir PyICU
           uv pip install .
 
       - name: Prepare nuitka build
@@ -118,9 +126,31 @@ jobs:
           cp $MAIN_SCRIPT $APPNAME.py
           rm __init__.py
           sed -i '' 's/default="auto"/default="tk"/g' pyglossary/ui/argparse_main.py
+          # Fix Nuitka TkinterPlugin for Python 3.13/Tk 9.0 compatibility (system Python)
+          python -c "
+          import sys
+          import os
+          site_packages = [p for p in sys.path if 'site-packages' in p][0]
+          plugin_path = os.path.join(site_packages, 'nuitka', 'plugins', 'standard', 'TkinterPlugin.py')
+          if os.path.exists(plugin_path):
+              with open(plugin_path, 'r') as f:
+                  content = f.read()
+              if '(\"8.5\", \"8.6\")' in content:
+                  content = content.replace('(\"8.5\", \"8.6\")', '(\"8.5\", \"8.6\", \"9.0\")')
+                  with open(plugin_path, 'w') as f:
+                      f.write(content)
+                  print('TkinterPlugin.py updated for Tk 9.0 compatibility')
+              else:
+                  print('TkinterPlugin.py already compatible or pattern not found')
+          else:
+              print('TkinterPlugin.py not found, skipping patch')
+          " || true
 
       - name: nuitka Build
         run: |
+          # Ensure library paths are set for nuitka
+          export DYLD_LIBRARY_PATH="$(brew --prefix icu4c)/lib:$(brew --prefix libffi)/lib:$BREW_PREFIX/lib"
+          
           python -m nuitka \
           	--standalone \
           	--assume-yes-for-downloads \
@@ -160,50 +190,51 @@ jobs:
           	--include-data-dir=res=. \
           	--include-data-files=_license-dialog=license-dialog \
           	--noinclude-custom-mode=unittest:nofollow \
+          	--macos-dependency-tool=install_name_tool \
           	--output-dir="$DIST_DIR" \
           	--output-filename=$APPNAME \
           	$APPNAME.py
-                  
+
       - name: Copy files
         shell: python
         run: |
-            from pathlib import Path
-            import shutil
-            import sys
-            import os
-            
-            dist_dir = os.getenv("DIST_DIR")
-            app_name = os.getenv("APPNAME")
-            
-            if not dist_dir or not app_name:
-                print('missing env vars')
-                sys.exit(0)
-            
-            dist_path = Path(dist_dir)
-            print(f'DIST_DIR={dist_path}, APPNAME={app_name}')
-            
-            target_path = dist_path / f"{app_name}.app/Contents/MacOS"
-            sources = ["about", "AUTHORS", "_license-dialog", "config.json", "plugins-meta", "help", "res", "pyglossary"]
-            
-            if not target_path.exists():
-                print(f'missing target dir {target_path.absolute()}')
-                sys.exit(0)
-            
-            for source in sources:
-                src = Path(source)
-                try:
-                    if src.is_dir():
-                        copied_to = shutil.copytree(src, target_path / src.name, dirs_exist_ok=True, symlinks=True, ignore_dangling_symlinks=True)
-                    else:
-                        copied_to = shutil.copy(src, target_path, follow_symlinks=False)
-                    print(f"Copied {src} -> {copied_to}")
-                except FileNotFoundError:
-                    print(f"Missing {src}")
-                except PermissionError:
-                    print(f"No access {src}")
-                except Exception as e:
-                    print(f"Failed {src}: {e}")
-            print("Done")
+          from pathlib import Path
+          import shutil
+          import sys
+          import os
+          
+          dist_dir = os.getenv("DIST_DIR")
+          app_name = os.getenv("APPNAME")
+          
+          if not dist_dir or not app_name:
+              print('missing env vars')
+              sys.exit(0)
+          
+          dist_path = Path(dist_dir)
+          print(f'DIST_DIR={dist_path}, APPNAME={app_name}')
+          
+          target_path = dist_path / f"{app_name}.app/Contents/MacOS"
+          sources = ["about", "AUTHORS", "_license-dialog", "config.json", "plugins-meta", "help", "res", "pyglossary"]
+          
+          if not target_path.exists():
+              print(f'missing target dir {target_path.absolute()}')
+              sys.exit(0)
+          
+          for source in sources:
+              src = Path(source)
+              try:
+                  if src.is_dir():
+                      copied_to = shutil.copytree(src, target_path / src.name, dirs_exist_ok=True, symlinks=True, ignore_dangling_symlinks=True)
+                  else:
+                      copied_to = shutil.copy(src, target_path, follow_symlinks=False)
+                  print(f"Copied {src} -> {copied_to}")
+              except FileNotFoundError:
+                  print(f"Missing {src}")
+              except PermissionError:
+                  print(f"No access {src}")
+              except Exception as e:
+                  print(f"Failed {src}: {e}")
+          print("Done")
 
       - name: Upload Artifacts zip
         uses: actions/upload-artifact@v4
@@ -234,14 +265,14 @@ jobs:
     # needs: [build_macos, build-w64]
     runs-on: ubuntu-latest
     permissions:
-      contents: write    
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-          
+
       - name: Set release vars
         run: |
           echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
@@ -252,7 +283,7 @@ jobs:
         with:
           path: ./artifacts
           merge-multiple: true
-          
+
       - name: List artifacts
         run: |
           pwd
