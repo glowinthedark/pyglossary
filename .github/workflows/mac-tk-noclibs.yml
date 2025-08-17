@@ -263,7 +263,7 @@ jobs:
           overwrite: true
           name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}-${{ runner.name }}
           path: |
-            ${{ env.DIST_DIR }}
+            ${{ env.DIST_DIR }}/${{ env.APPNAME }}.app
 
       - name: Create DMG
         if: true
