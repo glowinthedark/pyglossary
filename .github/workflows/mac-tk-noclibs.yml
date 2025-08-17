@@ -129,7 +129,9 @@ jobs:
           
           uv pip install nuitka ordered-set zstandard
           
-          uv pip install pymorphy2 lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin
+          uv pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim marisa-trie mistune polib prompt-toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml tqdm xxhash
+          # compiled deps
+          uv pip install lxml pyicu python-lzo 
           #          STATIC_DEPS=true uv pip install --no-binary lxml :all:
           # # Install PyICU
           # uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match --force-reinstall --no-cache-dir PyICU
