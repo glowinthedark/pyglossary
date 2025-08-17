@@ -62,7 +62,7 @@ jobs:
              gettext \
              pkg-config \
              intltool \
-             icu4c \
+             icu4c icu4c@74 icu4c@75 icu4c@76 \
              lzo \
              create-dmg
 
