@@ -39,7 +39,8 @@ jobs:
       matrix:
         # python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
         python-version: ['3.13']
-        os: ['macos-13', 'macos-14']
+        # os: ['macos-13', 'macos-14']
+        os: ['macos-13']
       fail-fast: true
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +64,8 @@ jobs:
              libxml2 \
              cmake \
              ccache \
-             pkg-config
+             pkg-config \
+             create-dmg
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -267,7 +269,7 @@ jobs:
       - name: Create DMG
         if: true
         run: |
-          create-dmg --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
+          create-dmg  --no-internet-enable --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
 
       - name: Upload Artifacts DMG
         if: true
@@ -281,6 +283,7 @@ jobs:
 
   release:
     needs: [build_macos]
+    if: true
     # needs: [build_macos, build-w64]
     runs-on: ubuntu-latest
     permissions:
