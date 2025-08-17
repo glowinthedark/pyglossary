@@ -63,7 +63,9 @@ jobs:
              gettext \
              cmake \
              ccache \
-             pkg-config
+             pkg-config \
+             icu4c \
+             lzo
 #             create-dmg  <<<<< fails
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -106,27 +108,46 @@ jobs:
           echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
           echo "TAG=$(git describe)" >> $GITHUB_ENV
           echo "PREFIX_ICU4C=$(brew --prefix icu4c)" >> $GITHUB_ENV
+          echo "PREFIX_LZO=$(brew --prefix lzo)" >> $GITHUB_ENV
+          echo "PREFIX_LIBFFI=$(brew --prefix libffi)" >> $GITHUB_ENV
 
       - name: Set pip build vars
         id: envpip
         run: |
-          echo "C_INCLUDE_PATH=$(brew --prefix lzo)/include:$(brew --prefix lzo)/include/lzo" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=$BREW_PREFIX/lib" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$BREW_PREFIX/lib/pkgconfig:$(brew --prefix icu4c)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig" >> $GITHUB_ENV
-          echo "LDFLAGS=-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c)/lib -L$BREW_PREFIX/lib" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$(brew --prefix icu4c)/include -I$(brew --prefix libffi)/include -I$(brew --prefix lzo)/include" >> $GITHUB_ENV
-          echo "DYLD_LIBRARY_PATH=$(brew --prefix icu4c)/lib:$(brew --prefix libffi)/lib:$BREW_PREFIX/lib" >> $GITHUB_ENV
-          export CC=clang
-          export CXX=clang++
+          # Use the environment variables set in the previous step
+          echo "C_INCLUDE_PATH=${PREFIX_LZO}/include:${PREFIX_LZO}/include/lzo" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=${BREW_PREFIX}/lib" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=${BREW_PREFIX}/lib/pkgconfig:${PREFIX_ICU4C}/lib/pkgconfig:${PREFIX_LZO}/lib/pkgconfig:${PREFIX_LIBFFI}/lib/pkgconfig" >> $GITHUB_ENV
+          echo "LDFLAGS=-L${PREFIX_LIBFFI}/lib -L${PREFIX_ICU4C}/lib -L${PREFIX_LZO}/lib -L${BREW_PREFIX}/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I${PREFIX_ICU4C}/include -I${PREFIX_LIBFFI}/include -I${PREFIX_LZO}/include" >> $GITHUB_ENV
+          echo "DYLD_LIBRARY_PATH=${PREFIX_ICU4C}/lib:${PREFIX_LIBFFI}/lib:${PREFIX_LZO}/lib:${BREW_PREFIX}/lib" >> $GITHUB_ENV
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+
+      - name: Debug environment variables
+        run: |
+          echo "BREW_PREFIX: $BREW_PREFIX"
+          echo "PREFIX_ICU4C: $PREFIX_ICU4C"
+          echo "PREFIX_LZO: $PREFIX_LZO"
+          echo "PREFIX_LIBFFI: $PREFIX_LIBFFI"
+          echo "LDFLAGS: $LDFLAGS"
+          echo "CPPFLAGS: $CPPFLAGS"
+          echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+          echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
 
       - name: Install pyglossary dependencies
         run: |
-          # Set environment variables for the session
-          export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$(brew --prefix icu4c)/lib/pkgconfig:$(brew --prefix lzo)/lib/pkgconfig:$(brew --prefix libffi)/lib/pkgconfig"
-          export LDFLAGS="-L$(brew --prefix libffi)/lib -L$(brew --prefix icu4c)/lib -L$BREW_PREFIX/lib"
-          export CPPFLAGS="-I$(brew --prefix icu4c)/include -I$(brew --prefix libffi)/include -I$(brew --prefix lzo)/include"
-          export DYLD_LIBRARY_PATH="$(brew --prefix icu4c)/lib:$(brew --prefix libffi)/lib:$BREW_PREFIX/lib"
+          # Ensure environment variables are available in this step
+          source .venv/bin/activate
           
+          # Export all the necessary environment variables
+          export PKG_CONFIG_PATH="${BREW_PREFIX}/lib/pkgconfig:${PREFIX_ICU4C}/lib/pkgconfig:${PREFIX_LZO}/lib/pkgconfig:${PREFIX_LIBFFI}/lib/pkgconfig"
+          export LDFLAGS="-L${PREFIX_LIBFFI}/lib -L${PREFIX_ICU4C}/lib -L${PREFIX_LZO}/lib -L${BREW_PREFIX}/lib"
+          export CPPFLAGS="-I${PREFIX_ICU4C}/include -I${PREFIX_LIBFFI}/include -I${PREFIX_LZO}/include"
+          export DYLD_LIBRARY_PATH="${PREFIX_ICU4C}/lib:${PREFIX_LIBFFI}/lib:${PREFIX_LZO}/lib:${BREW_PREFIX}/lib"
+          export CC=clang
+          export CXX=clang++
+
           uv pip install nuitka ordered-set zstandard
           
           uv pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim marisa-trie mistune polib prompt-toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml tqdm xxhash
@@ -146,8 +167,7 @@ jobs:
           python -c "
           import sys
           import os
-          site_packages = [p for p in sys.path if 'site-packages' in p][0]
-          plugin_path = os.path.join('.venv', 'nuitka', 'plugins', 'standard', 'TkinterPlugin.py')
+          plugin_path = os.path.join('.venv', 'lib', 'python${{ matrix.python-version }}', 'site-packages', 'nuitka', 'plugins', 'standard', 'TkinterPlugin.py')
           if os.path.exists(plugin_path):
               with open(plugin_path, 'r') as f:
                   content = f.read()
@@ -159,21 +179,33 @@ jobs:
               else:
                   print('TkinterPlugin.py already compatible or pattern not found')
           else:
-              print('TkinterPlugin.py not found, skipping patch')
+              print(f'TkinterPlugin.py not found at {plugin_path}, skipping patch')
           " || true
 
       - name: nuitka Build
         run: |
+          # Activate virtual environment
+          source .venv/bin/activate
+          
           # Set architecture-specific flags
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
+          if [ "$(uname -m)" = "arm64" ]; then
           ARCH_FLAGS="--target-arch=arm64"
           else
           ARCH_FLAGS="--target-arch=x86_64"
           fi
-          source .venv/bin/activate
           
-          # Ensure library paths are set for nuitka
-          export DYLD_LIBRARY_PATH="$(brew --prefix icu4c)/lib:$(brew --prefix libffi)/lib:$BREW_PREFIX/lib"
+          # Ensure library paths are set for nuitka - use properly formatted paths
+          export DYLD_LIBRARY_PATH="${PREFIX_ICU4C}/lib:${PREFIX_LIBFFI}/lib:${PREFIX_LZO}/lib:${BREW_PREFIX}/lib"
+          export LDFLAGS="-L${PREFIX_LIBFFI}/lib -L${PREFIX_ICU4C}/lib -L${PREFIX_LZO}/lib -L${BREW_PREFIX}/lib"
+          export CPPFLAGS="-I${PREFIX_ICU4C}/include -I${PREFIX_LIBFFI}/include -I${PREFIX_LZO}/include"
+          export PKG_CONFIG_PATH="${BREW_PREFIX}/lib/pkgconfig:${PREFIX_ICU4C}/lib/pkgconfig:${PREFIX_LZO}/lib/pkgconfig:${PREFIX_LIBFFI}/lib/pkgconfig"
+          export CC=clang
+          export CXX=clang++
+          
+          echo "Final environment check before nuitka:"
+          echo "LDFLAGS: $LDFLAGS"
+          echo "CPPFLAGS: $CPPFLAGS"
+          echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
           
           python -m nuitka \
           	--standalone \
@@ -230,7 +262,7 @@ jobs:
           
           if not dist_dir or not app_name:
               print('missing env vars')
-              sys.exit(0)
+              sys.exit(1)
           
           dist_path = Path(dist_dir)
           print(f'DIST_DIR={dist_path}, APPNAME={app_name}')
@@ -240,7 +272,7 @@ jobs:
           
           if not target_path.exists():
               print(f'missing target dir {target_path.absolute()}')
-              sys.exit(0)
+              sys.exit(1)
           
           for source in sources:
               src = Path(source)
