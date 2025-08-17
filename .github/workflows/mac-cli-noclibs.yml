@@ -61,11 +61,10 @@ jobs:
           brew install \
              libffi \
              gettext \
-             libxml2 \
              cmake \
              ccache \
-             pkg-config \
-             create-dmg
+             pkg-config
+#             create-dmg  <<<<< fails
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -269,7 +268,8 @@ jobs:
       - name: Create DMG
         if: true
         run: |
-          create-dmg  --no-internet-enable --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
+#          create-dmg  --no-internet-enable --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
+           hdiutil create -verbose -volname "${{ env.APPNAME }}-${{env.VERSION}}" -srcfolder "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app" -ov -format UDZO -fs HFS+J "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg"
 
       - name: Upload Artifacts DMG
         if: true
