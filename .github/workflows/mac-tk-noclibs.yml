@@ -1,4 +1,4 @@
-name: 'macOS CLI no C deps'
+name: 'macOS Tk no pyicu, no lzo (wip)'
 
 on:
   workflow_dispatch:
