@@ -1,4 +1,4 @@
-name: 'macOS Tk no pyicu, no lzo (wip)'
+name: 'macOS Tk no pyicu, no lzo wip'
 
 on:
   workflow_dispatch:
