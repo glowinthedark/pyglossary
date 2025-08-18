@@ -1,4 +1,4 @@
-name: 'macOS Tk WITH pyicu AND lzo wip'
+name: 'macOS TKinter+pyicu+lzo'
 
 on:
   workflow_dispatch:
@@ -39,8 +39,7 @@ jobs:
       matrix:
         # python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
         python-version: ['3.13']
-        # os: ['macos-13', 'macos-14']
-        os: ['macos-13']
+        os: ['macos-13', 'macos-14']
       fail-fast: true
     steps:
       - uses: actions/checkout@v4
