@@ -304,7 +304,7 @@ jobs:
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           overwrite: true
-          name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ TAG }}
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ env.TAG }}
           path: |
             ${{ env.DIST_DIR }}/${{ env.APPNAME }}.app
 
@@ -320,7 +320,7 @@ jobs:
         with:
           overwrite: true
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
-          name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}-${{ TAG }}-DMG
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}-${{ env.TAG }}-DMG
           path: |
             **/*.dmg
 
