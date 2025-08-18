@@ -248,6 +248,8 @@ jobs:
           	--include-module=colorize_pinyin \
           	--include-package-data=pyglossary \
           	--include-data-files=about=about \
+            --include-module=_json \
+            --include-module=_bisect \
           	--include-data-files=_license-dialog=_license-dialog \
           	--include-data-dir=res=. \
           	--include-data-files=_license-dialog=license-dialog \
