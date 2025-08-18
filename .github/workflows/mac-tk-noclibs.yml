@@ -158,6 +158,7 @@ jobs:
           ########### Install PyICU with static deps ##############
           STATIC_DEPS=true uv pip install --no-binary PyICU PyICU
           ########### Install python-lzo with static deps ##############
+          ### ALO SEE: https://github.com/Nuitka/Nuitka/issues/2580#issuecomment-1895611093
           STATIC_DEPS=true uv pip install --no-binary python-lzo python-lzo
           # uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match --force-reinstall --no-cache-dir PyICU
           uv pip install .
@@ -185,7 +186,8 @@ jobs:
           else:
               print(f'TkinterPlugin.py not found at {plugin_path}, skipping patch')
           " || true
-
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$PREFIX_ICU4C/lib/libicui18n.dylib:$PREFIX_ICU4C/lib/libicudata.dylib:$PREFIX_ICU4C/lib/libicuio.dylib:$PREFIX_ICU4C/lib/libicuuc.dylib:$PREFIX_ICU4C/lib/libicutu.dylib:$PREFIX_ICU4C/lib/libicutest.dylib:$PYTHONPATH" >> $GITHUB_ENV
       - name: nuitka Build
         env:
           PYTHONWARNDEFAULTENCODING: 0
