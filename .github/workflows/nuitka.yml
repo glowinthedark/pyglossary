@@ -41,7 +41,7 @@ jobs:
           python -m pip install nuitka
           python -m pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml tqdm xxhash 
           python -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ python-lzo
-          python -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build PyICU
+          # FIXME:::TODO::: python -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build PyICU
           # python -m pip install https://github.com/cgohlke/pyicu-build/releases/download/v2.15/pyicu-2.15-cp313-cp313-win_amd64.whl
 
       - name: Patch Files
@@ -104,6 +104,7 @@ jobs:
             --nofollow-import-to=pyglossary.ui.ui_gtk4 ^
             --nofollow-import-to=pyglossary.ui.ui_qt ^
             --nofollow-import-to=gi ^
+            --nofollow-import-to=icu ^
             --nofollow-import-to=gtk ^
             --nofollow-import-to=pyqt4 ^
             --nofollow-import-to=pyqt5 ^
