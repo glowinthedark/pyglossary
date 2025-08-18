@@ -220,7 +220,7 @@ jobs:
           include-hidden-files: true
           name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
           path: |
-            ${{ env.DIST_DIR }}/**/*
+            ${{ env.DIST_DIR }}/main.dist/**/*
 
 
 # - name: 
