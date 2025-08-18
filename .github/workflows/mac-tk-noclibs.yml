@@ -187,7 +187,7 @@ jobs:
               print(f'TkinterPlugin.py not found at {plugin_path}, skipping patch')
           " || true
       - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=$PREFIX_ICU4C/lib:$PYTHONPATH" >> $GITHUB_ENV
+        run: echo "PYTHONPATH=$PREFIX_ICU4C/lib:$PREFIX_LZO/lib:$PREFIX_LZO/lib:$PREFIX_LIBFFI/lib:$PYTHONPATH" >> $GITHUB_ENV
       - name: nuitka Build
         env:
           PYTHONWARNDEFAULTENCODING: 0
