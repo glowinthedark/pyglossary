@@ -187,6 +187,8 @@ jobs:
           " || true
 
       - name: nuitka Build
+        env:
+          PYTHONWARNDEFAULTENCODING: 0
         run: |
           # Activate virtual environment
           source .venv/bin/activate
