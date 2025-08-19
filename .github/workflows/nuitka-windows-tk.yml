@@ -18,7 +18,7 @@ jobs:
         python-version:
           # - "3.10"
           # - "3.11"
-          - "3.12"
+          - "3.13"
         # os: [macos-latest, ubuntu-latest, windows-latest]
         os: [windows-2022]
         
@@ -50,10 +50,10 @@ jobs:
       # - name: Set up Python ${{ matrix.python-version }} with uv
       #   run: uv python install ${{ matrix.python-version }}        
 
-      - name: "Set up Python 3.12"
+      - name: "Set up Python 3.13"
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
           # x86, x64, or arm64
           architecture: 'x64'
           # python-version-file: ".python-version"             
@@ -93,7 +93,7 @@ jobs:
               p = Path('pyglossary/ui/argparse_main.py'); p.write_text(p.read_text().replace('default="auto"', 'default="tk"'), encoding='utf8')
               p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'), encoding='utf8')
               p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'), encoding='utf8')
-              p = Path('.venv/lib/python3.12/site-packages/nuitka/plugins/standard/TkinterPlugin.py'); p.write_text(p.read_text().replace('self.tk_inter_version in ("8.5", "8.6")', 'self.tk_inter_version in ("8.5", "8.6", "9.0")'), encoding='utf8')
+              p = Path('.venv/lib/python3.13/site-packages/nuitka/plugins/standard/TkinterPlugin.py'); p.write_text(p.read_text().replace('self.tk_inter_version in ("8.5", "8.6")', 'self.tk_inter_version in ("8.5", "8.6", "9.0")'), encoding='utf8')
           except Exception as e:
               print(str(e))
 
