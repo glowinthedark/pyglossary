@@ -67,44 +67,23 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
-          auto-activate-base: true
-          activate-environment: ""
+          auto-activate-base: false
+          activate-environment: pygloss
           # python-version: '3.13'
           channels: conda-forge, defaults
-          allow-softlinks: true
+          allow-softlinks: false
           show-channel-urls: true
-      - name: Bash
-        shell: powershell
+          mamba-version: "*"
+          use-only-tar-bz2: true
+      - name: main
         run: |
           python3 -V
           conda info
           conda list
-      # - name: "create and activate venv"
-      #   run: |
-      #     python3 -m venv .venv && .venv\Scripts\activate.bat
-
-      # - name: "install nuitka"
-      #   run: |
-      #     python3 -m pip install nuitka
-      
-
-      - name: "Install Dependencies"
-        shell: powershell
-        run: |
-          conda install conda-forge::pyicu
-          conda install conda-forge::lxml
-          # conda install conda-forge::polib
-          conda install conda-forge::pyyaml
-          # conda install conda-forge::beautifulsoup4
-          # conda install conda-forge::html5lib
-          # conda install conda-forge::prompt_toolkit
-          # conda install conda-forge::wheel
-          # conda install conda-forge::setuptools
-          conda install conda-forge::lzo
-          conda install conda-forge::python-lzo
-
-          python3 -m pip install polib biplist prompt_toolkit wheel setuptools nuitka pymorphy2 beautifulsoup4 html5lib colorize_pinyin
-          python3 -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ python-lzo
+          conda install pyicu lxml polib pyyaml beautifulsoup4 html5lib prompt_toolkit python-lzo
+          conda install polib biplist prompt_toolkit wheel setuptools nuitka pymorphy2 beautifulsoup4 html5lib colorize_pinyin
+          # python3 -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ python-lzo
+          python -m nuitka --standalone --assume-yes-for-downloads --plugin-enable=dll-files --plugin-enable=anti-bloat --follow-imports --windows-console-mode=disable --windows-icon-from-ico=res\pyglossary.ico --enable-plugin=tk-inter --include-package=pyglossary --include-module=tkinter  --include-module=pymorphy2 --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module=colorize_pinyin --include-module=lxml --include-module=lzo --include-package-data=pyglossary --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --noinclude-custom-mode=unittest:nofollow --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --nofollow-import-to=pyglossary.ui.ui_gtk --nofollow-import-to=pyglossary.ui.ui_gtk4 --nofollow-import-to=pyglossary.ui.ui_qt --nofollow-import-to=gi --nofollow-import-to=gtk --nofollow-import-to=pyqt4 --nofollow-import-to=pyqt5 --nofollow-import-to=pyqt6 --nofollow-import-to=*.tests --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --plugin-disable=pyqt5 main.py --output-dir="${{ env.DIST_DIR }}" --output-filename=pyglossary.exe
           # python3 -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build pyicu
           # python3 -m pip install https://github.com/cgohlke/pyicu-build/releases/download/v2.15/PyICU-2.15-cp313-cp313-win_amd64.whl
           # python3 -m pip install .
@@ -125,16 +104,11 @@ jobs:
           except Exception as e:
               print(str(e))
 
-      - name: list files
-        shell: bash
-        run: |
-          find . 
-
-      - name: Nuitka build
-        shell: cmd
-        run: |
-          python -m nuitka --standalone --assume-yes-for-downloads --plugin-enable=dll-files --plugin-enable=anti-bloat --follow-imports --windows-console-mode=disable --windows-icon-from-ico=res\pyglossary.ico --enable-plugin=tk-inter --include-package=pyglossary --include-module=tkinter  --include-module=pymorphy2 --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module=colorize_pinyin --include-package-data=pyglossary --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --noinclude-custom-mode=unittest:nofollow --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --nofollow-import-to=pyglossary.ui.ui_gtk --nofollow-import-to=pyglossary.ui.ui_gtk4 --nofollow-import-to=pyglossary.ui.ui_qt --nofollow-import-to=gi --nofollow-import-to=gtk --nofollow-import-to=pyqt4 --nofollow-import-to=pyqt5 --nofollow-import-to=pyqt6 --nofollow-import-to=*.tests --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --plugin-disable=pyqt5 main.py --output-dir="${{ env.DIST_DIR }}" --output-filename=pyglossary.exe
-          # tbd --include-module=_json --include-module=lxml --include-module=lzo
+      # - name: Nuitka build
+      #   shell: cmd
+      #   run: |
+      #     python -m nuitka --standalone --assume-yes-for-downloads --plugin-enable=dll-files --plugin-enable=anti-bloat --follow-imports --windows-console-mode=disable --windows-icon-from-ico=res\pyglossary.ico --enable-plugin=tk-inter --include-package=pyglossary --include-module=tkinter  --include-module=pymorphy2 --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module=colorize_pinyin --include-package-data=pyglossary --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --noinclude-custom-mode=unittest:nofollow --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --nofollow-import-to=pyglossary.ui.ui_gtk --nofollow-import-to=pyglossary.ui.ui_gtk4 --nofollow-import-to=pyglossary.ui.ui_qt --nofollow-import-to=gi --nofollow-import-to=gtk --nofollow-import-to=pyqt4 --nofollow-import-to=pyqt5 --nofollow-import-to=pyqt6 --nofollow-import-to=*.tests --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --plugin-disable=pyqt5 main.py --output-dir="${{ env.DIST_DIR }}" --output-filename=pyglossary.exe
+      #     # tbd --include-module=_json --include-module=lxml --include-module=lzo
           
       - name: Copy assets
         shell: python
