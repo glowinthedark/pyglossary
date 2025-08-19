@@ -7,10 +7,11 @@ on:
       - '.vscode/**'
       - 'doc/**'
       - '*.md'
-      # - '.github/**'
-      
+      # - '.github/**'      
   workflow_dispatch:
-
+env:
+  PYTHONWARNINGS: ignore::EncodingWarning
+  
 jobs:
   build_windows_x64:
     defaults:
