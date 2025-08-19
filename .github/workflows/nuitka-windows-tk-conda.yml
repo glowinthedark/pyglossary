@@ -71,6 +71,7 @@ jobs:
           activate-environment: pygloss
           # python-version: '3.13'
           # conda-solver: libmamba
+          conda-solver: classic
           channels: conda-forge, defaults
           allow-softlinks: false
           show-channel-urls: true
