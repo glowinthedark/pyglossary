@@ -77,9 +77,10 @@ jobs:
 
       - name: "Install Dependencies"
         run: |
-          conda install -c conda-forge lxml polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin wheel setuptools
+          conda install -c conda-forge polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin wheel setuptools
           conda install conda-forge::python-lzo
           conda install conda-forge::pyicu
+          conda install anaconda::lxml
           python3 -m pip install biplist nuitka pymorphy2
           python3 -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ python-lzo
           # python3 -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build pyicu
