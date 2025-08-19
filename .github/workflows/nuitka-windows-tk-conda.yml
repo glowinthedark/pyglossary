@@ -69,7 +69,8 @@ jobs:
           auto-update-conda: true
           auto-activate-base: false
           activate-environment: pygloss
-          # python-version: '3.13'
+          python-version: '3.11'
+          conda-solver: libmamba
           channels: conda-forge, defaults
           allow-softlinks: false
           show-channel-urls: true
