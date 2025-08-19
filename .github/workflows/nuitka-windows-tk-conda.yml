@@ -93,17 +93,17 @@ jobs:
         run: |
           conda install conda-forge::pyicu
           conda install conda-forge::lxml
-          conda install conda-forge::polib
+          # conda install conda-forge::polib
           conda install conda-forge::pyyaml
           # conda install conda-forge::beautifulsoup4
           # conda install conda-forge::html5lib
-          conda install conda-forge::prompt_toolkit
-          conda install conda-forge::wheel
-          conda install conda-forge::setuptools
+          # conda install conda-forge::prompt_toolkit
+          # conda install conda-forge::wheel
+          # conda install conda-forge::setuptools
           conda install conda-forge::lzo
           conda install conda-forge::python-lzo
 
-          python3 -m pip install biplist nuitka pymorphy2 beautifulsoup4 html5lib colorize_pinyin
+          python3 -m pip install polib biplist prompt_toolkit wheel setuptools nuitka pymorphy2 beautifulsoup4 html5lib colorize_pinyin
           python3 -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ python-lzo
           # python3 -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build pyicu
           # python3 -m pip install https://github.com/cgohlke/pyicu-build/releases/download/v2.15/PyICU-2.15-cp313-cp313-win_amd64.whl
