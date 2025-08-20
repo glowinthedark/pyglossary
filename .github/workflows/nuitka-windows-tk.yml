@@ -28,11 +28,6 @@ jobs:
       PYTHONWARNDEFAULTENCODING: true
       APPNAME: PyGlossaryTk
       DIST_DIR: dist.nuitka.tk
-      HOMEBREW_NO_INSTALL_CLEANUP: true
-      HOMEBREW_NO_ENV_HINTS: true
-      HOMEBREW_CLEANUP_MAX_AGE_DAYS: 999
-      HOMEBREW_NO_ANALYTICS: true
-      HOMEBREW_NO_AUTO_UPDATE: true
       MAIN_SCRIPT: main.py
       RESOURCE_DIR: "resources" 
       
@@ -81,7 +76,7 @@ jobs:
           # python3 -m pip install https://github.com/cgohlke/pyicu-build/releases/download/v2.15/PyICU-2.15-cp313-cp313-win_amd64.whl
           # python3 -m pip install .
 
-      - name: patch
+      - name: Patch sources
         shell: python
         run: |
           import os
@@ -122,10 +117,9 @@ jobs:
                 print('missing env vars')
                 sys.exit(0)
             
-            dist_path = Path(dist_dir)
-            print(f'DIST_DIR={dist_path}, APPNAME={app_name}')
+            target_path = Path(dist_dir)/"main.dist"
+            print(f'TARGET_PATH={target_path}, APPNAME={app_name}')
             
-            target_path = dist_path / dist_dir
             sources = ["about", "AUTHORS", "_license-dialog", "config.json", "plugins-meta", "help", "res", "pyglossary"]
             
             if not target_path.exists():
