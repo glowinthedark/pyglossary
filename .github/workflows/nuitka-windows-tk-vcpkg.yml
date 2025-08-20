@@ -143,9 +143,9 @@ jobs:
 
       - name: Install uv
         # https://docs.astral.sh/uv/guides/integration/github/#caching
-        uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
+        uses: astral-sh/setup-uv@v6
+        # with:
+        #   enable-cache: true
 
       - name: "create and activate venv"
         run: |
