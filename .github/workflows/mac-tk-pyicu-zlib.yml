@@ -11,13 +11,15 @@ on:
     #     - '!master'
     #     - '!pyup/**'
     paths-ignore:
-      - 'docs/**'
-      - "*.md"
+      - '.vscode/**'
+      - 'doc/**'
+      - '*.md'
+      # - '.github/**'
 
 env:
   UV_SYSTEM_PYTHON: 0
-
-  PYTHONWARNDEFAULTENCODING: true
+  PYTHONWARNINGS: ignore::EncodingWarning
+  PYTHONWARNDEFAULTENCODING: 0
   APPNAME: PyGlossaryTk
   DIST_DIR: dist.nuitka.tk
   HOMEBREW_NO_INSTALL_CLEANUP: true
@@ -95,9 +97,8 @@ jobs:
           echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
-      - name: Install nuitka
+      - name: Activate venv
         run: |
-          # Activate venv
           source .venv/bin/activate
 
       - name: set vars
@@ -123,7 +124,7 @@ jobs:
           echo "CC=clang" >> $GITHUB_ENV
           echo "CXX=clang++" >> $GITHUB_ENV
 
-      - name: Debug environment variables
+      - name: Print env vars
         run: |
           echo "BREW_PREFIX: $BREW_PREFIX"
           echo "PREFIX_ICU4C: $PREFIX_ICU4C"
@@ -136,10 +137,9 @@ jobs:
 
       - name: Install pyglossary dependencies
         run: |
-          # Ensure environment variables are available in this step
           source .venv/bin/activate
           
-          # Export all the necessary environment variables
+          # Export vars
           export PKG_CONFIG_PATH="${BREW_PREFIX}/lib/pkgconfig:${PREFIX_ICU4C}/lib/pkgconfig:${PREFIX_LZO}/lib/pkgconfig:${PREFIX_LIBFFI}/lib/pkgconfig"
           export LDFLAGS="-L${PREFIX_LIBFFI}/lib -L${PREFIX_ICU4C}/lib -L${PREFIX_LZO}/lib -L${BREW_PREFIX}/lib"
           export CPPFLAGS="-I${PREFIX_ICU4C}/include -I${PREFIX_LIBFFI}/include -I${PREFIX_LZO}/include"
@@ -157,12 +157,12 @@ jobs:
           ########### Install PyICU with static deps ##############
           STATIC_DEPS=true uv pip install --no-binary PyICU PyICU
           ########### Install python-lzo with static deps ##############
-          ### ALO SEE: https://github.com/Nuitka/Nuitka/issues/2580#issuecomment-1895611093
+          ### ALSO SEE: https://github.com/Nuitka/Nuitka/issues/2580#issuecomment-1895611093
           STATIC_DEPS=true uv pip install --no-binary python-lzo python-lzo
           # uv pip install --extra-index-url https://glowinthedark.github.io/pyicu-build --index-strategy unsafe-best-match --force-reinstall --no-cache-dir PyICU
           uv pip install .
 
-      - name: Prepare nuitka build
+      - name: Patch sources for nuitka build
         run: |
           cp $MAIN_SCRIPT $APPNAME.py
           rm __init__.py
@@ -185,8 +185,10 @@ jobs:
           else:
               print(f'TkinterPlugin.py not found at {plugin_path}, skipping patch')
           " || true
+
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PREFIX_ICU4C/lib:$PREFIX_LZO/lib:$PREFIX_LZO/lib:$PREFIX_LIBFFI/lib:$PYTHONPATH" >> $GITHUB_ENV
+
       - name: nuitka Build
         env:
           PYTHONWARNDEFAULTENCODING: 0
