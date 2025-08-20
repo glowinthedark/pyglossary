@@ -53,12 +53,9 @@ jobs:
           arch: x64
 
       - name: Install Chocolatey packages
+        shell: powershell
         run: |
           choco install pkgconfiglite -y
-          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
-          choco install ninja -y
-          choco install nasm -y
-          refreshenv
 
       - name: Set up vcpkg and install dependencies
         shell: powershell
@@ -69,12 +66,12 @@ jobs:
           cd $env:VCPKG_INSTALLATION_ROOT
           
           # Update vcpkg to latest version
-          Write-Host "Updating vcpkg..."
-          git pull origin master
-          .\bootstrap-vcpkg.bat
+          # Write-Host "Updating vcpkg..."
+          # git pull origin master
+          # .\bootstrap-vcpkg.bat
           
-          # Show vcpkg version
-          .\vcpkg.exe version
+          # # Show vcpkg version
+          # .\vcpkg.exe version
           
           # Install dependencies with explicit triplets and features
           Write-Host "Installing ICU (this may take several minutes)..."
