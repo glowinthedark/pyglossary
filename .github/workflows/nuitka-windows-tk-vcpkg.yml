@@ -85,26 +85,27 @@ jobs:
         shell: pwsh
         run: |
           uv venv
+          
           # Update vcpkg and install C/C++ dependencies.
           cd $env:VCPKG_INSTALLATION_ROOT
           git pull
           ./bootstrap-vcpkg.bat
           ./vcpkg install icu lzo --clean-after-build
           
-          # Use `vcpkg env` to create a shell where pip (via uv) can find the C/C++ libs.
-          ./vcpkg env --triplet "${{ env.VCPKG_DEFAULT_TRIPLET }}" -- pwsh -c "
+          # Define the installation script as a PowerShell "here-string".
+          # This starts with @" and ends with "@ on a new line, and it prevents
+          # any quoting or parsing errors with the multi-line script block.
+          $installScript = @"
           echo '--- Installing Python packages inside vcpkg env ---'
           uv pip install nuitka
           uv pip install pymorphy2 lxml biplist polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin wheel setuptools
           uv pip install pyicu python-lzo
+          echo '--- Successfully installed all dependencies ---'
+          "@
 
-          uv pip install pymorphy2 lxml biplist polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin wheel setuptools
-          uv pip install pyicu python-lzo
-          # uv pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ python-lzo
-          # python3 -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build pyicu
-          # python3 -m pip install pyicu --extra-index-url https://glowinthedark.github.io/pyicu-build
-          #`python3 -m pip install https://github.com/cgohlke/pyicu-build/releases/download/v2.15/PyICU-2.15-cp313-cp313-win_amd64.whl
-          # python3 -m pip install .
+          # Now, execute this script block inside the environment configured by `vcpkg env`.
+          # This correctly passes the entire script as a single, well-formed argument.
+          ./vcpkg env --triplet "${{ env.VCPKG_DEFAULT_TRIPLET }}" -- pwsh -c $installScript
 
       - name: Patch sources
         shell: python
