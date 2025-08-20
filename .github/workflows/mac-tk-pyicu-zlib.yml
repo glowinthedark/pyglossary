@@ -1,4 +1,5 @@
 name: 'macOS TKinter+pyicu+lzo'
+# pyicu: https://github.com/googlefonts/pyfontaine/issues/109
 
 on:
   workflow_dispatch:
