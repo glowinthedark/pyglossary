@@ -70,7 +70,7 @@ jobs:
 
       - name: "Install Dependencies"
         run: |
-          python3 -m pip install pymorphy2 lxml biplist polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin wheel setuptools
+          python3 -m pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml tqdm xxhash
           python3 -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ python-lzo
           # python3 -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build pyicu
           # python3 -m pip install pyicu --extra-index-url https://glowinthedark.github.io/pyicu-build
