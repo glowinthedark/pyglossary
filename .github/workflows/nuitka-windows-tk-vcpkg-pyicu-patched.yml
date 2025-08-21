@@ -124,6 +124,7 @@ jobs:
       # Download and patch PyICU for Python 3.13 compatibility
       # ------------------------------------------------------------------
       - name: Download and patch PyICU
+        if: false
         shell: pwsh
         run: |
           # Download PyICU source
@@ -181,6 +182,7 @@ jobs:
       - name: Build and install patched PyICU
         shell: pwsh
         run: |
+          git clone --depth 1 -b v2.15-winpatch https://github.com/glowinthedark/pyicu.git PyICU-2.15.2
           cd PyICU-2.15.2
           # Set the ICU paths explicitly
           $env:ICU_INCLUDE = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\include"
@@ -192,7 +194,7 @@ jobs:
           pip install dist\*.whl
 
       # ------------------------------------------------------------------
-      # Patch sources (unchanged)
+      # Patch sources
       # ------------------------------------------------------------------
       - name: Patch sources
         shell: python
