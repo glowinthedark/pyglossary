@@ -86,7 +86,7 @@ jobs:
           git pull
           ./bootstrap-vcpkg.bat
           # Build the libs we need – they will be placed under .\installed\x64-windows\
-          ./vcpkg install icu@73.1 lzo --clean-after-build
+          ./vcpkg install icu lzo --clean-after-build
 
       # ------------------------------------------------------------------
       # 6️⃣  Export VCPKG_ROOT so that pip can find the libraries
@@ -111,9 +111,9 @@ jobs:
           uv pip install nuitka
           uv pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt_toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml setuptools tqdm wheel xxhash
           # IMPORTANT: Install pyicu *after* ICU is available in the environment
-          uv pip install pyicu==73.1   # pin to a recent, stable wheel that works on Windows
+          uv pip install pyicu   # pin to a recent, stable wheel that works on Windows
           # python‑lzo needs liblzo2 – we tell pip to build from source against the vcpkg libs
-          uv pip install --no-binary :all: python-lzo==0.4.6
+          uv pip install --no-binary :all: python-lzo
           echo '--- Successfully installed all dependencies ---'
           "@
 
