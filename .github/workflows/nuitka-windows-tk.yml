@@ -42,22 +42,12 @@ jobs:
           fetch-tags: true
           ref: master
 
-      # - name: Set up Python ${{ matrix.python-version }} with uv
-      #   run: uv python install ${{ matrix.python-version }}        
-
       - name: "Set up Python 3.13"
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           # x86, x64, or arm64
           architecture: 'x64'
-          # python-version-file: ".python-version"             
-
-      # - name: Install uv
-      #   # https://docs.astral.sh/uv/guides/integration/github/#caching
-      #   uses: astral-sh/setup-uv@v4
-      #   # with:
-      #   #   enable-cache: true
 
       - name: "create and activate venv"
         run: |
@@ -67,12 +57,11 @@ jobs:
         run: |
           python3 -m pip install nuitka
       
-
       - name: "Install Dependencies"
         run: |
           python3 -m pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml tqdm xxhash
           python3 -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ python-lzo
-          python3 -m pip install https://github.com/glowinthedark/pyicu-build/releases/download/v2.14/pyicu-2.15-cp313-cp313-win_amd64.whl
+          python3 -m pip install https://github.com/glowinthedark/pyicu-build/releases/download/v2.15/pyicu-2.15-cp313-cp313-win_amd64.whl
           # python3 -m pip install https://github.com/cgohlke/pyicu-build/releases/download/v2.15/PyICU-2.15-cp313-cp313-win_amd64.whl
 
           # python3 -m pip install --extra-index-url https://glowinthedark.github.io/pyicu-build pyicu
