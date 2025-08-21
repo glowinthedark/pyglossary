@@ -1,14 +1,13 @@
-name: 'nuitka tk windows msvc compiler'
+name: 'nuitka tk windows msvc compiler gpt-oss'
 on:
   push:
-    branches:
-      - 'nuitka-none'
+    branches: ['nuitka-none']
     paths-ignore:
       - '.vscode/**'
       - 'doc/**'
       - '*.md'
-      # - '.github/**'
-      
+      - '.github/**'
+
   workflow_dispatch:
 
 jobs:
@@ -21,9 +20,8 @@ jobs:
           - "3.13"
         # os: [macos-latest, ubuntu-latest, windows-latest]
         os: [windows-2022]
-        
     runs-on: ${{ matrix.os }}
-    
+
     env:
       PYTHONWARNDEFAULTENCODING: true
       APPNAME: PyGlossaryTk
@@ -32,9 +30,8 @@ jobs:
       RESOURCE_DIR: "resources"
       VCPKG_DEFAULT_TRIPLET: x64-windows
 
-
     steps:
-      - name: Check-out repository
+      - name: Check‑out repository
         uses: actions/checkout@v4
         with:
           submodules: true
@@ -43,142 +40,207 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           ref: master
-          
-#      - name: Setup MSBuild
-#        uses: microsoft/setup-msbuild@v1.3
-#        with:
-#          msbuild-architecture: x64
-  
+
+      # ------------------------------------------------------------------
+      # 1️⃣  Setup MSVC (x64) – provides compiler & linker
+      # ------------------------------------------------------------------
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
 
-#      - name: Install Chocolatey packages
-#        shell: powershell
-#        run: |
-#          choco install pkgconfiglite -y
-#
-
-      # - name: Set up Python ${{ matrix.python-version }} with uv
-      #   run: uv python install ${{ matrix.python-version }}        
-
-      - name: "Set up Python 3.13"
+      # ------------------------------------------------------------------
+      # 2️⃣  Install Python 3.13 (x64) – we’ll use uv for everything else
+      # ------------------------------------------------------------------
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           # x86, x64, or arm64
           architecture: 'x64'
-          # python-version-file: ".python-version"             
+          # python-version-file: ".python-version"
 
+      # ------------------------------------------------------------------
+      # 3️⃣  Install uv
+      # ------------------------------------------------------------------
       - name: Install uv
         # https://docs.astral.sh/uv/guides/integration/github/#caching
         uses: astral-sh/setup-uv@v6
-        # with:
-        #   enable-cache: true
 
-#      - name: "create and activate venv"
-#        run: |
-#          uv venv && .venv\Scripts\activate.bat
-      
-      - name: "Install Dependencies"
+      # ------------------------------------------------------------------
+      # 4️⃣  Create venv
+      # ------------------------------------------------------------------
+      - name: Create virtual environment
         shell: pwsh
         run: |
           uv venv
-          
-          # Update vcpkg and install C/C++ dependencies.
+          .venv\Scripts\activate.bat
+
+      # ------------------------------------------------------------------
+      # 5️⃣  Bootstrap vcpkg and install C/C++ dependencies
+      # ------------------------------------------------------------------
+      - name: Bootstrap vcpkg & install ICU + LZO
+        shell: pwsh
+        run: |
           cd $env:VCPKG_INSTALLATION_ROOT
           git pull
           ./bootstrap-vcpkg.bat
-          ./vcpkg install icu lzo --clean-after-build
-          
-          # Define the installation script as a PowerShell "here-string".
-          # This starts with @" and ends with "@ on a new line, and it prevents
-          # any quoting or parsing errors with the multi-line script block.
+          # Build the libs we need – they will be placed under .\installed\x64-windows\
+          ./vcpkg install icu@73.1 lzo --clean-after-build
+
+      # ------------------------------------------------------------------
+      # 6️⃣  Export VCPKG_ROOT so that pip can find the libraries
+      # ------------------------------------------------------------------
+      - name: Set VCPKG_ROOT env var
+        shell: pwsh
+        run: |
+          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $Env:GITHUB_ENV
+
+      # ------------------------------------------------------------------
+      # 7️⃣  Install Python wheels in vcpkg env
+      # ------------------------------------------------------------------
+      - name: Install Python dependencies (with vcpkg env)
+        shell: pwsh
+        run: |
+          # Activate the venv again – uv may have reset it
+          .venv\Scripts\activate.bat
+
+          # Build a small PowerShell script that will be executed inside the vcpkg env.
           $installScript = @"
           echo '--- Installing Python packages inside vcpkg env ---'
           uv pip install nuitka
-          uv pip install pymorphy2 lxml biplist polib PyYAML beautifulsoup4 html5lib prompt_toolkit colorize_pinyin wheel setuptools
-          uv pip install pyicu python-lzo
+          uv pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt_toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml setuptools tqdm wheel xxhash
+          # IMPORTANT: Install pyicu *after* ICU is available in the environment
+          uv pip install pyicu==73.1   # pin to a recent, stable wheel that works on Windows
+          # python‑lzo needs liblzo2 – we tell pip to build from source against the vcpkg libs
+          uv pip install --no-binary :all: python-lzo==0.4.6
           echo '--- Successfully installed all dependencies ---'
           "@
 
-          # Now, execute this script block inside the environment configured by `vcpkg env`.
-          # This correctly passes the entire script as a single, well-formed argument.
+          # Run the script inside the vcpkg env so that compiler can see ICU & LZO headers/libs.
           ./vcpkg env --triplet "${{ env.VCPKG_DEFAULT_TRIPLET }}" -- pwsh -c $installScript
 
+      # ------------------------------------------------------------------
+      # 8️⃣  Patch sources (unchanged)
+      # ------------------------------------------------------------------
       - name: Patch sources
         shell: python
         run: |
-          import os
-          from shutil import copy
+          import os, sys
           from pathlib import Path
           try:
-              copy(os.getenv("MAIN_SCRIPT"), os.getenv("APPNAME"))
+              Path(os.getenv("APPNAME")).write_bytes(Path(os.getenv("MAIN_SCRIPT")).read_bytes())
               Path('__init__.py').unlink()
-              p = Path('pyglossary/ui/argparse_main.py'); p.write_text(p.read_text().replace('default="auto"', 'default="tk"'), encoding='utf8')
-              p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'), encoding='utf8')
-              p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'), encoding='utf8')
-              p = Path('.venv/lib/python3.13/site-packages/nuitka/plugins/standard/TkinterPlugin.py'); p.write_text(p.read_text().replace('self.tk_inter_version in ("8.5", "8.6")', 'self.tk_inter_version in ("8.5", "8.6", "9.0")'), encoding='utf8')
+              p = Path('pyglossary/ui/argparse_main.py')
+              p.write_text(p.read_text().replace('default="auto"', 'default="tk"'), encoding='utf8')
+              p = Path('pyglossary/ui/runner.py')
+              p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'), encoding='utf8')
+              p = Path('.venv/lib/python3.13/site-packages/nuitka/plugins/standard/TkinterPlugin.py')
+              p.write_text(p.read_text().replace('self.tk_inter_version in ("8.5", "8.6")', 'self.tk_inter_version in ("8.5", "8.6", "9.0")'), encoding='utf8')
           except Exception as e:
               print(str(e))
 
-#      - name: list files
-#        shell: bash
-#        run: |
-#          find .
-
+      # ------------------------------------------------------------------
+      # 9️⃣  Nuitka build
+      # ------------------------------------------------------------------
       - name: Nuitka build
         shell: cmd
         run: |
-          uv run nuitka --standalone --assume-yes-for-downloads --plugin-enable=dll-files --plugin-enable=anti-bloat --follow-imports --windows-console-mode=disable --windows-icon-from-ico=res\pyglossary.ico --enable-plugin=tk-inter --include-package=pyglossary --include-module=tkinter --include-module=lzo --include-module=pymorphy2 --include-module=_json --include-module=lxml --include-module=polib --include-module=yaml --include-module=bs4 --include-module=html5lib --include-module=icu --include-module=colorize_pinyin --include-package-data=pyglossary --include-data-files=about=about --include-data-files=_license-dialog=_license-dialog --include-data-files=_license-dialog=license-dialog --noinclude-custom-mode=unittest:nofollow --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --nofollow-import-to=pyglossary.ui.ui_gtk --nofollow-import-to=pyglossary.ui.ui_gtk4 --nofollow-import-to=pyglossary.ui.ui_qt --nofollow-import-to=gi --nofollow-import-to=gtk --nofollow-import-to=pyqt4 --nofollow-import-to=pyqt5 --nofollow-import-to=pyqt6 --nofollow-import-to=*.tests --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow --plugin-disable=pyqt5 main.py --output-dir="${{ env.DIST_DIR }}" --output-filename=pyglossary.exe
+          uv run nuitka --standalone \
+            --assume-yes-for-downloads \
+            --plugin-enable=dll-files \
+            --plugin-enable=anti-bloat \
+            --follow-imports \
+            --windows-console-mode=disable \
+            --windows-icon-from-ico=res\pyglossary.ico \
+            --enable-plugin=tk-inter \
+            --include-package=pyglossary \
+            --include-module=tkinter \
+            --include-module=lzo \
+            --include-module=pymorphy2 \
+            --include-module=_json \
+            --include-module=lxml \
+            --include-module=polib \
+            --include-module=biplist \
+            --include-module=prompt_toolkit \
+            --include-module=yaml \
+            --include-module=bs4 \
+            --include-module=html5lib \
+            --include-module=icu \
+            --include-module=colorize_pinyin \
+            --include-package-data=pyglossary \
+            --include-data-files=about=about \
+            --include-data-files=_license-dialog=_license-dialog \
+            --include-data-files=_license-dialog=license-dialog \
+            --noinclude-custom-mode=unittest:nofollow \
+            --noinclude-pytest-mode=nofollow \
+            --noinclude-setuptools-mode=nofollow \
+            --nofollow-import-to=pyglossary.ui.ui_gtk \
+            --nofollow-import-to=pyglossary.ui.ui_gtk4 \
+            --nofollow-import-to=pyglossary.ui.ui_qt \
+            --nofollow-import-to=gi \
+            --nofollow-import-to=gtk \
+            --nofollow-import-to=pyqt4 \
+            --nofollow-import-to=pyqt5 \
+            --nofollow-import-to=pyqt6 \
+            --nofollow-import-to=*.tests \
+            --plugin-disable=pyqt5 main.py \
+            --output-dir="${{ env.DIST_DIR }}" \
+            --output-filename=pyglossary.exe
 
+      # ------------------------------------------------------------------
+      # 🔧  Copy assets (unchanged)
+      # ------------------------------------------------------------------
       - name: Copy assets
         shell: python
         run: |
-            from pathlib import Path
-            import shutil
-            import sys
-            import os
-            
-            dist_dir = os.getenv("DIST_DIR")
-            app_name = os.getenv("APPNAME")
-            
-            if not dist_dir or not app_name:
-                print('missing env vars')
-                sys.exit(0)
-            
-            target_path = Path(dist_dir)/"main.dist"
-            print(f'TARGET_PATH={target_path}, APPNAME={app_name}')
-            
-            sources = ["about", "AUTHORS", "_license-dialog", "config.json", "plugins-meta", "help", "res", "pyglossary"]
-            
-            if not target_path.exists():
-                print(f'missing target dir {target_path.absolute()}')
-                sys.exit(0)
-            
-            for source in sources:
-                src = Path(source)
-                try:
-                    if src.is_dir():
-                        copied_to = shutil.copytree(src, target_path / src.name, dirs_exist_ok=True, symlinks=True, ignore_dangling_symlinks=True)
-                    else:
-                        copied_to = shutil.copy(src, target_path, follow_symlinks=False)
-                    print(f"Copied {src} -> {copied_to}")
-                except FileNotFoundError:
-                    print(f"Missing {src}")
-                except PermissionError:
-                    print(f"No access {src}")
-                except Exception as e:
-                    print(f"Failed {src}: {e}")
-            print("Done")
+          from pathlib import Path, PurePath
+          import shutil, sys, os
 
+          dist_dir = os.getenv("DIST_DIR")
+          app_name = os.getenv("APPNAME")
+
+          if not dist_dir or not app_name:
+              print('missing env vars')
+              sys.exit(0)
+
+          target_path = Path(dist_dir)/"main.dist"
+          print(f'TARGET_PATH={target_path}, APPNAME={app_name}')
+
+          sources = ["about", "AUTHORS", "_license-dialog", "config.json",
+                     "plugins-meta", "help", "res", "pyglossary"]
+
+          if not target_path.exists():
+              print(f'missing target dir {target_path.absolute()}')
+              sys.exit(0)
+
+          for source in sources:
+              src = Path(source)
+              try:
+                  if src.is_dir():
+                      shutil.copytree(src, target_path / src.name,
+                                      dirs_exist_ok=True, symlinks=True,
+                                      ignore_dangling_symlinks=True)
+                  else:
+                      shutil.copy(src, target_path, follow_symlinks=False)
+                  print(f"Copied {src} -> {target_path / src.name}")
+              except FileNotFoundError:
+                  print(f"Missing {src}")
+              except PermissionError:
+                  print(f"No access {src}")
+              except Exception as e:
+                  print(f"Failed {src}: {e}")
+
+          print("Done")
+
+      # ------------------------------------------------------------------
+      # 📦  Upload artifacts (unchanged)
+      # ------------------------------------------------------------------
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
-          # branch name: ${{ github.ref_name }}
           include-hidden-files: true
           name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
           path: |
             ${{ env.DIST_DIR }}/main.dist/**/*
+
