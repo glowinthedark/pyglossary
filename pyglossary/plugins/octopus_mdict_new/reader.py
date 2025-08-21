@@ -56,7 +56,7 @@ class Reader:
 		self._filename = ""
 		self._mdx: MDX | None = None
 		self._mdd: list[MDD] = []
-		self._wordCount = 0
+		self._entryCount = 0
 		self._dataEntryCount = 0
 
 		# dict of mainWord -> newline-separated alternatives
@@ -124,29 +124,29 @@ class Reader:
 
 		log.info("extracting links...")
 		linksDict: dict[str, str] = {}
-		word = ""
-		wordCount = 0
+		term = ""
+		entryCount = 0
 		for b_word, b_defi in mdx.items():
-			word = b_word.decode("utf-8")
+			term = b_word.decode("utf-8")
 			defi = b_defi.decode("utf-8").strip()
 			if defi.startswith("@@@LINK="):
-				if not word:
+				if not term:
 					log.warning(f"unexpected defi: {defi}")
 					continue
 				mainWord = defi[8:]
 				if mainWord in linksDict:
-					linksDict[mainWord] += "\n" + word
+					linksDict[mainWord] += "\n" + term
 				else:
-					linksDict[mainWord] = word
+					linksDict[mainWord] = term
 				continue
-			wordCount += 1
+			entryCount += 1
 
 		log.info(
 			f"extracting links done, sizeof(linksDict)={sys.getsizeof(linksDict)}",
 		)
-		log.info(f"{wordCount = }")
+		log.info(f"{entryCount = }")
 		self._linksDict = linksDict
-		self._wordCount = wordCount
+		self._entryCount = entryCount
 		self._mdx = MDX(self._filename, self._encoding, self._substyle)
 
 	def fixDefi(self, defi: str) -> str:
@@ -178,16 +178,16 @@ class Reader:
 		glos = self._glos
 		linksDict = self._linksDict
 		for b_word, b_defi in self._mdx.items():
-			word = b_word.decode("utf-8")
+			term = b_word.decode("utf-8")
 			defi = b_defi.decode("utf-8").strip()
 			if defi.startswith("@@@LINK="):
 				continue
 			defi = self.fixDefi(defi)
-			words = word
-			altsStr = linksDict.get(word, "")
+			terms: str | list[str] = term
+			altsStr = linksDict.get(term, "")
 			if altsStr:
-				words = [word] + altsStr.split("\n")
-			yield glos.newEntry(words, defi)
+				terms = [term] + altsStr.split("\n")
+			yield glos.newEntry(terms, defi)
 
 		self._mdx = None
 		del linksDict
@@ -218,7 +218,7 @@ class Reader:
 		self._mdd = []
 
 	def __len__(self) -> int:
-		return self._wordCount + self._dataEntryCount
+		return self._entryCount + self._dataEntryCount
 
 	def close(self) -> None:
 		self.clear()

@@ -34,7 +34,7 @@ class Reader:
 	def _clear(self) -> None:
 		self._filename = ""
 		self._prev_link = True
-		self._wordCount = None
+		self._entryCount = None
 		self._rootPath = None
 		self._resDir = ""
 		self._resFileNames: list[str] = []
@@ -55,7 +55,7 @@ class Reader:
 
 		with open(infoFname, encoding=self._encoding) as infoFp:
 			info = jsonToData(infoFp.read())
-		self._wordCount = info.pop("wordCount")
+		self._entryCount = info.pop("wordCount")
 		self._prev_link = info.pop("prev_link")
 		self._rootPath = info.pop("root")
 		for key, value in info.items():
@@ -69,19 +69,19 @@ class Reader:
 			self._resFileNames = []
 
 	def __len__(self) -> int:
-		if self._wordCount is None:
+		if self._entryCount is None:
 			log.error("called len() on a reader which is not open")
 			return 0
-		return self._wordCount + len(self._resFileNames)
+		return self._entryCount + len(self._resFileNames)
 
 	def __iter__(self) -> Iterator[EntryType]:
 		if not self._rootPath:
 			raise RuntimeError("iterating over a reader while it's not open")
 
-		wordCount = 0
+		entryCount = 0
 		nextPath = self._rootPath
 		while nextPath != "END":
-			wordCount += 1
+			entryCount += 1
 			# before or after reading word and defi
 			# (and skipping empty entry)? FIXME
 
@@ -94,36 +94,36 @@ class Reader:
 					_prevPath, nextPath = header.split(" ")
 				else:
 					nextPath = header
-				word = _file.readline()
-				if not word:
+				term = _file.readline()
+				if not term:
 					yield None  # update progressbar
 					continue
 				defi = _file.read()
 				if not defi:
 					log.warning(
-						f"Edlin Reader: no definition for word {word!r}, skipping",
+						f"Edlin Reader: no definition for word {term!r}, skipping",
 					)
 					yield None  # update progressbar
 					continue
-				word = word.rstrip()
+				term = term.rstrip()
 				defi = defi.rstrip()
 
 			if self._glos.alts:
-				word = splitByBarUnescapeNTB(word)
-				if len(word) == 1:
-					word = word[0]
+				term = splitByBarUnescapeNTB(term)
+				if len(term) == 1:
+					term = term[0]
 			else:
-				word = unescapeNTB(word, bar=False)
+				term = unescapeNTB(term, bar=False)
 
 			# defi = unescapeNTB(defi)
-			yield self._glos.newEntry(word, defi)
+			yield self._glos.newEntry(term, defi)
 
-		if wordCount != self._wordCount:
+		if entryCount != self._entryCount:
 			log.warning(
-				f"{wordCount} words found, "
-				f"wordCount in info.json was {self._wordCount}",
+				f"{entryCount} words found, "
+				f"entryCount in info.json was {self._entryCount}",
 			)
-			self._wordCount = wordCount
+			self._entryCount = entryCount
 
 		resDir = self._resDir
 		for fname in self._resFileNames:

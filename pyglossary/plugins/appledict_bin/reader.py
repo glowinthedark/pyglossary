@@ -91,7 +91,7 @@ class Reader:
 		self._defiFormat = "m"
 		self._re_xmlns = re.compile(' xmlns:d="[^"<>]+"')
 		self._titleById: dict[str, str] = {}
-		self._wordCount = 0
+		self._entryCount = 0
 		self._keyTextData: dict[ArticleAddress, list[RawKeyDataType]] = {}
 		self._cssName = ""
 
@@ -113,8 +113,8 @@ class Reader:
 		href = a.attrib.get("href", "")
 
 		if href.startswith("x-dictionary:d:"):
-			word = href[len("x-dictionary:d:") :]
-			a.attrib["href"] = href = f"bword://{word}"
+			term = href[len("x-dictionary:d:") :]
+			a.attrib["href"] = href = f"bword://{term}"
 
 		elif href.startswith("x-dictionary:r:"):
 			# https://github.com/ilius/pyglossary/issues/343
@@ -219,7 +219,7 @@ class Reader:
 		dt = datetime.now() - t0
 		log.info(
 			f"Reading entry IDs took {int(dt.total_seconds() * 1000)} ms, "
-			f"number of entries: {self._wordCount}",
+			f"number of entries: {self._entryCount}",
 		)
 
 	@staticmethod
@@ -293,7 +293,7 @@ class Reader:
 		self._glos.targetLangName = locale.normalize(targetLocale).split("_")[0]
 
 	def __len__(self) -> int:
-		return self._wordCount
+		return self._entryCount
 
 	def close(self) -> None:
 		self._file.close()
@@ -374,12 +374,12 @@ class Reader:
 		entryElems = entryRoot.xpath("/d:entry", namespaces=namespaces)
 		if not entryElems:
 			return None
-		word = entryElems[0].xpath("./@d:title", namespaces=namespaces)[0]
+		term = entryElems[0].xpath("./@d:title", namespaces=namespaces)[0]
 
 		# 2. add alts
 		keyTextFieldOrder = self._properties.key_text_variable_fields
 
-		words = [word]
+		terms = [term]
 
 		keyDataList: list[KeyData] = [
 			KeyData.fromRaw(rawKeyData, keyTextFieldOrder)
@@ -390,12 +390,12 @@ class Reader:
 				key=attrgetter("priority"),
 				reverse=True,
 			)
-			words += [keyData.keyword for keyData in keyDataList]
+			terms += [keyData.keyword for keyData in keyDataList]
 
 		defi = self._getDefi(entryElems[0])
 
 		return self._glos.newEntry(
-			word=words,
+			word=terms,
 			defi=defi,
 			defiFormat=self._defiFormat,
 			byteProgress=(self._absPos, self._limit),
@@ -449,7 +449,7 @@ class Reader:
 			titleById[id_] = entryBytes[title_i + 9 : title_j].decode(self._encoding)
 
 		self._titleById = titleById
-		self._wordCount = len(titleById)
+		self._entryCount = len(titleById)
 
 	def setKeyTextData(
 		self,

@@ -23,7 +23,7 @@ class Reader:
 	def __init__(self, glos: ReaderGlossaryType) -> None:
 		self._glos = glos
 		self._filename = None
-		self._wordCount = 0
+		self._entryCount = 0
 
 	def open(self, filename: str) -> None:
 		from pyglossary.json_utils import jsonToData
@@ -32,7 +32,7 @@ class Reader:
 
 		with open(join(filename, "info.json"), encoding="utf-8") as infoFp:
 			info = jsonToData(infoFp.read())
-		self._wordCount = info.pop("wordCount")
+		self._entryCount = info.pop("wordCount")
 		for key, value in info.items():
 			self._glos.setInfo(key, value)
 
@@ -40,7 +40,7 @@ class Reader:
 		pass
 
 	def __len__(self) -> int:
-		return self._wordCount
+		return self._entryCount
 
 	def _fromFile(self, fpath: str) -> EntryType:
 		_, ext = splitext(fpath)
@@ -49,9 +49,9 @@ class Reader:
 			log.error(f"invalid extension {ext}")
 			c_open = open
 		with c_open(fpath, "rt", encoding="utf-8") as _file:
-			words = splitByBarUnescapeNTB(_file.readline().rstrip("\n"))
+			terms = splitByBarUnescapeNTB(_file.readline().rstrip("\n"))
 			defi = _file.read()
-			return self._glos.newEntry(words, defi)
+			return self._glos.newEntry(terms, defi)
 
 	@staticmethod
 	def _listdirSortKey(name: str) -> str:

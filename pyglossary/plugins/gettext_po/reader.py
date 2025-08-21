@@ -33,7 +33,7 @@ class Reader:
 	def clear(self) -> None:
 		self._filename = ""
 		self._file: io.TextIOBase = nullTextIO
-		self._wordCount: int | None = None
+		self._entryCount: int | None = None
 		self._resDir = ""
 		self._resFileNames: list[str] = []
 
@@ -55,13 +55,13 @@ class Reader:
 	def __len__(self) -> int:
 		from pyglossary.file_utils import fileCountLines
 
-		if self._wordCount is None:
+		if self._entryCount is None:
 			log.debug("Try not to use len(reader) as it takes extra time")
-			self._wordCount = fileCountLines(
+			self._entryCount = fileCountLines(
 				self._filename,
 				newline=b"\nmsgid",
 			)
-		return self._wordCount
+		return self._entryCount
 
 	def makeEntry(self, word: str, defi: str) -> EntryType:
 		if self._alts:
@@ -77,10 +77,10 @@ class Reader:
 
 		file = self._file
 
-		word = ""
+		term = ""
 		defi = ""
 		msgstr = False
-		wordCount = 0
+		entryCount = 0
 		for line_ in file:
 			line = line_.strip()  # noqa: PLW2901
 			if not line:
@@ -88,20 +88,20 @@ class Reader:
 			if line.startswith("#"):
 				continue
 			if line.startswith("msgid "):
-				if word:
-					yield self.makeEntry(word, defi)
-					wordCount += 1
-					word = ""
+				if term:
+					yield self.makeEntry(term, defi)
+					entryCount += 1
+					term = ""
 					defi = ""
 				else:
 					pass
 					# TODO: parse defi and set glos info?
 					# but this should be done in self.open
-				word = po_unescape(line[6:])
-				if word.startswith('"'):
-					if len(word) < 2 or word[-1] != '"':
+				term = po_unescape(line[6:])
+				if term.startswith('"'):
+					if len(term) < 2 or term[-1] != '"':
 						raise ValueError("invalid po line: line")
-					word = word[1:-1]
+					term = term[1:-1]
 				msgstr = False
 				continue
 			if line.startswith("msgstr "):
@@ -124,8 +124,8 @@ class Reader:
 			if msgstr:
 				defi += line
 			else:
-				word += line
-		if word:
-			yield self.makeEntry(word, defi)
-			wordCount += 1
-		self._wordCount = wordCount
+				term += line
+		if term:
+			yield self.makeEntry(term, defi)
+			entryCount += 1
+		self._entryCount = entryCount

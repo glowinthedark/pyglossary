@@ -101,18 +101,18 @@ class Reader:
 		for elem in trans.findall("xref"):
 			if not elem.text:
 				continue
-			word = elem.text.strip()
-			word = self._link_number_postfix.sub("", word)
-			relatedWords.append(word)
+			term = elem.text.strip()
+			term = self._link_number_postfix.sub("", term)
+			relatedWords.append(term)
 
 		if relatedWords:
 			hf.write("Related: ")
-			for i, word in enumerate(relatedWords):
+			for i, term in enumerate(relatedWords):
 				if i > 0:
 					with hf.element("big"):
 						hf.write(" | ")
-				with hf.element("a", href=f"bword://{word}"):
-					hf.write(word)
+				with hf.element("a", href=f"bword://{term}"):
+					hf.write(term)
 			hf.write(br())
 
 	def getEntryByElem(  # noqa: PLR0912
@@ -237,14 +237,14 @@ class Reader:
 
 	def __init__(self, glos: ReaderGlossaryType) -> None:
 		self._glos = glos
-		self._wordCount = 0
+		self._entryCount = 0
 		self._filename = ""
 		self._file: io.IOBase = nullBinaryIO
 		self._fileSize = 0
 		self._link_number_postfix = re.compile("・[0-9]+$")
 
 	def __len__(self) -> int:
-		return self._wordCount
+		return self._entryCount
 
 	def close(self) -> None:
 		if self._file:

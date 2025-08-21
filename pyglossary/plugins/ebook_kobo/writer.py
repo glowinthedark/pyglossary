@@ -75,12 +75,12 @@ class Writer:
 
 	@staticmethod
 	def stripFullHtmlError(entry: EntryType, error: str) -> None:
-		log.error(f"error in stripFullHtml: {error}, words={entry.l_word!r}")
+		log.error(f"error in stripFullHtml: {error}, terms={entry.l_word!r}")
 
 	def __init__(self, glos: WriterGlossaryType) -> None:
 		self._glos = glos
 		self._filename = ""
-		self._words: list[str] = []
+		self._terms: list[str] = []
 		self._img_pattern = re.compile(
 			'<img src="([^<>"]*?)"( [^<>]*?)?>',
 			re.DOTALL,
@@ -211,7 +211,7 @@ class Writer:
 				" and replaced '<img ...' tags in definitions with placeholders",
 			)
 
-		self._words = allWords
+		self._terms = allWords
 
 	def open(self, filename: str) -> None:
 		try:
@@ -229,6 +229,6 @@ class Writer:
 		import marisa_trie
 
 		with indir(self._filename, create=False):
-			trie = marisa_trie.Trie(self._words)
+			trie = marisa_trie.Trie(self._terms)
 			trie.save(self.WORDS_FILE_NAME)
 		self._filename = ""
