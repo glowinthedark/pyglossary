@@ -1,4 +1,4 @@
-name: 'nuitka tk windows msvc compiler gpt-oss'
+name: 'nuitka tk windows patched pyicu vcpkg'
 on:
   push:
     branches: ['nuitka-none']
