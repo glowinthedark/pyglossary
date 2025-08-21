@@ -74,7 +74,6 @@ jobs:
         shell: pwsh
         run: |
           uv venv
-          .venv\Scripts\activate.bat
 
       # ------------------------------------------------------------------
       # 5️⃣  Bootstrap vcpkg and install C/C++ dependencies
@@ -82,11 +81,9 @@ jobs:
       - name: Bootstrap vcpkg & install ICU + LZO
         shell: pwsh
         run: |
-          cd $env:VCPKG_INSTALLATION_ROOT
-          git pull
-          ./bootstrap-vcpkg.bat
+          $vcpkg = Join-Path $env:VCPKG_INSTALLATION_ROOT "vcpkg.exe"
           # Build the libs we need – they will be placed under .\installed\x64-windows\
-          ./vcpkg install icu lzo --clean-after-build
+          $vcpkg install icu lzo --clean-after-build --triplet $env:VCPKG_DEFAULT_TRIPLET
 
       # ------------------------------------------------------------------
       # 6️⃣  Export VCPKG_ROOT so that pip can find the libraries
@@ -94,7 +91,8 @@ jobs:
       - name: Set VCPKG_ROOT env var
         shell: pwsh
         run: |
-          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $Env:GITHUB_ENV
+          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
+          echo "PATH=$env:VCPKG_INSTALLATION_ROOT;$env:PATH" >> $env:GITHUB_ENV
 
       # ------------------------------------------------------------------
       # 7️⃣  Install Python wheels in vcpkg env
@@ -102,23 +100,16 @@ jobs:
       - name: Install Python dependencies (with vcpkg env)
         shell: pwsh
         run: |
-          # Activate the venv again – uv may have reset it
-          .venv\Scripts\activate.bat
-
-          # Build a small PowerShell script that will be executed inside the vcpkg env.
+          $vcpkg = Join-Path $env:VCPKG_INSTALLATION_ROOT "vcpkg.exe"
           $installScript = @"
           echo '--- Installing Python packages inside vcpkg env ---'
           uv pip install nuitka
           uv pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt_toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml setuptools tqdm wheel xxhash
-          # IMPORTANT: Install pyicu *after* ICU is available in the environment
-          uv pip install pyicu   # pin to a recent, stable wheel that works on Windows
-          # python‑lzo needs liblzo2 – we tell pip to build from source against the vcpkg libs
+          uv pip install pyicu
           uv pip install --no-binary :all: python-lzo
           echo '--- Successfully installed all dependencies ---'
           "@
-
-          # Run the script inside the vcpkg env so that compiler can see ICU & LZO headers/libs.
-          ./vcpkg env --triplet "${{ env.VCPKG_DEFAULT_TRIPLET }}" -- pwsh -c $installScript
+          & $vcpkg env --triplet $env:VCPKG_DEFAULT_TRIPLET -- pwsh -c $installScript
 
       # ------------------------------------------------------------------
       # 8️⃣  Patch sources (unchanged)
