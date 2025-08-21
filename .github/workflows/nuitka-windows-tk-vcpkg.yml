@@ -101,15 +101,21 @@ jobs:
         shell: pwsh
         run: |
           $vcpkg = Join-Path $env:VCPKG_INSTALLATION_ROOT "vcpkg.exe"
-          $installScript = @"
-          echo '--- Installing Python packages inside vcpkg env ---'
-          uv pip install nuitka
-          uv pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt_toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml setuptools tqdm wheel xxhash
-          uv pip install pyicu
-          uv pip install --no-binary :all: python-lzo
-          echo '--- Successfully installed all dependencies ---'
-          "@
-          & $vcpkg env --triplet $env:VCPKG_DEFAULT_TRIPLET -- pwsh -c $installScript
+          & $vcpkg env 'pwsh -Command "uv pip install nuitka; uv pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt_toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml setuptools tqdm wheel xxhash; uv pip install pyicu; uv pip install --no-binary :all: python-lzo"' --triplet $env:VCPKG_DEFAULT_TRIPLET
+      
+      # - name: Install Python dependencies (with vcpkg env)
+      #   shell: pwsh
+      #   run: |
+      #     $vcpkg = Join-Path $env:VCPKG_INSTALLATION_ROOT "vcpkg.exe"
+      #     $installScript = @"
+      #     echo '--- Installing Python packages inside vcpkg env ---'
+      #     uv pip install nuitka
+      #     uv pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt_toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml setuptools tqdm wheel xxhash
+      #     uv pip install pyicu
+      #     uv pip install --no-binary :all: python-lzo
+      #     echo '--- Successfully installed all dependencies ---'
+      #     "@
+      #     & $vcpkg env --triplet $env:VCPKG_DEFAULT_TRIPLET -- pwsh -c $installScript
 
       # ------------------------------------------------------------------
       # 8️⃣  Patch sources (unchanged)
