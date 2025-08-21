@@ -70,11 +70,11 @@ jobs:
       # ------------------------------------------------------------------
       # 4️⃣  Create venv
       # ------------------------------------------------------------------
-      - name: Create and activate venv
-        shell: pwsh
-        run: |
-          python3 -m venv .venv
-          .\env\Scripts\Activate.ps1
+      # - name: Create and activate venv
+      #   shell: pwsh
+      #   run: |
+      #     python3 -m venv .venv
+      #     .\env\Scripts\Activate.ps1
 
       # ------------------------------------------------------------------
       # 5️⃣  Bootstrap vcpkg and install C/C++ dependencies
