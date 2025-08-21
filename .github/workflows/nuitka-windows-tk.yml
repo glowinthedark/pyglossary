@@ -81,11 +81,6 @@ jobs:
           except Exception as e:
               print(str(e))
 
-      - name: list files
-        shell: bash
-        run: |
-          find . 
-
       - name: Nuitka build
         shell: cmd
         run: |
