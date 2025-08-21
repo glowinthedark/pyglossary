@@ -63,17 +63,18 @@ jobs:
       # ------------------------------------------------------------------
       # 3️⃣  Install uv
       # ------------------------------------------------------------------
-      - name: Install uv
-        # https://docs.astral.sh/uv/guides/integration/github/#caching
-        uses: astral-sh/setup-uv@v6
+      # - name: Install uv
+      #   # https://docs.astral.sh/uv/guides/integration/github/#caching
+      #   uses: astral-sh/setup-uv@v6
 
       # ------------------------------------------------------------------
       # 4️⃣  Create venv
       # ------------------------------------------------------------------
-      - name: Create virtual environment
+      - name: Create and activate venv
         shell: pwsh
         run: |
-          uv venv
+          python3 -m venv .venv
+          .\env\Scripts\Activate.ps1
 
       # ------------------------------------------------------------------
       # 5️⃣  Bootstrap vcpkg and install C/C++ dependencies
@@ -101,7 +102,7 @@ jobs:
         shell: pwsh
         run: |
           $vcpkg = Join-Path $env:VCPKG_INSTALLATION_ROOT "vcpkg.exe"
-          & $vcpkg env "uv pip install nuitka && uv pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt_toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml setuptools tqdm wheel xxhash && uv pip install pyicu && uv pip install --no-binary :all: python-lzo" --triplet $env:VCPKG_DEFAULT_TRIPLET
+          & $vcpkg env "pip install nuitka && pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt_toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml setuptools tqdm wheel xxhash && pip install pyicu && pip install --no-binary :all: python-lzo" --triplet $env:VCPKG_DEFAULT_TRIPLET
             
       # - name: Install Python dependencies (with vcpkg env)
       #   shell: pwsh
