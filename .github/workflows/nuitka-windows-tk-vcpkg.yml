@@ -83,7 +83,7 @@ jobs:
         run: |
           $vcpkg = Join-Path $env:VCPKG_INSTALLATION_ROOT "vcpkg.exe"
           # Build the libs we need – they will be placed under .\installed\x64-windows\
-          $vcpkg install icu lzo --clean-after-build --triplet $env:VCPKG_DEFAULT_TRIPLET
+          & $vcpkg install icu lzo --clean-after-build --triplet $env:VCPKG_DEFAULT_TRIPLET
 
       # ------------------------------------------------------------------
       # 6️⃣  Export VCPKG_ROOT so that pip can find the libraries
