@@ -105,7 +105,20 @@ jobs:
       - name: Install Python dependencies (without PyICU)
         shell: pwsh
         run: |
-          pip install nuitka && pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt_toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml setuptools tqdm wheel xxhash && pip install --no-binary :all: python-lzo
+          pip install nuitka && pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt_toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml setuptools tqdm wheel xxhash
+
+
+      # ------------------------------------------------------------------
+      # Install python-lzo
+      # ------------------------------------------------------------------
+      - name: Build from source and install python-lzo
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/jd-boyd/python-lzo.git
+          cd python-lzo
+          pip wheel . -w wheels
+          pip install wheels/*.whl
+
 
       # ------------------------------------------------------------------
       # Download and patch PyICU for Python 3.13 compatibility
