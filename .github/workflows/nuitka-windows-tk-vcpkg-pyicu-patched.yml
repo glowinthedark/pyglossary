@@ -189,9 +189,11 @@ jobs:
           $env:ICU_LIB = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\lib"
           
           # Build and install PyICU
-          python setup.py build_ext --include-dirs="$env:ICU_INCLUDE" --library-dirs="$env:ICU_LIB" --rpath="$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin"
-          python setup.py bdist_wheel
-          pip install dist\*.whl
+          pip wheel . -w wheels
+          pip install wheels/*.whl
+          # python setup.py build_ext --include-dirs="$env:ICU_INCLUDE" --library-dirs="$env:ICU_LIB" --rpath="$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin"
+          # python setup.py bdist_wheel
+          # pip install dist\*.whl
 
       # ------------------------------------------------------------------
       # Patch sources
