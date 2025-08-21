@@ -29,6 +29,7 @@ jobs:
       MAIN_SCRIPT: main.py
       RESOURCE_DIR: "resources"
       VCPKG_DEFAULT_TRIPLET: x64-windows
+      ICU_VERSION: 74.2
 
     steps:
       - name: Check‑out repository
