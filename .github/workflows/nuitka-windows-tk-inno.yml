@@ -146,7 +146,7 @@ jobs:
       - name: Create Inno Installer
         shell: cmd
         run: |
-          run: iscc inno_setup.iss
+          iscc inno_setup.iss
       - name: Upload Inno Installer EXE
         uses: actions/upload-artifact@v4
         with:
