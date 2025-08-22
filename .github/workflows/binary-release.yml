@@ -448,7 +448,7 @@ jobs:
         run: |
           # Windows (PowerShell)
           # TODO: integrate with NSIS: https://github.com/marketplace/actions/makensis
-          Compress-Archive -Path "${{ env.DIST_DIR }}\main.dist\*" -DestinationPath "windows-dist.zip" -Force
+          Compress-Archive -Path "${{ env.DIST_DIR }}\main.dist\*" -DestinationPath "${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION }}-dist.zip" -Force
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -456,7 +456,7 @@ jobs:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION }}
           path: |
-            windows-dist.zip
+            "${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION }}-dist.zip"
             
   release:
     if: true
