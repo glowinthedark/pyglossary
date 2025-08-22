@@ -448,16 +448,16 @@ jobs:
         run: |
           # Windows (PowerShell)
           # TODO: integrate with NSIS: https://github.com/marketplace/actions/makensis
-          Compress-Archive -Path ${{ env.DIST_DIR }}\main.dist -DestinationPath windows-dist.zip
+          Set-Location ${{ env.DIST_DIR }}/main.dist
+          Compress-Archive -Path * -DestinationPath ${{ env.DIST_DIR }}/windows-dist.zip -Force
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
-          # branch name: ${{ github.ref_name }}
           name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION }}
           path: |
-            windows-dist.zip
+            ${{ env.DIST_DIR }}/windows-dist.zip
             
   release:
     if: true
@@ -491,6 +491,7 @@ jobs:
 
       - name: make release
         uses: ncipollo/release-action@v1
+        # https://github.com/ncipollo/release-action
         with:
           name: ${{ github.event.repository.name }}-${{ env.TAG }}
           body: |
