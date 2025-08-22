@@ -517,4 +517,4 @@ jobs:
           generateReleaseNotes: false
           makeLatest: true
           allowUpdates: true
-          tag: ${{ env.VERSION }}
+          tag: ${{ env.VERSION_WITH_HASH }}
