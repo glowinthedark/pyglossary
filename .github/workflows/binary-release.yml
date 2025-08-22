@@ -36,7 +36,6 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      # create-dmg chokes when running parallel workers
       # max-parallel: 1
       # see https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow
       matrix:
@@ -68,7 +67,6 @@ jobs:
              pkg-config \
              icu4c \
              lzo
-             create-dmg
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
