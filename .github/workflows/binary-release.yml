@@ -107,7 +107,7 @@ jobs:
         run: |
           echo "BREW_PREFIX=$(brew --prefix)" >> $GITHUB_ENV
           echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
-          echo "TAG=$(git describe)" >> $GITHUB_ENV
+          echo "VERSION_WITH_HASH=$(git describe)" >> $GITHUB_ENV
           echo "PREFIX_ICU4C=$(brew --prefix icu4c)" >> $GITHUB_ENV
           echo "PREFIX_LZO=$(brew --prefix lzo)" >> $GITHUB_ENV
           echo "PREFIX_LIBFFI=$(brew --prefix libffi)" >> $GITHUB_ENV
@@ -305,15 +305,15 @@ jobs:
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           overwrite: true
-          name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ env.TAG }}
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ env.VERSION_WITH_HASH }}
           path: |
             ${{ env.DIST_DIR }}/${{ env.APPNAME }}.app
 
       - name: Create DMG
         if: true
         run: |
-           # create-dmg  --no-internet-enable --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
-           hdiutil create -verbose -volname "${{ env.APPNAME }}-${{env.VERSION}}" -srcfolder "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app" -ov -format UDZO -fs HFS+J "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg"
+           # create-dmg  --no-internet-enable --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.VERSION_WITH_HASH }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
+           hdiutil create -verbose -volname "${{ env.APPNAME }}-${{env.VERSION}}" -srcfolder "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app" -ov -format UDZO -fs HFS+J "${{env.APPNAME}}-${{ matrix.os }}-${{ env.VERSION_WITH_HASH }}.dmg"
 
       - name: Upload Artifacts DMG
         if: true
@@ -321,7 +321,7 @@ jobs:
         with:
           overwrite: true
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
-          name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}-${{ env.TAG }}-DMG
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}-${{ env.VERSION_WITH_HASH }}-DMG
           path: |
             **/*.dmg
             
@@ -493,7 +493,7 @@ jobs:
         uses: ncipollo/release-action@v1
         # https://github.com/ncipollo/release-action
         with:
-          name: ${{ github.event.repository.name }}-${{ env.TAG }}
+          name: ${{ github.event.repository.name }}-${{ env.VERSION }}
           body: |
             ## macOS
             - __IMPORTANT__: macOS Intel-x64 & ARM64 DMG
@@ -517,4 +517,4 @@ jobs:
           generateReleaseNotes: false
           makeLatest: true
           allowUpdates: true
-          tag: ${{ env.TAG }}
+          tag: ${{ env.VERSION }}
