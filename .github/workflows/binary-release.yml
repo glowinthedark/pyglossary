@@ -493,7 +493,7 @@ jobs:
         uses: ncipollo/release-action@v1
         # https://github.com/ncipollo/release-action
         with:
-          name: ${{ github.event.repository.name }}-${{ env.VERSION }}
+          name: ${{ env.VERSION }}
           body: |
             ### ${{ github.event.repository.name }}-${{ env.VERSION_WITH_HASH }}
             ## macOS
