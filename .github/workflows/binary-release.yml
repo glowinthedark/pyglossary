@@ -495,7 +495,7 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}-${{ env.VERSION }}
           body: |
-            # ${{ github.event.repository.name }}-${{ env.VERSION_WITH_HASH }}
+            ### ${{ github.event.repository.name }}-${{ env.VERSION_WITH_HASH }}
             ## macOS
             - __IMPORTANT__: macOS Intel-x64 & ARM64 DMG
             
