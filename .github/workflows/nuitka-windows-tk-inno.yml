@@ -25,7 +25,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     env:
-      PYTHONWARNDEFAULTENCODING: true
+      PYTHONWARNDEFAULTENCODING: false
+      PYTHONWARNINGS: "ignore::EncodingWarning"
+      PYTHONUTF8: 1
       APPNAME: PyGlossaryTk
       DIST_DIR: dist.nuitka.tk
       MAIN_SCRIPT: main.py
