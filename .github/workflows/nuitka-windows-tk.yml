@@ -59,7 +59,7 @@ jobs:
       - name: "install nuitka"
         run: |
           python3 -m pip install nuitka
-      
+
       - name: "Install Dependencies"
         run: |
           python3 -m pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml tqdm xxhash
@@ -128,12 +128,17 @@ jobs:
                     print(f"Failed {src}: {e}")
             print("Done")
 
+      - name: Pack to zip before uploading
+        shell: pwsh
+        run: |
+          # Windows (PowerShell)
+          Compress-Archive -Path ${{ env.DIST_DIR }}\main.dist -DestinationPath windows-dist.zip
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           # branch name: ${{ github.ref_name }}
-          include-hidden-files: true
           name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION }}
           path: |
-            ${{ env.DIST_DIR }}/main.dist/**/*
+            windows-dist.zip

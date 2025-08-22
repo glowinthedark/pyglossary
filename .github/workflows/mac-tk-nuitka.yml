@@ -49,7 +49,7 @@ jobs:
           # 0 = all history for all branches and tags. (needed for git describe)
           fetch-depth: 0
           fetch-tags: true
-          # ref: master
+          ref: master
 
       - name: Update brew
         run: |
@@ -252,7 +252,7 @@ jobs:
       - name: Create DMG
         if: true
         run: |
-          create-dmg --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.TAG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
+          create-dmg --volname "${{ env.APPNAME }}-${{env.VERSION}}" --volicon res/pyglossary.icns --eula LICENSE  --app-drop-link 50 50 "${{env.APPNAME}}-${{ matrix.os }}-${{ env.VERSION_LONG }}.dmg" "${{ env.DIST_DIR }}/${{ env.APPNAME }}.app"
 
       - name: Upload Artifacts DMG
         if: true
@@ -276,11 +276,12 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          ref: master
 
       - name: Set release vars
         run: |
           echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
-          echo "TAG=$(git describe)" >> $GITHUB_ENV
+          echo "VERSION_LONG=$(git describe)" >> $GITHUB_ENV
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -291,9 +292,8 @@ jobs:
       - name: List artifacts
         run: |
           pwd
-          echo ${{ github.workspace }}/artifacts
-          ls -alh ${{ github.workspace }}
-          find .       
+          echo  ${{ github.workspace }}/artifacts
+          find ${{ github.workspace }}/artifacts
 
       - name: make release
         uses: ncipollo/release-action@v1
