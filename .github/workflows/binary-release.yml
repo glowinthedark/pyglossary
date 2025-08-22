@@ -52,7 +52,7 @@ jobs:
           # 0 = all history for all branches and tags. (needed for git describe)
           fetch-depth: 0
           fetch-tags: true
-          # ref: master
+          ref: master
 
       - name: Update brew
         run: |
@@ -470,11 +470,12 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          ref: master
 
       - name: Set release vars
         run: |
           echo "VERSION=$(git describe --abbrev=0)" >> $GITHUB_ENV
-          echo "TAG=$(git describe)" >> $GITHUB_ENV
+          echo "VERSION_WITH_HASH=$(git describe)" >> $GITHUB_ENV
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -494,6 +495,7 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}-${{ env.VERSION }}
           body: |
+            # ${{ github.event.repository.name }}-${{ env.VERSION_WITH_HASH }}
             ## macOS
             - __IMPORTANT__: macOS Intel-x64 & ARM64 DMG
             
@@ -513,7 +515,7 @@ jobs:
             
           artifacts: "artifacts/*.zip,artifacts/*.dmg"
           artifactContentType: application/zip
-          generateReleaseNotes: false
+          generateReleaseNotes: true
           makeLatest: true
           allowUpdates: true
-          tag: ${{ env.VERSION_WITH_HASH }}
+          tag: ${{ env.VERSION }}
