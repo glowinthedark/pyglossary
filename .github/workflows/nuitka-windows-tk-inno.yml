@@ -1,4 +1,4 @@
-name: 'nuitka tk windows'
+name: 'nuitka tk windows Inno Setup'
 on:
   push:
     branches:
