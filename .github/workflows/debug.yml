@@ -54,6 +54,8 @@ jobs:
         run: |
           dir C:\vcpkg\installed\x64-windows\bin
           dir C:\vcpkg\installed\x86-windows\bin
+      - name: Check PATH
+        run: echo $env:PATH          
       # - name: "List files"
       #   shell: cmd
       #   run: |
