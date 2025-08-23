@@ -155,5 +155,5 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-installer-${{ env.VERSION }}
           path: |
-            *setup.exe
+            Output\*setup.exe
           
