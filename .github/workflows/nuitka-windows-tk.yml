@@ -50,7 +50,10 @@ jobs:
           architecture: 'x64'
 
       - name: Set VERSION environment variable
-        run: echo "VERSION=$(git describe || git describe --abbrev=0 --tags)" >> $GITHUB_ENV
+        shell: bash
+        run: |
+          echo "VERSION=$(git describe || git describe --abbrev=0 --tags)" >> $GITHUB_ENV
+          echo "VERSION_WITH_HASH=$(git describe)" >> $GITHUB_ENV
 
       - name: "create and activate venv"
         run: |
@@ -131,14 +134,15 @@ jobs:
       - name: Pack to zip before uploading
         shell: pwsh
         run: |
-          # Windows (PowerShell)
-          Compress-Archive -Path ${{ env.DIST_DIR }}\main.dist -DestinationPath windows-dist.zip
+          # PowerShell
+          Compress-Archive -Path "${{ env.DIST_DIR }}\main.dist\*" -DestinationPath "${{ runner.os }}-${{ runner.arch }}-dist.zip" -Force
+          
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           # branch name: ${{ github.ref_name }}
-          name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION }}
+          name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION_WITH_HASH }}
           path: |
-            windows-dist.zip
+            "${{ runner.os }}-${{ runner.arch }}-dist.zip"
