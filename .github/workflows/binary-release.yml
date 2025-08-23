@@ -320,7 +320,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     env:
-      PYTHONWARNDEFAULTENCODING: true
+      PYTHONWARNDEFAULTENCODING: 0
       APPNAME: PyGlossaryTk
       DIST_DIR: dist.nuitka.tk
       MAIN_SCRIPT: main.py
@@ -345,6 +345,7 @@ jobs:
           architecture: 'x64'
 
       - name: Set VERSION environment variable
+        shell: bash
         run: |
           echo "VERSION=$(git describe || git describe --abbrev=0 --tags)" >> $GITHUB_ENV
           echo "VERSION_WITH_HASH=$(git describe)" >> $GITHUB_ENV
@@ -376,7 +377,6 @@ jobs:
               p = Path('pyglossary/ui/argparse_main.py'); p.write_text(p.read_text().replace('default="auto"', 'default="tk"'), encoding='utf8')
               p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'), encoding='utf8')
               p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'), encoding='utf8')
-              p = Path('.venv/lib/python3.13/site-packages/nuitka/plugins/standard/TkinterPlugin.py'); p.write_text(p.read_text().replace('self.tk_inter_version in ("8.5", "8.6")', 'self.tk_inter_version in ("8.5", "8.6", "9.0")'), encoding='utf8')
           except Exception as e:
               print(str(e))
 
@@ -430,7 +430,7 @@ jobs:
         run: |
           # Windows (PowerShell)
           # TODO: integrate with NSIS: https://github.com/marketplace/actions/makensis
-          Compress-Archive -Path "${{ env.DIST_DIR }}\main.dist\*" -DestinationPath "${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION }}-dist.zip" -Force
+          Compress-Archive -Path "${{ env.DIST_DIR }}\main.dist\*" -DestinationPath "${{ runner.os }}-${{ runner.arch }}-dist.zip" -Force
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -438,7 +438,7 @@ jobs:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION }}
           path: |
-            "${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION }}-dist.zip"
+            "${{ runner.os }}-${{ runner.arch }}-dist.zip"
             
   release:
     if: true
