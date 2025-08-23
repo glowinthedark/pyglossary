@@ -1,4 +1,4 @@
-name: 'debug cmd'
+name: 'vcpkg debug'
 on:
   push:
     branches:
@@ -40,10 +40,23 @@ jobs:
       - name: Install uv
         # https://docs.astral.sh/uv/guides/integration/github/#caching
         uses: astral-sh/setup-uv@v3
-   
-      - name: "List files"
-        shell: cmd
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          
+      - name: Install ICU via vcpkg
         run: |
-          pwd
-          dir /s /b c:\
+          vcpkg install icu --triplet x64-windows
+          
+      - name: Check ICU DLLs
+        run: |
+          dir C:\vcpkg\installed\x64-windows\bin
+          dir C:\vcpkg\installed\x86-windows\bin
+      # - name: "List files"
+      #   shell: cmd
+      #   run: |
+      #     pwd
+      #     dir /s /b c:\
 
