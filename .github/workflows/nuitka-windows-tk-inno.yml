@@ -42,7 +42,7 @@ jobs:
           # 0 = all history for all branches and tags. (needed for git describe)
           fetch-depth: 0
           fetch-tags: true
-          ref: master
+          ref: nuitka
 
       - name: "Set up Python 3.13"
         uses: actions/setup-python@v5
@@ -52,11 +52,14 @@ jobs:
           architecture: 'x64'
 
       - name: Set VERSION environment variable
-        run: echo "VERSION=$(git describe || git describe --abbrev=0 --tags)" >> $GITHUB_ENV
-
-      - name: "create and activate venv"
+        shell: bash
         run: |
-          python3 -m venv .venv && .venv\Scripts\activate.bat
+          echo "VERSION=$(git describe || git describe --abbrev=0 --tags)" >> $GITHUB_ENV
+          echo "VERSION_WITH_HASH=$(git describe)" >> $GITHUB_ENV
+
+      # - name: "create and activate venv"
+      #   run: |
+      #     python3 -m venv .venv && .venv\Scripts\activate.bat
 
       - name: "install nuitka"
         run: |
@@ -66,7 +69,6 @@ jobs:
         run: |
           python3 -m pip install beautifulsoup4 biplist colorize_pinyin html5lib libzim lxml marisa-trie mistune polib prompt-toolkit pygments pymorphy2 python-idzip python-romkan-ng pyyaml tqdm xxhash
           python3 -m pip install --extra-index-url https://glowinthedark.github.io/python-lzo/ python-lzo
-          # python3 -m pip install https://github.com/glowinthedark/pyicu-build/releases/download/v2.15/pyicu-2.15-cp313-cp313-win_amd64.whl
           python3 -m pip install https://github.com/cgohlke/pyicu-build/releases/download/v2.15/PyICU-2.15-cp313-cp313-win_amd64.whl
 
       - name: Patch sources
@@ -80,8 +82,6 @@ jobs:
               Path('__init__.py').unlink()
               p = Path('pyglossary/ui/argparse_main.py'); p.write_text(p.read_text().replace('default="auto"', 'default="tk"'), encoding='utf8')
               p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'), encoding='utf8')
-              p = Path('pyglossary/ui/runner.py'); p.write_text(p.read_text().replace('"gtk", "tk", "web"', '"tk", "gtk", "web"'), encoding='utf8')
-              p = Path('.venv/lib/python3.13/site-packages/nuitka/plugins/standard/TkinterPlugin.py'); p.write_text(p.read_text().replace('self.tk_inter_version in ("8.5", "8.6")', 'self.tk_inter_version in ("8.5", "8.6", "9.0")'), encoding='utf8')
           except Exception as e:
               print(str(e))
 
@@ -149,6 +149,7 @@ jobs:
         shell: cmd
         run: |
           iscc inno_setup.iss
+          
       - name: Upload Inno Installer EXE
         uses: actions/upload-artifact@v4
         with:
