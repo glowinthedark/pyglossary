@@ -164,24 +164,6 @@ jobs:
           cp $MAIN_SCRIPT $APPNAME.py
           rm __init__.py
           sed -i '' 's/default="auto"/default="tk"/g' pyglossary/ui/argparse_main.py
-          # Fix Nuitka TkinterPlugin for Python 3.13/Tk 9.0 compatibility (system Python)
-          python -c "
-          import sys
-          import os
-          plugin_path = os.path.join('.venv', 'lib', 'python${{ matrix.python-version }}', 'site-packages', 'nuitka', 'plugins', 'standard', 'TkinterPlugin.py')
-          if os.path.exists(plugin_path):
-              with open(plugin_path, 'r') as f:
-                  content = f.read()
-              if '(\"8.5\", \"8.6\")' in content:
-                  content = content.replace('(\"8.5\", \"8.6\")', '(\"8.5\", \"8.6\", \"9.0\")')
-                  with open(plugin_path, 'w') as f:
-                      f.write(content)
-                  print('TkinterPlugin.py updated for Tk 9.0 compatibility')
-              else:
-                  print('TkinterPlugin.py already compatible or pattern not found')
-          else:
-              print(f'TkinterPlugin.py not found at {plugin_path}, skipping patch')
-          " || true
 
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PREFIX_ICU4C/lib:$PREFIX_LZO/lib:$PREFIX_LZO/lib:$PREFIX_LIBFFI/lib:$PYTHONPATH" >> $GITHUB_ENV
