@@ -286,6 +286,7 @@ jobs:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           overwrite: true
           name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ env.VERSION_WITH_HASH }}
+          if-no-files-found: error
           path: |
             ${{ env.DIST_DIR }}/${{ env.APPNAME }}.app
 
@@ -302,6 +303,7 @@ jobs:
           overwrite: true
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           name: ${{ github.event.repository.name }}-${{ matrix.os }}-py${{ matrix.python-version }}-${{ github.sha }}-${{ env.VERSION_WITH_HASH }}-DMG
+          if-no-files-found: error
           path: |
             **/*.dmg
             
@@ -437,6 +439,7 @@ jobs:
         with:
           # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#github-context
           name: ${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}-${{ env.VERSION }}
+          if-no-files-found: error
           path: |
             "${{ runner.os }}-${{ runner.arch }}-dist.zip"
             
