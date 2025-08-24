@@ -149,7 +149,7 @@ jobs:
       - name: Create Inno Installer
         shell: cmd
         run: |
-          iscc inno_setup.iss
+          iscc inno_setup.iss /DMyAppVersion="${{ env.VERSION }}" /DSourceFilesGlob="${{ env.DIST_DIR }}\main.dist\*"
           
       - name: Upload Inno Installer EXE
         uses: actions/upload-artifact@v4
