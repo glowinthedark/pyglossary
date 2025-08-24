@@ -2,7 +2,8 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "PyGlossary"
-#define MyAppVersion "5.1.0"
+;#define MyAppVersion "5.1.0" <<< MUST pass /DMyAppVersion=1235 as cli arg 
+;#define SourceFilesGlob "dir1\*" <<< MUST pass /DSourceFilesGlob="dir1\*" as cli arg
 #define MyAppPublisher "github.com/ilius/pyglossary"
 #define MyAppURL "https://github.com/ilius/pyglossary"
 #define MyAppExeName "pyglossary.exe"
@@ -54,7 +55,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 
-Source: "dist.nuitka.tk\main.dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourceFilesGlob}"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 
 [Registry]
@@ -72,5 +73,3 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-
-
