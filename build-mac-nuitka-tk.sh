@@ -43,7 +43,7 @@ git checkout HEAD -- pyglossary/ui/argparse_main.py pyglossary/ui/runner.py
 rm -rf __init__.py  # get it out of the way during build or pyinstaller gets confused
 sed -i '' 's/default="auto"/default="tk"/g' pyglossary/ui/argparse_main.py
 sed -i '' 's/^\s*ui_list = \["gtk", "tk", "web"\]/ui_list = \["tk", "gtk", "web"\]/' pyglossary/ui/runner.py
-sed -i '' 's/self\.tk_inter_version in ("8\.5", "8\.6")/self.tk_inter_version in ("8.5", "8.6", "9.0")/' .venv/lib/python${PYTHON_VERSION}/site-packages/nuitka/plugins/standard/TkinterPlugin.py
+#sed -i '' 's/self\.tk_inter_version in ("8\.5", "8\.6")/self.tk_inter_version in ("8.5", "8.6", "9.0")/' .venv/lib/python${PYTHON_VERSION}/site-packages/nuitka/plugins/standard/TkinterPlugin.py
 
 # NOT SUPPORTED (YET)
 #	--macos-target-arch=$ARCH \
