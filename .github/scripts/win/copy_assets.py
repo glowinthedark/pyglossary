@@ -8,7 +8,7 @@ from pathlib import Path
 dist_dir = os.getenv("DIST_DIR")
 
 if not dist_dir:
-	sys.stderr.write("empty DIST_DIR!")
+	sys.stderr.write("undefined DIST_DIR!")
 	sys.exit(1)
 
 dist_dir_path = Path(dist_dir)
