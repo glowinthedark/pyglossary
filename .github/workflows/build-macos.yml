@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           # TODO: !!! comment out before merging to master
-          # ref: build-release
+          ref: master
 
       - name: Update brew
         run: |
@@ -165,7 +165,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          # ref: build-release # comment out before merge
+          ref: master # comment out before merge
 
       - name: Set release vars
         run: |
