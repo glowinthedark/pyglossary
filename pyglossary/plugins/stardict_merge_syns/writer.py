@@ -38,7 +38,6 @@ class Writer(StdWriter):
 		log.debug(f"writeCompact: {defiFormat=}")
 
 		idxBlockList = self.newIdxList()
-		altIndexList = self.newSynList()
 
 		dictFile = open(self._filename + ".dict", "wb")
 
@@ -60,8 +59,8 @@ class Writer(StdWriter):
 			dictFile.write(b_dictBlock)
 
 			b_idxBlock = dictMarkToBytes(dictMark) + uint32ToBytes(len(b_dictBlock))
-			for b_word in entry.lb_word:
-				idxBlockList.append((b_word, b_idxBlock))
+			for b_term in entry.lb_term:
+				idxBlockList.append((b_term, b_idxBlock))
 
 			dictMark += len(b_dictBlock)
 
@@ -75,10 +74,7 @@ class Writer(StdWriter):
 
 		self.writeIdxFile(idxBlockList)
 
-		self.writeIfoFile(
-			len(idxBlockList),
-			len(altIndexList),
-		)
+		self.writeIfoFile(len(idxBlockList), 0)
 
 	def writeGeneral(self) -> Generator[None, EntryType, None]:
 		"""
@@ -88,7 +84,6 @@ class Writer(StdWriter):
 		"""
 		log.debug("writeGeneral")
 		idxBlockList = self.newIdxList()
-		altIndexList = self.newSynList()
 
 		dictFile = open(self._filename + ".dict", "wb")
 
@@ -113,8 +108,8 @@ class Writer(StdWriter):
 			dictFile.write(b_dictBlock)
 
 			b_idxBlock = dictMarkToBytes(dictMark) + uint32ToBytes(len(b_dictBlock))
-			for b_word in entry.lb_word:
-				idxBlockList.append((b_word, b_idxBlock))
+			for b_term in entry.lb_term:
+				idxBlockList.append((b_term, b_idxBlock))
 
 			dictMark += len(b_dictBlock)
 
@@ -128,9 +123,6 @@ class Writer(StdWriter):
 
 		self.writeIdxFile(idxBlockList)
 
-		self.writeIfoFile(
-			len(idxBlockList),
-			len(altIndexList),
-		)
+		self.writeIfoFile(len(idxBlockList), 0)
 
 	# TODO: override getDescription to indicate merge_syns

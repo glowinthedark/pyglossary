@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-# glossary.py
 #
-# Copyright © 2008-2022 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 # This file is part of PyGlossary project, https://github.com/ilius/pyglossary
 #
 # This program is a free software; you can redistribute it and/or modify
@@ -38,7 +37,7 @@ from . import core
 from .core import cacheDir, log
 from .entry import DataEntry, Entry
 from .entry_filters import (
-	PreventDuplicateWords,
+	PreventDuplicateTerms,
 	RemoveHtmlTagsAll,
 	ShowMaxMemoryUsage,
 	StripFullHtml,
@@ -64,8 +63,7 @@ if TYPE_CHECKING:
 	from collections.abc import Callable, Iterable, Iterator
 	from typing import Any
 
-	from pyglossary.config_type import ConfigType
-
+	from .config_type import ConfigType
 	from .entry_base import MultiStr
 	from .entry_filters import EntryFilterType
 	from .glossary_types import (
@@ -252,7 +250,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		if defiFormat is None or defiFormat == self._defaultDefiFormat:
 			defiFormat = ""
 
-		return [defiFormat.encode("ascii"), entry.b_defi] + entry.lb_word
+		return [defiFormat.encode("ascii"), entry.b_defi] + entry.lb_term
 
 	def _entryFromRaw(self, rawEntry: RawEntryType) -> EntryType:
 		defiFormat = rawEntry[0].decode("ascii") or self._defaultDefiFormat
@@ -350,7 +348,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		if name in self._entryFiltersName:
 			return
 		self._entryFilters.append(
-			StripFullHtml(  # pyright: ignore[reportArgumentType]
+			StripFullHtml(
 				self,
 				errorHandler=errorHandler,
 			),
@@ -359,16 +357,16 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 	def preventDuplicateWords(self) -> None:
 		"""
-		Add entry filter to prevent duplicate `entry.s_word`.
+		Add entry filter to prevent duplicate `entry.s_term`.
 
 		This should only be called from a plugin's Writer.__init__ method.
 		Does not apply on entries added with glos.addEntry
 
 		Note: there may be still duplicate headwords or alternate words
-			but we only care about making the whole `entry.s_word`
+			but we only care about making the whole `entry.s_term`
 			(aka entry key) unique
 		"""
-		self._addExtraEntryFilter(PreventDuplicateWords)
+		self._addExtraEntryFilter(PreventDuplicateTerms)
 
 	# def mergeEntriesWithSameHeadwordHTML(self):
 	# 	"""
@@ -421,9 +419,9 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		for _entry in iterable:
 			entry = _entry
 			for f in filters:
-				entry = f.run(entry)  # type: ignore # pyright: ignore[reportArgumentType]
+				entry = f.run(entry)  # type: ignore
 				# assert entry  # TODO: measure running time in non-optimized mode
-			yield entry  # pyright: ignore[reportReturnType]
+			yield entry
 		self.progressEnd()
 
 	def _readersEntryGen(self) -> Iterator[EntryType]:
@@ -626,10 +624,10 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 	def newDataEntry(self, fname: str, data: bytes) -> EntryType:
 		if self._readers:
-			return DataEntry(fname, data)  # pyright: ignore[reportReturnType]
+			return DataEntry(fname, data)
 
 		if self._tmpDataDir:
-			return DataEntry(  # pyright: ignore[reportReturnType]
+			return DataEntry(
 				fname,
 				data,
 				tmpPath=join(self._tmpDataDir, fname.replace("/", "_")),
@@ -638,7 +636,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		tmpDir = join(cacheDir, "tmp")
 		os.makedirs(tmpDir, mode=0o700, exist_ok=True)
 		self._cleanupPathList.add(tmpDir)
-		return DataEntry(  # pyright: ignore[reportReturnType]
+		return DataEntry(
 			fname,
 			data,
 			tmpPath=join(tmpDir, uuid1().hex),
@@ -656,7 +654,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		self,
 		formatName: str,
 		options: dict[str, Any],
-	) -> Any:  # noqa: ANN401
+	) -> Any:
 		readerClass = PluginHandler.plugins[formatName].readerClass
 		if readerClass is None:
 			raise ReadError("_createReader: readerClass is None")
@@ -697,7 +695,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 				)
 				del options[key]
 
-	def _openReader(self, reader: Any, filename: str) -> None:  # noqa: ANN401
+	def _openReader(self, reader: Any, filename: str) -> None:
 		# reader.open returns "Iterator[tuple[int, int]] | None"
 		progressbar: bool = self.progressbar
 		try:
@@ -723,7 +721,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 	def directRead(
 		self,
 		filename: str,
-		**options,  # noqa: ANN003
+		**options: Any,
 	) -> bool:
 		self._read(
 			filename=filename,
@@ -740,7 +738,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		format: str | None = None,  # to be removed in 6.0.0 # noqa: A002
 		formatName: str = "",
 		direct: bool = False,
-		**options,  # noqa: ANN003
+		**options: Any,
 	) -> None:
 		if format:
 			warnings.warn(
@@ -795,7 +793,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		self._readers.append(reader)
 		self._iter = self._readersEntryGen()
 
-	def loadReader(self, reader: Any) -> None:  # noqa: ANN401
+	def loadReader(self, reader: Any) -> None:
 		"""
 		Iterate over `reader` object and loads the whole data into self._data
 		must call `reader.open(filename)` before calling this function.
@@ -821,7 +819,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		self,
 		formatName: str,
 		options: dict[str, Any],
-	) -> Any:  # noqa: ANN401
+	) -> Any:
 		validOptions = PluginHandler.formatsWriteOptions.get(formatName)
 		if validOptions is None:
 			raise WriteError(f"No write support for {formatName!r} format")
@@ -924,7 +922,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		if self._config.get("save_info_json", False):
 			from .info_writer import InfoWriter
 
-			infoWriter = InfoWriter(self)  # pyright: ignore
+			infoWriter = InfoWriter(self)
 			infoWriter.setWriteOptions(options)
 			filenameNoExt, _, _, _ = splitFilenameExt(filename)
 			infoWriter.open(f"{filenameNoExt}.info")
@@ -943,7 +941,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 
 	@staticmethod
 	def _openWriter(
-		writer: Any,  # noqa: ANN401
+		writer: Any,
 		filename: str,
 	) -> None:
 		try:
@@ -956,7 +954,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 		filename: str,
 		formatName: str,
 		sort: bool = False,
-		**options,  # noqa: ANN003
+		**options: Any,
 	) -> str:
 		filename = os.path.abspath(filename)
 
@@ -1024,7 +1022,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 			log.info(f"Removing and re-creating {sq_fpath!r}")
 			os.remove(sq_fpath)
 
-		self._data = SqEntryList(  # pyright: ignore[reportAttributeAccessIssue]
+		self._data = SqEntryList(
 			entryToRaw=self._entryToRaw,
 			entryFromRaw=self._entryFromRaw,
 			database=sq_fpath,
@@ -1111,7 +1109,7 @@ class GlossaryCommon(GlossaryInfo, GlossaryProgress):  # noqa: PLR0904
 				inputFilename=args.inputFilename,
 			)
 		elif not os.getenv("NO_SQLITE"):
-			self._data = self._newInMemorySqEntryList()  # pyright: ignore
+			self._data = self._newInMemorySqEntryList()
 
 		self._data.setSortKey(
 			namedSortKey=namedSortKey,

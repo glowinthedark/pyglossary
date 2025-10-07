@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # mypy: ignore-errors
 #
-# Copyright © 2020 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 #
 # This program is a free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 
 
 from __future__ import annotations
+
+from typing import Any
 
 from gi.repository import Gtk as gtk
 
@@ -59,7 +61,7 @@ class AboutWidget(gtk.Box):
 		about: str = "",
 		authors: str = "",
 		license_text: str = "",
-		**_kwargs,
+		**_kwargs: Any,
 	) -> None:
 		gtk.Box.__init__(self, orientation=gtk.Orientation.VERTICAL)
 		self.set_spacing(15)

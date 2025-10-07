@@ -3,15 +3,17 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Any
 
-from pyglossary.ui.base import UIBase
-from pyglossary.ui.config import configDefDict
-from pyglossary.ui.option_ui import registerConfigOption
+from .base import UIBase
+from .config import configDefDict
+from .option_ui import registerConfigOption
 
 if TYPE_CHECKING:
 	import argparse
 	import logging
 
 	from pyglossary.config_type import ConfigType
+
+__all__ = ["configFromArgs", "defineFlags", "validateFlags"]
 
 
 def defineFlags(parser: argparse.ArgumentParser, config: ConfigType) -> None:

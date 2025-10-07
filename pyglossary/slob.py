@@ -42,6 +42,7 @@ from typing import (
 	Any,
 	Generic,
 	NamedTuple,
+	Self,
 	TypeVar,
 	cast,
 )
@@ -232,7 +233,7 @@ class IncorrectFileSize(FileFormatException):
 def sortkey(
 	strength: int,
 	maxlength: int | None = None,
-) -> Callable:
+) -> Callable[[str], bytes]:
 	# pass empty locale to use root locale
 	# if you pass no arg, it will use system locale
 	c: T_Collator = Collator.createInstance(Locale(""))
@@ -243,7 +244,11 @@ def sortkey(
 	)
 	if maxlength is None:
 		return c.getSortKey
-	return lambda x: c.getSortKey(x)[:maxlength]
+
+	def func(x: str) -> bytes:
+		return c.getSortKey(x)[:maxlength]
+
+	return func
 
 
 class MultiFileReader(BufferedIOBase):
@@ -267,7 +272,7 @@ class MultiFileReader(BufferedIOBase):
 		self._offset = -1
 		self.seek(0)
 
-	def __enter__(self) -> MultiFileReader:
+	def __enter__(self) -> Self:
 		return self
 
 	def __exit__(
@@ -344,6 +349,50 @@ class MultiFileReader(BufferedIOBase):
 		return result
 
 
+class Blob:
+	def __init__(  # noqa: PLR0913
+		self,
+		content_id: int,
+		key: str,
+		fragment: str,
+		read_content_type_func: Callable[[], str],
+		read_func: Callable[[], bytes],
+	) -> None:
+		# print(f"read_func is {type(read_func)}")
+		# read_func is <class 'functools._lru_cache_wrapper'>
+		self._content_id = content_id
+		self._key = key
+		self._fragment = fragment
+		self._read_content_type = read_content_type_func
+		self._read = read_func
+
+	@property
+	def identity(self) -> int:
+		return self._content_id
+
+	@property
+	def key(self) -> str:
+		return self._key
+
+	@property
+	def fragment(self) -> str:
+		return self._fragment
+
+	@property
+	def content_type(self) -> str:
+		return self._read_content_type()
+
+	@property
+	def content(self) -> bytes:
+		return self._read()
+
+	def __str__(self) -> str:
+		return self.key
+
+	def __repr__(self) -> str:
+		return f"<{self.__class__.__module__}.{self.__class__.__name__} {self.key}>"
+
+
 class KeydItemDict:
 	def __init__(
 		self,
@@ -382,50 +431,6 @@ class KeydItemDict:
 		except StopIteration:
 			return False
 		return True
-
-
-class Blob:
-	def __init__(  # noqa: PLR0913
-		self,
-		content_id: int,
-		key: str,
-		fragment: str,
-		read_content_type_func: Callable[[], str],
-		read_func: Callable,
-	) -> None:
-		# print(f"read_func is {type(read_func)}")
-		# read_func is <class 'functools._lru_cache_wrapper'>
-		self._content_id = content_id
-		self._key = key
-		self._fragment = fragment
-		self._read_content_type = read_content_type_func
-		self._read = read_func
-
-	@property
-	def identity(self) -> int:
-		return self._content_id
-
-	@property
-	def key(self) -> str:
-		return self._key
-
-	@property
-	def fragment(self) -> str:
-		return self._fragment
-
-	@property
-	def content_type(self) -> str:
-		return self._read_content_type()
-
-	@property
-	def content(self) -> bytes:
-		return self._read()
-
-	def __str__(self) -> str:
-		return self.key
-
-	def __repr__(self) -> str:
-		return f"<{self.__class__.__module__}.{self.__class__.__name__} {self.key}>"
 
 
 def read_byte_string(f: IOBase, len_spec: str) -> bytes:
@@ -673,7 +678,7 @@ class Slob:
 			self._header.content_types,
 		)
 
-	def __enter__(self) -> Slob:
+	def __enter__(self) -> Self:
 		return self
 
 	def __exit__(
@@ -711,7 +716,7 @@ class Slob:
 	def __len__(self) -> int:
 		return len(self._refs)
 
-	def __getitem__(self, i: int) -> Any:
+	def __getitem__(self, i: int) -> Blob:
 		# this is called by bisect_left
 		return self.getBlobByIndex(i)
 
@@ -1111,7 +1116,7 @@ class Writer:
 		self._tags[name] = value
 
 	@staticmethod
-	def key_is_too_long(actual_key, fragment) -> bool:
+	def key_is_too_long(actual_key: str, fragment: str) -> bool:
 		return len(actual_key) > MAX_TEXT_LEN or len(fragment) > MAX_TINY_TEXT_LEN
 
 	@staticmethod
@@ -1241,7 +1246,7 @@ class Writer:
 		)
 		self._fire_event("end_sort")
 
-	def _resolve_aliases(self) -> None:  # noqa: PLR0912
+	def _resolve_aliases(self) -> None:  # noqa: PLR0912, C901
 		self._fire_event("begin_resolve_aliases")
 		self.f_aliases.finalize()
 
@@ -1278,9 +1283,10 @@ class Writer:
 					while count <= self.max_redirects:
 						# is target key itself a redirect?
 						try:
-							alias_item: Blob = next(aliases[to_key])
+							alias_item = next(aliases[to_key])
 						except StopIteration:
 							break
+						assert isinstance(alias_item, Blob)
 						orig_to_key = to_key
 						to_key, fragment = read_key_frag(
 							alias_item,
@@ -1321,8 +1327,10 @@ class Writer:
 				targets.add((ref.bin_index, ref.item_index, ref.fragment))
 				previous = ref
 
-			for bin_index, item_index, fragment in sorted(targets):
-				self._write_ref(previous.key, bin_index, item_index, fragment)
+			if targets:
+				assert previous is not None
+				for bin_index, item_index, fragment in sorted(targets):
+					self._write_ref(previous.key, bin_index, item_index, fragment)
 
 		self._sort()
 		self._fire_event("end_resolve_aliases")
@@ -1423,38 +1431,38 @@ class Writer:
 		self.tmpdir.cleanup()
 		self._fire_event("end_finalize")
 
-	def size_header(self) -> int:
-		size = 0
-		size += len(MAGIC)
-		size += 16  # uuid bytes
-		size += U_CHAR_SIZE + len(self.encoding.encode(UTF8))
-		size += U_CHAR_SIZE + len(self.compression.encode(self.encoding))
+	# def size_header(self) -> int:
+	# 	size = 0
+	# 	size += len(MAGIC)
+	# 	size += 16  # uuid bytes
+	# 	size += U_CHAR_SIZE + len(self.encoding.encode(UTF8))
+	# 	size += U_CHAR_SIZE + len(self.compression.encode(self.encoding))
 
-		size += U_CHAR_SIZE  # tag length
-		size += U_CHAR_SIZE  # content types count
+	# 	size += U_CHAR_SIZE  # tag length
+	# 	size += U_CHAR_SIZE  # content types count
 
-		# tags and content types themselves counted elsewhere
+	# 	# tags and content types themselves counted elsewhere
 
-		size += U_INT_SIZE  # blob count
-		size += U_LONG_LONG_SIZE  # store offset
-		size += U_LONG_LONG_SIZE  # file size
-		size += U_INT_SIZE  # ref count
-		size += U_INT_SIZE  # bin count
+	# 	size += U_INT_SIZE  # blob count
+	# 	size += U_LONG_LONG_SIZE  # store offset
+	# 	size += U_LONG_LONG_SIZE  # file size
+	# 	size += U_INT_SIZE  # ref count
+	# 	size += U_INT_SIZE  # bin count
 
-		return size
+	# 	return size
 
-	def size_tags(self) -> int:
-		size = 0
-		for key in self.tags:
-			size += U_CHAR_SIZE + len(key.encode(self.encoding))
-			size += 255
-		return size
+	# def size_tags(self) -> int:
+	# 	size = 0
+	# 	for key in self.tags:
+	# 		size += U_CHAR_SIZE + len(key.encode(self.encoding))
+	# 		size += 255
+	# 	return size
 
-	def size_content_types(self) -> int:
-		size = 0
-		for content_type in self.content_types:
-			size += U_CHAR_SIZE + len(content_type.encode(self.encoding))
-		return size
+	# def size_content_types(self) -> int:
+	# 	size = 0
+	# 	for content_type in self.content_types:
+	# 		size += U_CHAR_SIZE + len(content_type.encode(self.encoding))
+	# 	return size
 
 	def size_data(self) -> int:
 		files = (

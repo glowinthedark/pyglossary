@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# appledict/_dict.py
 # Output to Apple Dictionary xml sources for Dictionary Development Kit.
 #
 # Copyright © 2016-2019 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
@@ -21,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import string
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from ._normalize import title as normalize_title
@@ -77,8 +77,7 @@ def indexes_generator(
 	str,
 ]:
 	"""Generate indexes according to glossary language."""
-	indexer = None
-	"""Callable[[Sequence[str], str], Sequence[str]]"""
+	indexer: Callable[[Sequence[str], str], Sequence[str]] = None
 	if indexes_lang:
 		from .indexes import languages
 

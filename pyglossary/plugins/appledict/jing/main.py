@@ -1,13 +1,13 @@
-from __future__ import annotations
-
 """Jing, a validator for RELAX NG and other schema languages."""
+
+from __future__ import annotations
 
 import logging
 import subprocess
 import sys
 from os import path
 
-__all__ = ["JingTestError", "main", "run"]
+__all__ = ["main", "run"]
 
 log = logging.getLogger("pyglossary")
 log.setLevel(logging.DEBUG)

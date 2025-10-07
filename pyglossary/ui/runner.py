@@ -4,9 +4,10 @@ import os
 import sys
 from typing import TYPE_CHECKING
 
-from pyglossary import core
+from pyglossary.core import sysName
 from pyglossary.glossary_v2 import Error
-from pyglossary.ui.base import UIBase
+
+from .base import UIBase
 
 if TYPE_CHECKING:
 	import argparse
@@ -16,19 +17,20 @@ if TYPE_CHECKING:
 
 	from pyglossary.config_type import ConfigType
 
+__all__ = ["getRunner"]
 
 ui_list = ["gtk3", "gtk4", "tk", "web"]
-if os.sep == "\\" or core.sysName == "darwin":  # windows or mac
+if os.sep == "\\" or sysName == "darwin":  # windows or mac
 	ui_list = ["tk", "gtk3", "gtk4", "web"]
 
 log: logging.Logger | None = None
 
 
 def canRunGUI() -> bool:
-	if core.sysName == "linux":
+	if sysName == "linux":
 		return bool(os.getenv("DISPLAY"))
 
-	if core.sysName == "darwin":
+	if sysName == "darwin":
 		try:
 			import tkinter  # noqa: F401
 		except ModuleNotFoundError:
@@ -110,11 +112,11 @@ def getRunner(
 
 	if ui_type == "cmd":
 		if args.interactive:
-			from pyglossary.ui.ui_cmd_interactive import UI
+			from .ui_cmd_interactive import UI
 		elif args.inputFilename and args.outputFilename:
-			from pyglossary.ui.ui_cmd import UI
+			from .ui_cmd import UI
 		elif not args.no_interactive:
-			from pyglossary.ui.ui_cmd_interactive import UI
+			from .ui_cmd_interactive import UI
 		else:
 			log.error("no input file given, try --help")
 			return None

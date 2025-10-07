@@ -78,10 +78,10 @@
 			"audio_goldendict": false
 		},
 		"readDepends": {
-			"icu": "PyICU"
+			"icu": "pyicu"
 		},
 		"writeDepends": {
-			"icu": "PyICU"
+			"icu": "pyicu"
 		}
 	},
 	{
@@ -173,7 +173,7 @@
 			"lxml": "lxml",
 			"bs4": "beautifulsoup4",
 			"html5lib": "html5lib",
-			"colorize_pinyin": "colorize_pinyin",
+			"colorize_pinyin": "colorize-pinyin",
 			"pymorphy3": "pymorphy3"
 		}
 	},
@@ -1415,7 +1415,7 @@
 			"normalizer_rules": ""
 		},
 		"readDepends": {
-			"icu": "PyICU"
+			"icu": "pyicu"
 		}
 	},
 	{

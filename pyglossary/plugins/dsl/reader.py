@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# dsl/__init__.py
 # Read ABBYY Lingvo DSL dictionary format
 #
 # Copyright © 2013-2020 Saeed Rasooli <saeed.gnu@gmail.com>
@@ -20,9 +19,9 @@
 
 from __future__ import annotations
 
-import html
 import html.entities
 import re
+import zipfile
 from os.path import abspath, dirname, isfile, join, splitext
 from typing import TYPE_CHECKING, cast
 
@@ -193,7 +192,7 @@ class Reader:
 		reader = Reader(self._glos)
 		reader.open(abbrevName)
 		for entry in reader:
-			for word in entry.l_word:
+			for word in entry.l_term:
 				self._abbrevDict[word] = entry.defi
 		reader.close()
 
@@ -253,12 +252,12 @@ class Reader:
 		for line in self._file:
 			yield line
 
-	@staticmethod
-	def sub_title_line(m: re.Match) -> str:
-		line = m.group(0)[1:-1]
-		line = line.replace("[']", "")  # FIXME
-		line = line.replace("[/']", "")
-		return line  # noqa: RET504
+	# @staticmethod
+	# def sub_title_line(m: re.Match) -> str:
+	# 	line = m.group(0)[1:-1]
+	# 	line = line.replace("[']", "")  # FIXME
+	# 	line = line.replace("[/']", "")
+	# 	return line  # noqa: RET504
 
 	def __iter__(self) -> Iterator[EntryType]:
 		for reader in self._includes:
@@ -285,14 +284,26 @@ class Reader:
 		if text_lines:
 			yield from self.parseEntryBlock(term_lines, text_lines)
 
+		resFileSet = self._resFileSet.copy()
+
+		resZipPath = self._filename + ".files.zip"
+		if isfile(resZipPath):
+			with zipfile.ZipFile(resZipPath, mode="r") as zf:
+				fnameList = zf.namelist()
+				resFileSet -= set(fnameList)
+				for fname in sorted(fnameList):
+					with zf.open(fname) as file:
+						data = file.read()
+					yield self._glos.newDataEntry(fname, data)
+
 		resDir = dirname(self._filename)
-		for fname in sorted(self._resFileSet):
+		for fname in sorted(resFileSet):
 			fpath = join(resDir, fname)
 			if not isfile(fpath):
 				log.warning(f"resource file not found: {fname}")
 				continue
-			with open(fpath, mode="rb") as _file:
-				data = _file.read()
+			with open(fpath, mode="rb") as file:
+				data = file.read()
 			yield self._glos.newDataEntry(fname, data)
 
 	def parseEntryBlock(  # noqa: PLR0912 Too many branches (14 > 12)

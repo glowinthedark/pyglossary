@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # mypy: ignore-errors
 #
-# Copyright © 2008-2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 #
 # This program is a free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,13 +19,14 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from gi.repository import Gdk as gdk
 from gi.repository import Gio as gio
 from gi.repository import GLib as glib
 from gi.repository import Gtk as gtk
 
-from pyglossary import core
+from pyglossary.core import appResDir
 from pyglossary.ui.base import UIBase
 
 from .mainwin import MainWindow
@@ -41,7 +42,7 @@ gtk.Window.set_default_icon_name("pyglossary")
 # ~/.local/share/icons/hicolor/scalable/apps/pyglossary.svg must exist
 # unless we call iconTheme.add_search_path with our res dir, and make sure
 # this file exists: res/hicolor/scalable/apps/pyglossary.svg
-gtk.IconTheme.get_for_display(gdk.Display.get_default()).add_search_path(core.appResDir)
+gtk.IconTheme.get_for_display(gdk.Display.get_default()).add_search_path(appResDir)
 
 
 class UI(UIBase, gtk.Application):
@@ -63,7 +64,7 @@ class UI(UIBase, gtk.Application):
 		self.runArgs = {}
 		self.mainWindow: MainWindow | None = None
 
-	def run(self, **kwargs) -> None:
+	def run(self, **kwargs: Any) -> None:
 		self.runArgs = kwargs
 		gtk.Application.run(self)
 

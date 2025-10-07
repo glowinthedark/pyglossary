@@ -7,7 +7,6 @@ on:
       - 'doc/**'
       - '*.md'
       # - '.github/**'
-
   workflow_dispatch:
 
 jobs:
@@ -63,13 +62,10 @@ jobs:
         run: |
           python3 -m pip install nuitka
 
+
       - name: "Install Dependencies"
         shell: cmd
-        ## FIXME TODO: ************* replace with self-hosted WHLS *************
-        ## TODO build python-lzo from source
-        run: |
-          python3 -m pip install https://github.com/cgohlke/pyicu-build/releases/download/v2.15/PyICU-2.15-cp313-cp313-win_amd64.whl
-          python3 -m pip install -r requirements.txt 
+        run: python3 .github\scripts\win\install-deps.py
 
       - name: Nuitka build
         env:
@@ -154,4 +150,5 @@ jobs:
           generateReleaseNotes: true
           makeLatest: true
           allowUpdates: true
+          omitBodyDuringUpdate: true # preserve the existing body during updates:
           tag: ${{ env.VERSION }}

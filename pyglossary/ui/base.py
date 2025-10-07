@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # mypy: ignore-errors
 #
-# Copyright © 2012-2022 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 # This file is part of PyGlossary project, https://github.com/ilius/pyglossary
 #
 # This program is a free software; you can redistribute it and/or modify
@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 from os.path import isfile, join
+from typing import Any
 
 from pyglossary.core import (
 	appResDir,
@@ -29,7 +30,8 @@ from pyglossary.core import (
 	dataDir,
 	rootConfJsonFile,
 )
-from pyglossary.ui.config import configDefDict
+
+from .config import configDefDict
 
 __all__ = ["UIBase", "aboutText", "authors", "fread", "licenseText", "logo"]
 
@@ -57,7 +59,7 @@ class UIBase:
 		("remove_html", "remove_html_all"),
 	]
 
-	def __init__(self, **_kwargs) -> None:
+	def __init__(self, **_kwargs: Any) -> None:
 		self.config = {}
 
 	def progressInit(self, title: str) -> None:
@@ -72,7 +74,7 @@ class UIBase:
 	def loadConfig(
 		self,
 		user: bool = True,
-		**options,
+		**options: Any,
 	) -> None:
 		from pyglossary.json_utils import jsonToData
 

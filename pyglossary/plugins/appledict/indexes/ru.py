@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# appledict/indexes/ru.py
 #
 # Copyright © 2016 ivan tkachenko me@ratijas.tk
 #
@@ -87,7 +86,7 @@ def _ru(title: str, a: set[str], a_norm: set[str]) -> None:
 
 
 def normalize(word: str) -> str:
-	return word.lower().replace("й", "и").replace("ё", "е").replace("-", " ")
+	return word.lower().replace("й", "и").replace("ё", "\u0435").replace("-", " ")
 
 
 languages["ru"] = ru

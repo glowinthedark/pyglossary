@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2012-2022 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 # This file is part of PyGlossary project, https://github.com/ilius/pyglossary
 #
 # This program is a free software; you can redistribute it and/or modify
@@ -31,6 +31,8 @@ from pyglossary.option import (
 
 if TYPE_CHECKING:
 	from pyglossary.option import Option
+
+__all__ = ["configDefDict"]
 
 _entryFilterConfigDict = {
 	configParam: (filterClass, default)

@@ -6,6 +6,7 @@ on:
   pull_request:
   schedule:
     - cron: "33 1 * * 3"
+  workflow_dispatch:
 
 jobs:
   ubuntu:
@@ -28,8 +29,6 @@ jobs:
         run: ls -l
       - name: Install dependencies
         run: sh ./scripts/test-deps.sh
-      - name: Remove test cache
-        run: rm -rf /home/runner/.cache/pyglossary/test || true
       - name: Run tests
         run: bash ./.github/scripts/test.sh
       - name: Upload test artifacts

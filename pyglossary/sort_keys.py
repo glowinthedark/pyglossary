@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2022 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 # This file is part of PyGlossary project, https://github.com/ilius/pyglossary
 #
 # This program is a free software; you can redistribute it and/or modify
@@ -55,7 +55,7 @@ class LocaleNamedSortKey:
 	mod: Any = None
 
 	@property
-	def module(self):  # noqa: ANN201
+	def module(self) -> Any:
 		if self.mod is not None:
 			return self.mod
 		mod = __import__(
@@ -155,8 +155,8 @@ def lookupSortKey(sortKeyId: str) -> NamedSortKey | None:
 	return NamedSortKey(
 		name=f"{localeSK.name}:{localeNameFull}",
 		desc=f"{localeSK.desc}:{localeNameFull}",
-		normal=localeSK.locale(collator) if localeSK.locale else None,  # pyright: ignore[reportArgumentType]
-		sqlite=localeSK.sqlite_locale(collator) if localeSK.sqlite_locale else None,  # pyright: ignore[reportArgumentType]
+		normal=localeSK.locale(collator) if localeSK.locale else None,
+		sqlite=localeSK.sqlite_locale(collator) if localeSK.sqlite_locale else None,
 	)
 
 

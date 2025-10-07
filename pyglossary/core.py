@@ -18,10 +18,10 @@ from .logger import TRACE, trace
 
 def exc_note(e: Exception, note: str) -> Exception:
 	try:
-		e.add_note(note)  # pyright: ignore[reportAttributeAccessIssue]
+		e.add_note(note)
 	except AttributeError:
 		if hasattr(e, "msg"):
-			e.msg += "\n" + note  # pyright: ignore[reportAttributeAccessIssue]
+			e.msg += "\n" + note
 	return e
 
 
@@ -34,7 +34,7 @@ __all__ = [
 	"confDir",
 	"confJsonFile",
 	"dataDir",
-	"getDataDir",
+	"exc_note",
 	"homeDir",
 	"homePage",
 	"isDebug",
@@ -47,12 +47,11 @@ __all__ = [
 	"sysName",
 	"tmpDir",
 	"trace",
-	"uiDir",
 	"userPluginsDir",
 ]
 
 
-VERSION = "5.1.0"
+VERSION = "5.1.1"
 
 homePage = "https://github.com/ilius/pyglossary"
 

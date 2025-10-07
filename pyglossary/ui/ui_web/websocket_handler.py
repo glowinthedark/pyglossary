@@ -40,7 +40,8 @@ from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
 from pyglossary.glossary_v2 import Glossary
-from pyglossary.ui.ui_web.websocket_server import (
+
+from .websocket_server import (
 	CLOSE_STATUS_NORMAL,
 	DEFAULT_CLOSE_REASON,
 	FIN,
@@ -62,6 +63,7 @@ if TYPE_CHECKING:
 	import socketserver
 	from typing import Any
 
+__all__ = ["HTTPWebSocketHandler"]
 
 log = logging.getLogger("pyglossary.web.server")
 
@@ -79,8 +81,8 @@ class HTTPWebSocketHandler(SimpleHTTPRequestHandler):
 		socket: socketlib.socket,
 		addr: tuple[str, int],  # (ip: str, port: int)
 		server: socketserver.BaseServer,
-		*args,  # noqa: ANN001, ANN002
-		**kwargs,
+		*args: Any,
+		**kwargs: Any,
 	) -> None:
 		if hasattr(self, "_send_lock"):
 			raise RuntimeError("_send_lock already exists")

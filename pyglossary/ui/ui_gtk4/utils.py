@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # mypy: ignore-errors
 #
-# Copyright © 2016-2019 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 #
 # This program is a free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 from os.path import isabs, join
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from gi.repository import Gdk as gdk  # noqa: I001
 from gi.repository import GLib as glib
@@ -38,7 +38,6 @@ __all__ = [
 	"getWorkAreaSize",
 	"gtk_event_iteration_loop",
 	"hasLightTheme",
-	"imageFromFile",
 	"pack",
 	"rgba_parse",
 	"showInfo",
@@ -63,11 +62,11 @@ def gtk_event_iteration_loop() -> None:
 		pass
 
 
-def VBox(**kwargs) -> gtk.Box:
+def VBox(**kwargs: Any) -> gtk.Box:
 	return gtk.Box(orientation=gtk.Orientation.VERTICAL, **kwargs)
 
 
-def HBox(**kwargs) -> gtk.Box:
+def HBox(**kwargs: Any) -> gtk.Box:
 	return gtk.Box(orientation=gtk.Orientation.HORIZONTAL, **kwargs)
 
 
@@ -81,12 +80,12 @@ class FixedSizePicture(gtk.Picture):
 		self.set_can_shrink(False)
 
 
-def imageFromFile(path: str) -> gtk.Image:  # the file must exist
-	if not isabs(path):
-		path = join(appResDir, path)
-	im = gtk.Image()
-	im.set_from_file(path)
-	return im
+# def imageFromFile(path: str) -> gtk.Image:  # the file must exist
+# 	if not isabs(path):
+# 		path = join(appResDir, path)
+# 	im = gtk.Image()
+# 	im.set_from_file(path)
+# 	return im
 
 
 def imageFromIconName(iconName: str, size: int, nonStock: bool = False) -> gtk.Image:
@@ -208,19 +207,7 @@ def showMsg(  # noqa: PLR0913
 	win.show()
 
 
-def showError(msg, **kwargs) -> None:  # noqa: ANN001
-	# gtk-dialog-error is deprecated since version 3.10:
-	# Use named icon “dialog-error”.
-	showMsg(msg, iconName="gtk-dialog-error", **kwargs)
-
-
-def showWarning(msg, **kwargs) -> None:  # noqa: ANN001
-	# gtk-dialog-warning is deprecated since version 3.10:
-	# Use named icon “dialog-warning”.
-	showMsg(msg, iconName="gtk-dialog-warning", **kwargs)
-
-
-def showInfo(msg, **kwargs) -> None:  # noqa: ANN001
+def showInfo(msg, **kwargs: Any) -> None:  # noqa: ANN001
 	# gtk-dialog-info is deprecated since version 3.10:
 	# Use named icon “dialog-information”.
 	showMsg(msg, iconName="gtk-dialog-info", **kwargs)

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 # mypy: ignore-errors
-# ui_cmd.py
 #
-# Copyright © 2008-2021 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 # This file is part of PyGlossary project, https://github.com/ilius/pyglossary
 #
 # This program is a free software; you can redistribute it and/or modify
@@ -245,7 +244,6 @@ class UI(UIBase):
 			"matchWord",
 			"showRel",
 			"includeDefs",
-			"reportStep",
 			"saveStep",
 			"maxNum",
 			"minRel",

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 # mypy: ignore-errors
-# ui_gtk.py
 #
-# Copyright © 2008-2022 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 #
 # This program is a free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,11 +25,10 @@ from typing import TYPE_CHECKING, Any
 
 import gi
 
-from pyglossary import core
+from pyglossary.core import homePage, pip
 from pyglossary.glossary_v2 import ConvertArgs, Error, Glossary
 from pyglossary.sort_keys import defaultSortKeyName, namedSortKeyList
 from pyglossary.text_utils import urlToPath
-from pyglossary.ui.config import configDefDict
 
 from .base import (
 	UIBase,
@@ -39,6 +37,7 @@ from .base import (
 	licenseText,
 	logo,
 )
+from .config import configDefDict
 from .dependency import checkDepends
 from .version import getVersion
 
@@ -49,7 +48,6 @@ from gi.repository import GLib as glib
 
 from .gtk3_utils import gdk, gtk  # noqa: E402
 from .gtk3_utils.about import AboutWidget  # noqa: E402
-from .gtk3_utils.dialog import MyDialog  # noqa: E402
 from .gtk3_utils.resize_button import ResizeButton  # noqa: E402
 from .gtk3_utils.utils import (  # noqa: E402
 	HBox,
@@ -120,7 +118,7 @@ class FormatDialog(gtk.Dialog):
 		self,
 		descList: list[str],
 		parent: gtk.Widget | None = None,
-		**kwargs,
+		**kwargs: Any,
 	) -> None:
 		gtk.Dialog.__init__(self, parent=parent, **kwargs)
 		self.descList = descList
@@ -660,7 +658,7 @@ class FormatBox(FormatButton):
 			print("All dependencies are stattisfied for " + formatName)
 			return
 		pkgNamesStr = " ".join(pkgNames)
-		msg = f"Run the following command:\n{core.pip} install {pkgNamesStr}"
+		msg = f"Run the following command:\n{pip} install {pkgNamesStr}"
 		showInfo(
 			msg,
 			title="Dependencies for " + formatName,
@@ -698,7 +696,7 @@ class FormatBox(FormatButton):
 class InputFormatBox(FormatBox):
 	dialogTitle = "Select Input Format"
 
-	def __init__(self, **kwargs) -> None:
+	def __init__(self, **kwargs: Any) -> None:
 		FormatBox.__init__(self, readDesc, **kwargs)
 
 	def kind(self) -> str:
@@ -715,7 +713,7 @@ class InputFormatBox(FormatBox):
 class OutputFormatBox(FormatBox):
 	dialogTitle = "Select Output Format"
 
-	def __init__(self, **kwargs) -> None:
+	def __init__(self, **kwargs: Any) -> None:
 		FormatBox.__init__(self, writeDesc, **kwargs)
 
 	def kind(self) -> str:
@@ -951,7 +949,7 @@ class GeneralOptionsDialog(gtk.Dialog):
 		self.hide()
 		return True
 
-	def __init__(self, ui: UI, **kwargs) -> None:
+	def __init__(self, ui: UI, **kwargs: Any) -> None:
 		gtk.Dialog.__init__(
 			self,
 			transient_for=ui,
@@ -1096,7 +1094,7 @@ class UI(UIBase, gtk.Application):
 		self.progressTitle = ""
 		self.mainWin: MainWindow | None = None
 
-	def run(self, **kwargs) -> None:
+	def run(self, **kwargs: Any) -> None:
 		self.runArgs = kwargs
 		gtk.Application.run(self)
 
@@ -1124,7 +1122,7 @@ class UI(UIBase, gtk.Application):
 			gtk.main_iteration_do(False)
 
 
-class MainWindow(gtk.Dialog, MyDialog):
+class MainWindow(gtk.Dialog):
 	def status(self, msg: str) -> None:
 		# try:
 		# 	_id = self.statusMsgDict[msg]
@@ -1293,7 +1291,7 @@ class MainWindow(gtk.Dialog, MyDialog):
 			logo=logo,
 			header=f"PyGlossary\nVersion {getVersion()}",
 			# about=summary,
-			about=f'{aboutText}\n<a href="{core.homePage}">{core.homePage}</a>',
+			about=f'{aboutText}\n<a href="{homePage}">{homePage}</a>',
 			authors="\n".join(authors),
 			license_text=licenseText,
 		)

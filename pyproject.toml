@@ -12,14 +12,8 @@ target-version = "py311"
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
-	"pyglossary/repro_zipfile/",
 	"whitelist.py", # for vulture
-	"pyglossary/plugins/babylon_bgl/bgl_gzip.py",
-	"pyglossary/plugins/testformat",
-	"pyglossary/ui/gtk*_utils/__init__.py",
-	"pyglossary/ui/ui_qt.py",
 	"pyglossary/ui/progressbar/",
-	"pyglossary/reverse.py",
 	"wcwidth*",
 	".direnv",
 	".eggs",
@@ -77,7 +71,6 @@ select = [
 	"SLOT", # flake8-slots
 	"SIM",  # flake8-simplify
 	"TID",  # flake8-tidy-imports
-	"TCH",  # flake8-type-checking
 	"INT",  # flake8-gettext
 	"ARG",  # flake8-unused-arguments
 	"PD",   # pandas-vet
@@ -95,10 +88,8 @@ select = [
 	# "FLY",   # flynt
 ]
 ignore = [
-	"ANN003",  # Missing type annotation for `**kwargs`, 15 remaining
 	"PLR0917", # Too many positional arguments (x/5)
 	"PLR0914", # Too many local variables (x/15)
-	"ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in ...
 
 	"PYI042",  # Type alias `...` should be CamelCase FIXME
 
@@ -109,7 +100,6 @@ ignore = [
 
 	"COM812", # Trailing comma missing
 	"SLF",    # Private member accessed
-	"PYI034", # py3.11: `__iadd__` methods in classes like `SqEntryList` usually return `self` at runtime
 	"DTZ001", # The use of `datetime.datetime()` without `tzinfo` argument is not allowed
 	"DTZ005", # The use of `datetime.datetime.now()` without `tz` argument is not allowed
 	"PGH003", # Use specific rule codes when ignoring type issues
@@ -153,8 +143,9 @@ ignore = [
 	"SIM105",  # Use contextlib.suppress({exception}) instead of try-except-pass
 	"SIM117",  # Use a single with statement with multiple contexts...
 	"UP009",   # UTF-8 encoding declaration is unnecessary
-	"UP037",   # Remove quotes from type annotation
 	"SIM115",  # Use context handler for opening files
+	"ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in ...
+	"RUF003",  # Comment contains ambiguous ...
 	"W191",    # Indentation contains tabs
 ]
 
@@ -170,6 +161,19 @@ mccabe.max-complexity = 13
 
 
 [tool.ruff.lint.per-file-ignores]
+
+"doc/*/*.py" = [
+	"INP001", # File ... is part of an implicit namespace package. Add an `__init__.py`.
+]
+
+"tests/unused_test.py" = [
+	"F401",  # imported but unused
+	"F811", # Redefinition of unused
+]
+
+"pyglossary/plugins/babylon_bgl/bgl_gzip.py" = [
+	"D402" # First line should not be the function's signature, huh???
+]
 
 "pyglossary/ui/termcolors.py" = [
 	"PYI024", # Use `typing.NamedTuple` instead of `collections.namedtuple`
@@ -188,10 +192,6 @@ mccabe.max-complexity = 13
 	"PLR0904", # Too many public methods
 	"C90",     # mccabe: C901: {name} is too complex ({complexity})
 ]
-"slob.py" = [
-	"C901", # `...` is too complex (14 > 13)
-	"ANN",
-]
 "html_dir.py" = [
 	"C901", # `...` is too complex
 ]
@@ -202,10 +202,6 @@ mccabe.max-complexity = 13
 	"C901", # `...` is too complex
 ]
 
-"pyglossary/html_utils.py" = ["RUF003"]
-"persian_utils.py" = ["RUF001"]
-"ru.py" = ["RUF001", "RUF003"]
-"pyglossary/plugins/dikt_json/*.py" = ["RUF003"]
 "pyglossary/plugin_lib/*.py" = [
 	"ANN",
 	"PT018",   # Assertion should be broken down into multiple parts
@@ -213,13 +209,11 @@ mccabe.max-complexity = 13
 	"RUF015",  # Prefer `next(zip(*_list, strict=False))` over single element slice
 	"PLR2004", # Magic value used in comparison, consider replacing `...` with a constant variable
 ]
-"pyglossary/plugins/wiktextract/reader.py" = [
-	"RUF003", # Comment contains ambiguous ...
-]
+
 "scripts/wiki-formats.py" = ["E501"]
-"pyglossary/io_utils.py" = ["ANN"]
+"pyglossary/io_utils.py" = []
 "pyglossary/plugins/babylon_bgl/reader_debug.py" = ["ANN", "FURB"]
-"pyglossary/ui/ui_tk.py" = ["ANN"]
+"pyglossary/ui/ui_tk.py" = ["ANN"] # 81 errors
 "pyglossary/ui/**/*.py" = [
 	"T201",
 	"PERF203",
@@ -316,15 +310,24 @@ disable = [
 	"useless-return",
 	"method-cache-max-size-none",
 	"global-statement",
+	"R0917", # Too many positional arguments (?/5) (too-many-positional-arguments)
 	"R0801",                          # Similar lines in 2 files
 	"ungrouped-imports",              # C0412: Imports from package pyglossary are not grouped
 	"inconsistent-return-statements", # R1710: Either all return statements in a function should return an expression, or none of them should
 	"too-many-ancestors",             # R0901: Too many ancestors
 ]
 
-[tool.pylint.master]
+[tool.pylint.main]
+py-version = "3.11"
+extension-pkg-allow-list = [
+	"lxml.etree",
+	"lzo",
+	"marisa_trie",
+]
 ignore-paths = [
+	"^pyglossary/glossary.py$",
 	"^pyglossary/reverse.py$",
+	"^tests/unused_test.py$",
 	"^pyglossary/ui/progressbar/.*",
 	"^pyglossary/ui/ui_qt.py$",
 	"^pyglossary/ui/wcwidth/",
@@ -359,72 +362,44 @@ sort_by_size = false
 verbose = false
 
 [tool.import-analyzer]
-exclude = ["pyglossary/ui/wcwidth/", "build/"]
+exclude = [
+	"pyglossary/ui/wcwidth/",
+	"build/",
+	"pyglossary/slob.py",
+]
 exclude_toplevel_module = [
 	"BeautifulSoup",
+	"biplist",
 	"bs4",
+	"colorize_pinyin",
 	"english_words",
+	"freezegun",
 	"gi",
+	"html5lib",
+	"icu",
+	"idzip",
+	"libzim",
+	"lxml",
 	"lzo",
 	"mako",
+	"marisa_trie",
+	"mistune",
 	"packaging",
+	"pip",
+	"polib",
+	"prompt_toolkit",
 	"psutil",
+	"pygments",
+	"pymorphy3",
 	"PyQt4",
 	"romkan",
-	"yaml",
+	"setuptools",
+	"toml",
+	"tqdm",
 	"typing_extensions",
+	"xxhash",
+	"yaml",
 ]
-
-[tool.pyright]
-pythonVersion = "3.10"
-pythonPlatform = "Linux"
-reportMissingImports = "error"
-reportMissingTypeStubs = false
-exclude = [
-	"pyglossary/slob.py",
-	"setup.py",
-	"whitelist.py",       # for vulture
-	# "pyglossary/ui/gtk4_utils/*",
-	# "pyglossary/ui/gtk3_utils/*",
-	"pyglossary/plugins/babylon_bgl/bgl_gzip.py",
-	"pyglossary/plugins/testformat.py",
-	# "pyglossary/plugin_lib/*",
-	"pyglossary/ui/gtk*_utils/__init__.py",
-	"pyglossary/ui/ui_qt.py",
-	"pyglossary/ui/progressbar/",
-	"pyglossary/reverse.py",
-	"wcwidth*",
-	".direnv",
-	".eggs",
-	".git",
-	".mypy_cache",
-	".nox",
-	".pants.d",
-	".ruff_cache",
-	".tox",
-	".venv",
-	"__pypackages__",
-	"_build",
-	"buck-out",
-	"build",
-	"dist",
-	"venv",
-]
-
-[tool.fixit]
-disable = ["fixit.rules.no_namedtuple"]
-
-[[tool.fixit.overrides]]
-path = "pyglossary/reverse.py"
-disable = ["fixit.rules"]
-
-[[tool.fixit.overrides]]
-path = "pyglossary/ui/wcwidth/"
-disable = ["fixit.rules"]
-
-[[tool.fixit.overrides]]
-path = "pyglossary/ui/progressbar/"
-disable = ["fixit.rules"]
 
 [build-system]
 requires = [
@@ -437,7 +412,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyglossary"
-version = "5.1.0"
+version = "5.1.1"
 description = "A tool for converting dictionary files aka glossaries."
 readme = "README.md"
 authors = [{ name = "Saeed Rasooli", email = "saeed.gnu@gmail.com" }]
@@ -448,12 +423,11 @@ classifiers = [
 	"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
 	"Operating System :: OS Independent",
 	"Typing :: Typed",
-	"Programming Language :: Python :: 3.10",
 	"Programming Language :: Python :: 3.11",
 	"Programming Language :: Python :: 3.12",
 	"Programming Language :: Python :: 3.13",
 ]
-requires-python = ">= 3.10"
+requires-python = ">= 3.11"
 dependencies = []
 
 [project.optional-dependencies]

@@ -6,9 +6,9 @@ import shutil
 import sys
 from os.path import join, normpath
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
-from . import core
+from .core import TRACE, pip, trace
 
 if TYPE_CHECKING:
 	from collections.abc import Callable, Iterable
@@ -48,7 +48,7 @@ class indir:
 		self.create = create
 		self.clear = clear
 
-	def __enter__(self) -> None:
+	def __enter__(self) -> Self:
 		self.old_pwd = os.getcwd()
 		if os.path.exists(self.dir):
 			if self.clear:
@@ -124,7 +124,7 @@ def runDictzip(filename: str | Path, method: str = "") -> None:
 	if not res:
 		log.warning(
 			"Dictzip compression requires idzip module or dictzip utility,"
-			f" run `{core.pip} install python-idzip` to install or make sure"
+			f" run `{pip} install python-idzip` to install or make sure"
 			" dictzip is in your $PATH",
 		)
 
@@ -170,24 +170,24 @@ def rmtree(direc: str) -> None:
 
 
 def showMemoryUsage() -> None:
-	if log.level > core.TRACE:
+	if log.level > TRACE:
 		return
 	try:
 		import psutil
 	except ModuleNotFoundError:
 		return
 	usage = psutil.Process(os.getpid()).memory_info().rss // 1024
-	core.trace(log, f"Memory Usage: {usage:,} kB")
+	trace(log, f"Memory Usage: {usage:,} kB")
 
 
-def listFilesRecursive(direc: str) -> Iterable[str]:
-	"""
-	Iterate over full paths of all files (directly/indirectly)
-	inside given directory.
-	"""
-	for root, _subDirs, files in os.walk(direc):
-		for fname in files:
-			yield join(root, fname)
+# def listFilesRecursive(direc: str) -> Iterable[str]:
+# 	"""
+# 	Iterate over full paths of all files (directly/indirectly)
+# 	inside given directory.
+# 	"""
+# 	for root, _subDirs, files in os.walk(direc):
+# 		for fname in files:
+# 			yield join(root, fname)
 
 
 def listFilesRecursiveRelPath(direc: str) -> Iterable[str]:

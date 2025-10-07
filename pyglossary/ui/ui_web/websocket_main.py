@@ -32,9 +32,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 from pyglossary.glossary_v2 import Glossary
-from pyglossary.ui.ui_web.weblog import WebLogHandler
-from pyglossary.ui.ui_web.websocket_handler import HTTPWebSocketHandler
-from pyglossary.ui.ui_web.websocket_server import HttpWebsocketServer
+
+from .weblog import WebLogHandler
+from .websocket_handler import HTTPWebSocketHandler
+from .websocket_server import HttpWebsocketServer
 
 if TYPE_CHECKING:
 	from pyglossary.glossary_types import EntryType
@@ -43,6 +44,8 @@ if TYPE_CHECKING:
 		def send_message_to_all(self, msg: str | dict) -> None: ...
 		def shutdown(self) -> None: ...
 
+
+__all__ = ["create_server"]
 
 MAX_IMAGE_SIZE = 512000
 DEFAULT_MAX_BROWSE_ENTRIES = 42
@@ -98,23 +101,23 @@ def message_received(client: dict[str, Any], server: ServerType, message: str) -
 
 def browse_check_entry(entry: EntryType, wordQuery: str) -> str | None:
 	# get first max entries if no word or filter until max results
-	if wordQuery and not entry.s_word.lower().startswith(wordQuery.lower()):
+	if wordQuery and not entry.s_term.lower().startswith(wordQuery.lower()):
 		return None
 	html_entry = None
 	if entry.defiFormat in {"h", "m", "x"}:
-		return f"""<dt>{entry.s_word}</dt><dd>{entry.defi}</dd>"""
+		return f"""<dt>{entry.s_term}</dt><dd>{entry.defi}</dd>"""
 
-	html_entry = f"&#128206;<pre>{entry.s_word} ({entry.size()})</pre>"
+	html_entry = f"&#128206;<pre>{entry.s_term} ({entry.size()})</pre>"
 	if (
 		entry.isData()
 		and entry.size() < MAX_IMAGE_SIZE
-		and entry.s_word.lower().endswith((".jpg", "jpeg", ".png"))
+		and entry.s_term.lower().endswith((".jpg", "jpeg", ".png"))
 	):
-		extension = Path(entry.s_word).suffix[1:]
+		extension = Path(entry.s_term).suffix[1:]
 		html_entry += f"""
 		<img class="data"
 		src="data:image/{extension};base64,{base64.b64encode(entry.data).decode("utf-8")}"
-		alt="{entry.s_word}"/>
+		alt="{entry.s_term}"/>
 		"""
 	return html_entry
 

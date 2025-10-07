@@ -31,6 +31,24 @@ from http.server import HTTPServer
 from socketserver import ThreadingMixIn
 from typing import TYPE_CHECKING, Any, Protocol
 
+__all__ = [
+	"CLOSE_STATUS_NORMAL",
+	"DEFAULT_CLOSE_REASON",
+	"FIN",
+	"MASKED",
+	"OPCODE",
+	"OPCODE_BINARY",
+	"OPCODE_CLOSE_CONN",
+	"OPCODE_CONTINUATION",
+	"OPCODE_PING",
+	"OPCODE_PONG",
+	"OPCODE_TEXT",
+	"PAYLOAD_LEN",
+	"PAYLOAD_LEN_EXT16",
+	"PAYLOAD_LEN_EXT64",
+	"HttpWebsocketServer",
+]
+
 if TYPE_CHECKING:
 	import logging
 	from collections.abc import Callable
@@ -117,7 +135,7 @@ class API:
 	) -> None:
 		self.client_left = fn
 
-	def set_fn_message_received(self, fn) -> None:  # noqa: ANN001
+	def set_fn_message_received(self, fn: Callable[[HandlerType, str], None]) -> None:
 		self.message_received = fn
 
 	def send_message(self, client: dict[str, Any], msg: str | bytes) -> None:
@@ -207,13 +225,13 @@ class HttpWebsocketServer(ThreadingMixIn, HTTPServer, API):
 	def url(self) -> str:
 		return f"http://{self.host}:{self.port}/"
 
-	def info(self, *args, **kwargs) -> None:  # noqa: ANN002
+	def info(self, *args: Any, **kwargs: Any) -> None:
 		self.logger.info(*args, **kwargs)
 
-	def error(self, *args, **kwargs) -> None:  # noqa: ANN002
+	def error(self, *args: Any, **kwargs: Any) -> None:
 		self.logger.error(*args, **kwargs)
 
-	def exception(self, *args, **kwargs) -> None:  # noqa: ANN002
+	def exception(self, *args: Any, **kwargs: Any) -> None:
 		self.logger.error(*args, **kwargs)
 
 	def run_forever(self, threaded: bool = False) -> None:

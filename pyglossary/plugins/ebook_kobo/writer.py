@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # The MIT License (MIT)
 # Copyright © 2012-2016 Alberto Pettarin (alberto@albertopettarin.it)
-# Copyright © 2022 Saeed Rasooli <saeed.gnu@gmail.com>
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com>
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -27,8 +27,7 @@ from pathlib import Path
 from pickle import dumps, loads
 from typing import TYPE_CHECKING
 
-from pyglossary import core
-from pyglossary.core import exc_note, log, pip
+from pyglossary.core import exc_note, log, pip, trace
 from pyglossary.os_utils import indir
 
 if TYPE_CHECKING:
@@ -75,7 +74,7 @@ class Writer:
 
 	@staticmethod
 	def stripFullHtmlError(entry: EntryType, error: str) -> None:
-		log.error(f"error in stripFullHtml: {error}, terms={entry.l_word!r}")
+		log.error(f"error in stripFullHtml: {error}, terms={entry.l_term!r}")
 
 	def __init__(self, glos: WriterGlossaryType) -> None:
 		self._glos = glos
@@ -131,7 +130,7 @@ class Writer:
 			nonlocal htmlContents
 			group_fname = _fixFilename(lastPrefix)
 			htmlContents += "</html>"
-			core.trace(
+			trace(
 				log,
 				f"writeGroup: {lastPrefix!r}, {group_fname!r}, count={groupCounter}",
 			)
@@ -150,17 +149,17 @@ class Writer:
 			if entry.isData():
 				dataEntryCount += 1
 				continue
-			l_word = entry.l_word
-			allWords += l_word
+			l_term = entry.l_term
+			allWords += l_term
 			wordsByPrefix: dict[str, list[str]] = {}
-			for word in l_word:
+			for word in l_term:
 				prefix = self.get_prefix(word)
 				if prefix in wordsByPrefix:
 					wordsByPrefix[prefix].append(word)
 				else:
 					wordsByPrefix[prefix] = [word]
 			defi = self.fix_defi(entry.defi)
-			mainHeadword = l_word[0]
+			mainHeadword = l_term[0]
 			for prefix, p_words in wordsByPrefix.items():
 				headword, *variants = p_words
 				if headword != mainHeadword:

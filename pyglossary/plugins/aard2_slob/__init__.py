@@ -79,10 +79,8 @@ optionsProp: dict[str, Option] = {
 	),
 }
 
-extraDocs = [
-	(
-		"PyICU",
-		"See [doc/pyicu.md](./doc/pyicu.md) file for more detailed"
-		" instructions on how to install PyICU.",
-	),
-]
+docTail = """### pyicu
+
+See [doc/pyicu.md](../pyicu.md) file for more detailed instructions on how
+to install pyicu.
+"""

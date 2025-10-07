@@ -4,14 +4,14 @@ import unicodedata
 from typing import Literal, NamedTuple
 
 __all__ = [
-	"WritingSystem",
-	"getAllWritingSystemsFromText",
+	# "WritingSystem",
+	# "getAllWritingSystemsFromText",
 	"getWritingSystemFromText",
 	# 'unicodeNextWord',
-	"writingSystemByLowercaseName",
-	"writingSystemByName",
-	"writingSystemByUnicode",
-	"writingSystemList",
+	# "writingSystemByLowercaseName",
+	# "writingSystemByName",
+	# "writingSystemByUnicode",
+	# "writingSystemList",
 ]
 
 
@@ -42,6 +42,11 @@ writingSystemList = [
 		comma=", ",
 		pop=4900,
 	),
+	# Arabic script traditionally uses larger text size and decorative elements
+	# for titles
+	# Gulf countries tend toward larger sizes
+	# North African publications often combine size and bold
+	# Levantine regions frequently use color variation alongside size
 	WritingSystem(
 		name="Arabic",
 		iso=[(160, "Arab")],
@@ -59,6 +64,9 @@ writingSystemList = [
 		comma=", ",
 		pop=250,
 	),
+	# Classical Chinese texts used red ink (朱文) for important titles
+	# Japanese manuscripts employed larger characters (大字) for headings
+	# Korean traditional documents used spacing and indentation for hierarchy
 	WritingSystem(
 		name="CJK",
 		iso=[
@@ -91,6 +99,8 @@ writingSystemList = [
 		comma="、",
 		pop=1540,  # Chinese=1340, Kana=120, Hangul=78.7
 	),
+	# Devanagari-based scripts employ vowel marks and diacritical
+	# modifications to indicate titles
 	WritingSystem(
 		name="Devanagari",
 		iso=[(315, "Deva")],
@@ -132,11 +142,15 @@ writingSystemList = [
 		comma=", ",
 		pop=21,
 	),
+	# Greek: Primarily uses capitalization for emphasis.
+	# Bold text is less common due to readability concerns.
+	# Digital interfaces often combine size and weight.
+	# Maintains traditional capitalization patterns.
 	WritingSystem(
 		name="Greek",
 		iso=[(200, "Grek")],
 		unicode=["GREEK"],
-		titleTag="b",
+		titleTag="big",
 		comma=", ",
 		pop=11,
 	),
@@ -262,7 +276,7 @@ writingSystemList = [
 		name="Syriac",
 		iso=[(135, "Syrc")],
 		unicode=["SYRIAC"],
-		titleTag="b",
+		titleTag="big",
 		direction="rtl",
 		comma="، ",
 		pop=8,  # Syriac=0.4, Lontara=7.6
@@ -277,6 +291,8 @@ writingSystemList = [
 		comma=", ",  # almost not used expect in numbers!
 		pop=5,
 	),
+	# Georgian: Traditionally, Asomtavruli (uppercase) was used for chapter or
+	# section titles. Uses bold text sparingly due to readability concerns.
 	WritingSystem(
 		name="Georgian",
 		iso=[(240, "Geor")],
@@ -324,7 +340,7 @@ writingSystemList = [
 		name="Takri",
 		iso=[(321, "Takr")],
 		unicode=["TAKRI"],
-		titleTag="b",
+		titleTag="big",
 		comma=", ",
 	),
 	# _____________________________________________________
@@ -348,14 +364,14 @@ writingSystemList = [
 		name="Avestan",
 		iso=[(134, "Avst")],
 		unicode=["AVESTAN"],
-		titleTag="b",
+		titleTag="big",
 		direction="rtl",
 	),
 	WritingSystem(
 		name="Glagolitic",
 		iso=[(225, "Glag")],
 		unicode=["GLAGOLITIC"],  # Unicode 4.1
-		titleTag="b",
+		titleTag="big",
 	),
 	WritingSystem(
 		name="Khojki",
@@ -379,7 +395,7 @@ writingSystemList = [
 		name="Gothic",
 		iso=[(206, "Goth")],
 		unicode=["GOTHIC"],
-		titleTag="b",
+		titleTag="big",
 	),
 	WritingSystem(
 		name="Runic",

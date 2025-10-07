@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2008-2022 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 # This file is part of PyGlossary project, https://github.com/ilius/pyglossary
 #
 # This program is a free software; you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from .glossary_utils import Error
 
@@ -120,7 +120,7 @@ class SqEntryList:
 		self._cur.execute(  # type: ignore
 			f"insert into data({self._columnNames}, data)"
 			f" values (?{', ?' * len(self._sqliteSortKey)})",
-			[col[2](entry.l_word) for col in self._sqliteSortKey]
+			[col[2](entry.l_term) for col in self._sqliteSortKey]
 			+ [self._encode(entry)],
 		)
 		self._len += 1
@@ -132,7 +132,7 @@ class SqEntryList:
 		for row in self._cur:
 			yield self._decode(row[0])
 
-	def __iadd__(self, other: Iterable) -> SqEntryList:
+	def __iadd__(self, other: Iterable) -> Self:
 		for item in other:
 			self.append(item)
 		return self

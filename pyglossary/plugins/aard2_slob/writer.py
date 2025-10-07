@@ -28,7 +28,7 @@ __all__ = ["Writer"]
 
 class Writer:
 	depends = {
-		"icu": "PyICU",
+		"icu": "pyicu",
 	}
 
 	_compression: str = "zlib"
@@ -42,32 +42,33 @@ class Writer:
 	_audio_goldendict: bool = False
 
 	resourceMimeTypes = {
-		"png": "image/png",
+		"bmp": "image/bmp",
+		"gif": "image/gif",
+		"ico": "image/x-icon",
 		"jpeg": "image/jpeg",
 		"jpg": "image/jpeg",
-		"gif": "image/gif",
+		"png": "image/png",
 		"svg": "image/svg+xml",
-		"webp": "image/webp",
-		"tiff": "image/tiff",
 		"tif": "image/tiff",
-		"bmp": "image/bmp",
+		"tiff": "image/tiff",
+		"webp": "image/webp",
 		"css": "text/css",
+		"ini": "text/plain",
 		"js": "application/javascript",
 		"json": "application/json",
 		"woff": "application/font-woff",
 		"woff2": "application/font-woff2",
 		"ttf": "application/x-font-ttf",
 		"otf": "application/x-font-opentype",
+		# "application/octet-stream+xapian",
+		"eot": "application/vnd.ms-fontobject",
+		"pdf": "application/pdf",
 		"mp3": "audio/mpeg",
 		"ogg": "audio/ogg",
 		"opus": "audio/ogg",
 		"oga": "audio/ogg",
 		"spx": "audio/x-speex",
 		"wav": "audio/wav",
-		"ini": "text/plain",
-		# "application/octet-stream+xapian",
-		"eot": "application/vnd.ms-fontobject",
-		"pdf": "application/pdf",
 		"mp4": "video/mp4",
 	}
 
@@ -120,7 +121,7 @@ class Writer:
 		try:
 			import icu  # noqa: F401
 		except ModuleNotFoundError as e:
-			exc_note(e, f"Run `{pip} install PyICU` to install")
+			exc_note(e, f"Run `{pip} install pyicu` to install")
 			raise
 		if isfile(filename):
 			raise WriteError(f"File '{filename}' already exists")
@@ -146,7 +147,7 @@ class Writer:
 		slobWriter = self._slobWriter
 		if slobWriter is None:
 			raise ValueError("slobWriter is None")
-		rel_path = entry.s_word
+		rel_path = entry.s_term
 		_, ext = splitext(rel_path)
 		ext = ext.lstrip(os.path.extsep).lower()
 		content_type = self.resourceMimeTypes.get(ext)
@@ -163,7 +164,7 @@ class Writer:
 		slobWriter.add(content, key, content_type=content_type)
 
 	def addEntry(self, entry: EntryType) -> None:
-		terms = entry.l_word
+		terms = entry.l_term
 		b_defi = entry.defi.encode("utf-8")
 		ctype = self._content_type
 		writer = self._slobWriter

@@ -3,12 +3,19 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from pyglossary.ui.argparse_utils import StoreConstAction
+from .argparse_utils import StoreConstAction
 
 if TYPE_CHECKING:
 	import argparse
 
 	from pyglossary.option import Option
+
+__all__ = [
+	"evaluateReadOptions",
+	"evaluateWriteOptions",
+	"parseReadWriteOptions",
+	"registerConfigOption",
+]
 
 
 def registerConfigOption(
@@ -135,7 +142,7 @@ def evaluateWriteOptions(
 def parseReadWriteOptions(
 	args: argparse.Namespace,
 ) -> tuple[tuple[dict[str, Any], dict[str, Any]] | None, str | None]:
-	from pyglossary.ui.ui_cmd import parseFormatOptionsStr
+	from .ui_cmd import parseFormatOptionsStr
 
 	readOptions = parseFormatOptionsStr(args.readOptions)
 	if readOptions is None:

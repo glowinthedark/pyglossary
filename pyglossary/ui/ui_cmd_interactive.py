@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 # mypy: ignore-errors
-# ui_cmd_interactive.py
 #
-# Copyright © 2008-2022 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 # This file is part of PyGlossary project, https://github.com/ilius/pyglossary
 #
 # This program is a free software; you can redistribute it and/or modify
@@ -70,13 +69,13 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.shortcuts import PromptSession, confirm
 
-from pyglossary import core
-from pyglossary.core import confDir
+from pyglossary.core import confDir, noColor
 from pyglossary.glossary_v2 import Error, Glossary
 from pyglossary.sort_keys import lookupSortKey, namedSortKeyList
-from pyglossary.ui import ui_cmd
-from pyglossary.ui.config import configDefDict
-from pyglossary.ui.termcolors import colors
+
+from . import ui_cmd
+from .config import configDefDict
+from .termcolors import colors
 
 if TYPE_CHECKING:
 	from collections.abc import Iterable
@@ -157,7 +156,7 @@ def dataToPrettyJson(
 def prompt(
 	message: ANSI | str,
 	multiline: bool = False,
-	**kwargs,
+	**kwargs: Any,
 ) -> str:
 	if kwargs.get("default", "") is None:
 		kwargs["default"] = ""
@@ -180,7 +179,7 @@ class MyPathCompleter(PathCompleter):
 		self,
 		reading: bool,  # noqa: ARG002
 		fs_action_names: list[str] | None = None,
-		**kwargs,
+		**kwargs: Any,
 	) -> None:
 		PathCompleter.__init__(
 			self,
@@ -400,7 +399,7 @@ class UI(ui_cmd.UI):
 	) -> tuple[str, bool]:
 		indent_ = self.promptIndentStr * level
 
-		if core.noColor:
+		if noColor:
 			return f"{indent_} {msg}{colon} ", False
 
 		if self.promptIndentColor >= 0:
@@ -418,7 +417,7 @@ class UI(ui_cmd.UI):
 		colon: str = ":",
 	) -> StyleAndTextTuples:
 		indent_ = self.promptIndentStr * level
-		if core.noColor:
+		if noColor:
 			return [("", f"{indent_} {msg}{colon} ")]
 
 		indentStyle = ""
@@ -435,7 +434,7 @@ class UI(ui_cmd.UI):
 			("", f"{colon} "),
 		]
 
-	def prompt(self, level: int, msg: str, colon: str = ":", **kwargs) -> str:
+	def prompt(self, level: int, msg: str, colon: str = ":", **kwargs: Any) -> str:
 		msg2, colored = self.formatPromptMsg(level, msg, colon)
 		if colored:
 			msg2 = ANSI(msg2)
@@ -458,7 +457,7 @@ class UI(ui_cmd.UI):
 		)
 
 		@bindings.add(" ")
-		def space(_event: KeyPressEvent) -> None:
+		def _space(_event: KeyPressEvent) -> None:
 			check.value = not check.value
 			# cursor_pos = check.formatMessage().find("[") + 1
 			# cur_cursor_pos = session.default_buffer.cursor_position

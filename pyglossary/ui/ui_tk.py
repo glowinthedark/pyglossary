@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 # mypy: ignore-errors
-# ui_tk.py
 #
-# Copyright © 2009-2021 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 #
 # This program is a free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,8 +26,7 @@ from tkinter import filedialog, ttk
 from tkinter import font as tkFont
 from typing import TYPE_CHECKING, Any, Literal
 
-from pyglossary import core
-from pyglossary.core import confDir, homeDir
+from pyglossary.core import confDir, homeDir, homePage, sysName
 from pyglossary.glossary_v2 import ConvertArgs, Error, Glossary
 from pyglossary.text_utils import urlToPath
 
@@ -48,7 +46,7 @@ if TYPE_CHECKING:
 	from pyglossary.config_type import ConfigType
 	from pyglossary.logger import Logger
 
-log: Logger = logging.getLogger("pyglossary")  # pyright: ignore
+log: Logger = logging.getLogger("pyglossary")
 
 # on Windows: make app DPI-aware, fix blurry fonts
 if os.sep == "\\":
@@ -56,7 +54,7 @@ if os.sep == "\\":
 
 	try:
 		# 1 = system DPI aware
-		ctypes.windll.shcore.SetProcessDpiAwareness(1)  # pyright: ignore
+		ctypes.windll.shcore.SetProcessDpiAwareness(1)
 	except Exception:
 		log.exception("")
 
@@ -128,7 +126,7 @@ def newLabelWithImage(parent, file=""):
 	image = tk.PhotoImage(file=file)
 	label = ttk.Label(parent, image=image)
 	# keep a reference:
-	label.image = image  # pyright: ignore
+	label.image = image
 	return label
 
 
@@ -226,7 +224,7 @@ class ProgressBar(ttk.Frame):
 		ttk.Frame.__init__(
 			self,
 			rootWin,
-			relief=appearance,  # pyright: ignore
+			relief=appearance,
 		)
 		self.canvas = tk.Canvas(
 			self,
@@ -586,26 +584,28 @@ class FormatOptionsDialog(tk.Toplevel):
 		values = self.values
 		self.valueCol = "#3"
 		cols = [
-			"Enable",  # bool
-			"Name",  # str
-			"Value",  # str
-			"Comment",  # str
+			("Enable", 50, False),  # bool
+			("Name", 200, True),  # str
+			("Value", 200, True),  # str
+			("Comment", 300, False),  # str
 		]
 		treev = self.treev = ttk.Treeview(
 			master=self,
-			columns=cols,
+			columns=[item[0] for item in cols],
 			show="headings",
 		)
-		for col in cols:
+		for title, minwidth, stretch in cols:
 			treev.heading(
-				col,
-				text=col,
+				title,
+				text=title,
 				# command=lambda c=col: sortby(treev, c, 0),
 			)
 			# adjust the column's width to the header string
 			treev.column(
-				col,
-				width=tkFont.Font().measure(col.title()),
+				title,
+				width=tkFont.Font().measure(title.title()),
+				stretch=stretch,
+				minwidth=minwidth,
 			)
 		###
 		treev.bind(
@@ -636,9 +636,9 @@ class FormatOptionsDialog(tk.Toplevel):
 				col_w = tkFont.Font().measure(value)
 				# treev.column: if you pass width=None, returns width as int!
 				# but with no arg, returns dict[str, Any] with "width" key!
-				current_width: int = treev.column(cols[col_i], width=None)  # pyright: ignore
+				current_width: int = treev.column(cols[col_i][0], width=None)
 				if current_width < col_w:
-					treev.column(cols[col_i], width=col_w)
+					treev.column(cols[col_i][0], width=col_w)
 
 	def valueMenuItemCustomSelected(
 		self,
@@ -658,18 +658,6 @@ class FormatOptionsDialog(tk.Toplevel):
 		dialog.title(optName)
 		set_window_icon(dialog)
 		dialog.bind("<Escape>", lambda _e: dialog.destroy())
-
-		px, py, pw, ph = decodeGeometry(treev.winfo_toplevel().geometry())
-		width = 300
-		height = 100
-		dialog.geometry(
-			encodeGeometry(
-				px + pw // 2 - width // 2,
-				py + ph // 2 - height // 2,
-				width,
-				height,
-			),
-		)
 
 		frame = ttk.Frame(master=dialog)
 
@@ -716,7 +704,7 @@ class FormatOptionsDialog(tk.Toplevel):
 		treev.set(optName, self.valueCol, value)
 		treev.set(optName, "#1", "1")  # enable it
 		col_w = tkFont.Font().measure(value)
-		if treev.column("Value", width=None) < col_w:  # pyright: ignore
+		if treev.column("Value", width=None) < col_w:
 			treev.column("Value", width=col_w)
 		menu.destroy()
 		self.menu = None
@@ -890,14 +878,16 @@ class FormatOptionsButton(ttk.Button):
 		)
 
 		# x, y, w, h = decodeGeometry(dialog.geometry())
-		w, h = 380, 250
 		# w and h are rough estimated width and height of `dialog`
 		px, py, pw, ph = decodeGeometry(self.winfo_toplevel().geometry())
-		# move dialog without changing the size
+		dialog.update_idletasks()
+		width = dialog.winfo_width() + 200
+		height = dialog.winfo_height()
 		dialog.geometry(
-			encodeLocation(
-				px + pw // 2 - w // 2,
-				py + ph // 2 - h // 2,
+			f"{width}x{height}"
+			+ encodeLocation(
+				px + pw // 2 - width // 2,
+				py + ph // 2 - height // 2,
 			),
 		)
 		dialog.focus()
@@ -1008,7 +998,7 @@ class UI(tk.Frame, UIBase):
 		# rootWin.bind("<Configure>", self.resized)
 		#######################
 		defaultFont = tkFont.nametofont("TkDefaultFont")
-		if core.sysName in {"linux", "freebsd"}:
+		if sysName in {"linux", "freebsd"}:
 			defaultFont.configure(size=int(defaultFont.cget("size") * 1.4))
 		####
 		self.bigFont = defaultFont.copy()
@@ -1245,7 +1235,7 @@ class UI(tk.Frame, UIBase):
 		aboutAboutFrame = ttk.Frame()
 		newReadOnlyText(
 			aboutAboutFrame,
-			text=f"{aboutText}\nHome page: {core.homePage}",
+			text=f"{aboutText}\nHome page: {homePage}",
 			font=("DejaVu Sans", 11, ""),
 		).pack(fill="both", expand=True)
 		aboutAboutFrame.pack(side="top", fill="x")
@@ -1324,9 +1314,9 @@ class UI(tk.Frame, UIBase):
 
 		######################
 		for column, weight in enumerate([1, 30, 20, 1]):
-			tk.Grid.columnconfigure(convertFrame, column, weight=weight)  # pyright: ignore
+			tk.Grid.columnconfigure(convertFrame, column, weight=weight)
 		for row, weight in enumerate([50, 50, 1, 50, 50, 1, 50]):
-			tk.Grid.rowconfigure(convertFrame, row, weight=weight)  # pyright: ignore
+			tk.Grid.rowconfigure(convertFrame, row, weight=weight)
 		# _________________________________________________________________ #
 
 		notebook.pack(fill="both", expand=True)

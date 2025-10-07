@@ -20,14 +20,14 @@ plugins = [
 	p for p in Glossary.plugins.values() if userPluginsDirPath not in p.path.parents
 ]
 
-depSet = {
-	"prompt-toolkit",  # used for interactive cli
+requirements = {
+	"prompt_toolkit",  # used for interactive cli
 }
 # "tqdm" used for progressbar if installed
 # "python-idzip" is used as dictzip for StarDict if installed
 for p in plugins:
-	depSet |= set(p.readDepends.values())
-	depSet |= set(p.writeDepends.values())
+	requirements |= set(p.readDepends.values())
+	requirements |= set(p.writeDepends.values())
 
 with open("requirements.txt", "w", encoding="utf-8") as file:
-	file.writelines(name + "\n" for name in sorted(depSet))
+	file.writelines(name + "\n" for name in sorted(requirements))

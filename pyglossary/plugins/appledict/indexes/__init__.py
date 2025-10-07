@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# appledict/indexes/__init__.py
 #
 # Copyright © 2016 ivan tkachenko me@ratijas.tk
 #
@@ -14,9 +13,10 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
-from __future__ import annotations
 
 """extended indexes generation with respect to source language."""
+
+from __future__ import annotations
 
 import os
 import pkgutil
@@ -28,16 +28,14 @@ if TYPE_CHECKING:
 __all__ = ["languages"]
 
 languages: dict[str, Callable[[Sequence[str], str], set[str]]] = {}
-"""
-submodules must register languages by adding (language name -> function)
-pairs to the mapping.
 
-function must follow signature below:
-	:param titles: flat iterable of title and altenrative titles
-	:param content: cleaned entry content
-	:return: iterable of indexes (str).
+# submodules must register languages by adding (language name -> function)
+# pairs to the mapping.
 
-"""
+# function must follow signature below:
+# 	:param titles: flat iterable of title and altenrative titles
+# 	:param content: cleaned entry content
+# 	:return: iterable of indexes (str).
 
 here = os.path.dirname(os.path.abspath(__file__))
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # mypy: ignore-errors
 #
-# Copyright © 2008-2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 #
 # This program is a free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 from gi.repository import Gio as gio
 from gi.repository import Gtk as gtk
 
-from pyglossary import core
+from pyglossary.core import pip
 from pyglossary.glossary_v2 import Glossary
 from pyglossary.ui.dependency import checkDepends
 
@@ -61,7 +61,7 @@ class FormatDialog(gtk.Dialog):
 		self,
 		descList: list[str],
 		parent: gtk.Widget | None = None,
-		**kwargs,
+		**kwargs: Any,
 	) -> None:
 		gtk.Dialog.__init__(self, transient_for=parent, **kwargs)
 		self.set_default_size(400, 400)
@@ -273,7 +273,7 @@ class FormatOptionsDialog(gtk.Dialog):
 		formatName: str,
 		options: list[str],
 		optionsValues: dict[str, Any],
-		**kwargs,
+		**kwargs: Any,
 	) -> None:
 		self.app = app
 		gtk.Dialog.__init__(self, **kwargs)
@@ -732,7 +732,7 @@ class FormatBox(gtk.Box):
 			print("All dependencies are stattisfied for " + formatName)
 			return
 		pkgNamesStr = " ".join(pkgNames)
-		msg = f"Run the following command:\n{core.pip} install {pkgNamesStr}"
+		msg = f"Run the following command:\n{pip} install {pkgNamesStr}"
 		showInfo(
 			msg,
 			title="Dependencies for " + formatName,
@@ -767,7 +767,7 @@ class FormatBox(gtk.Box):
 class InputFormatBox(FormatBox):
 	dialogTitle = "Select Input Format"
 
-	def __init__(self, app: gtk.Application, **kwargs) -> None:
+	def __init__(self, app: gtk.Application, **kwargs: Any) -> None:
 		FormatBox.__init__(self, app, readDesc, **kwargs)
 
 	def kind(self) -> str:
@@ -784,7 +784,7 @@ class InputFormatBox(FormatBox):
 class OutputFormatBox(FormatBox):
 	dialogTitle = "Select Output Format"
 
-	def __init__(self, app: gtk.Application, **kwargs) -> None:
+	def __init__(self, app: gtk.Application, **kwargs: Any) -> None:
 		FormatBox.__init__(self, app, writeDesc, **kwargs)
 
 	def kind(self) -> str:

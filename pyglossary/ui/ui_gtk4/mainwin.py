@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # mypy: ignore-errors
 #
-# Copyright © 2008-2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
+# Copyright © 2025 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 #
 # This program is a free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any
 from gi.repository import Gdk as gdk
 from gi.repository import Gtk as gtk
 
-from pyglossary import core
+from pyglossary.core import homePage
 from pyglossary.glossary_v2 import ConvertArgs, Error, Glossary
 from pyglossary.text_utils import urlToPath
 from pyglossary.ui.base import (
@@ -34,11 +34,11 @@ from pyglossary.ui.base import (
 	licenseText,
 	logo,
 )
-from pyglossary.ui.ui_gtk4.console import ConvertConsole
-from pyglossary.ui.ui_gtk4.file_widgets import InputFileBox, OutputFileBox
 from pyglossary.ui.version import getVersion
 
 from .about import AboutWidget
+from .console import ConvertConsole
+from .file_widgets import InputFileBox, OutputFileBox
 from .format_widgets import InputFormatBox, OutputFormatBox
 from .general_options import GeneralOptionsButton
 from .utils import (
@@ -160,7 +160,7 @@ progressbar progress, trough {min-height: 0.6em;}
 		ui: UIType,
 		app: gtk.Application,
 		progressBar: gtk.ProgressBar | None,
-		**kwargs,
+		**kwargs: Any,
 	) -> None:
 		self.app = app
 		self.ui = ui
@@ -295,7 +295,7 @@ progressbar progress, trough {min-height: 0.6em;}
 			logo=logo,
 			header=f"PyGlossary\nVersion {getVersion()}",
 			# about=summary,
-			about=f'{aboutText}\n<a href="{core.homePage}">{core.homePage}</a>',
+			about=f'{aboutText}\n<a href="{homePage}">{homePage}</a>',
 			authors="\n".join(authors),
 			license_text=licenseText,
 		)

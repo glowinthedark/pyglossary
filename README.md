@@ -89,7 +89,7 @@ Web interface
 | [JMnedict](./doc/p/jmnedict.md)                      🇯🇵 | 📝  |                 | ✅ | ❌ |
 | [WordNet](./doc/p/wordnet.md)                        🇬🇧 | 📁  |                 | ✅ | ❌ |
 | [@wordset dictionary](./doc/p/wordset.md)            🇬🇧 | 📁  |                 | ✅ |    |
-| [Yomichan / Yomitan](./doc/p/yomichan.md)            🇯🇵 | 📦  |     (.zip)      |    | ✅ |
+| [Yomichan / Yomitan](./doc/p/yomichan.md)            🇯🇵 | 📦  |     (.zip)      | ✅ | ✅ |
 
 Legend:
 
@@ -283,6 +283,12 @@ you can place it in this directory:
 ## Using PyGlossary as a library
 
 See [doc/lib-usage.md](./doc/lib-usage.md) for how to use PyGlossary as a Python library.
+
+## Plugin development
+
+To learn how to develop plugins, see [test plugin](./pyglossary/plugins/testformat/) as a basic example, or [CSV plugin](./pyglossary/plugins/csv_plugin) for example.
+
+Whenever you add a new plugin, or change options/metedata of an existing plugin, make sure to run [`./scripts/gen.sh`](./scripts/gen.sh) script to update generated files (index and documentation) that we keep.
 
 ## Internals
 

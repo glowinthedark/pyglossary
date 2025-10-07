@@ -27,7 +27,7 @@ from pyglossary.text_utils import crc32hex
 if TYPE_CHECKING:
 	from collections.abc import Callable
 
-__all__ = ["TestGlossaryBase", "appTmpDir", "testCacheDir"]
+__all__ = ["TestGlossaryBase", "appTmpDir"]
 
 tracemalloc.start()
 
@@ -62,13 +62,7 @@ class TestGlossaryBase(unittest.TestCase):
 			"100-en-fa.txt": "f5c53133",
 			"100-ja-en.txt": "93542e89",
 			"100-en-de-v4-remove_font_b.txt": "a3144e2f",
-			"100-en-de-v4.sd/100-en-de.dict": "5a97476f",
-			"100-en-de-v4.sd/100-en-de.idx": "a99f29d2",
-			"100-en-de-v4.sd/100-en-de.ifo": "6529871f",
-			"100-en-de-v4.info": "f2cfb284",
-			"100-en-fa.info": "9bddb7bb",
 			"100-en-fa-v2.info": "7c0f646b",
-			"100-ja-en.info": "8cf5403c",
 			"300-rand-en-fa.txt": "586617c8",
 			"res/stardict.png": "7e1447fa",
 			"res/test.json": "41f8cf31",
@@ -111,9 +105,14 @@ class TestGlossaryBase(unittest.TestCase):
 		if isfile(fpath):
 			with open(fpath, mode="rb") as _file:
 				data = _file.read()
-			if crc32hex(data) != crc32:
-				raise RuntimeError(f"CRC32 check failed for existing file: {fpath!r}")
-			return fpath
+			if crc32hex(data) == crc32:
+				return fpath
+			if not os.getenv("TEST_REDOWNLOAD_OUTDATED_CACHE"):
+				raise RuntimeError(f"CRC32 check failed for cached file: {fpath!r}")
+			log.warning(
+				f"CRC32 check failed for cached file (will download): {fpath!r}"
+			)
+
 		if "GITHUB_RUN_ID" in os.environ:
 			time.sleep(0.05)
 		try:
@@ -420,7 +419,7 @@ class TestGlossary(TestGlossaryBase):
 	def test_setInfo_err1(self):
 		glos = self.glos = Glossary()
 		try:
-			glos.setInfo(1, "a")  # pyright: ignore
+			glos.setInfo(1, "a")
 		except TypeError as e:
 			self.assertEqual(str(e), "invalid key=1, must be str")
 		else:
@@ -429,7 +428,7 @@ class TestGlossary(TestGlossaryBase):
 	def test_getInfo_err1(self):
 		glos = self.glos = Glossary()
 		try:
-			glos.getInfo(1)  # pyright: ignore
+			glos.getInfo(1)
 		except TypeError as e:
 			self.assertEqual(str(e), "invalid key=1, must be str")
 		else:
@@ -915,7 +914,7 @@ Japonica"""
 			self.tenWordsStr,
 			newDefiFunc=lambda _i: str(random.randint(0, 10000)),
 		)
-		self.assertEqual(wordsList, [entry.l_word for entry in glos])
+		self.assertEqual(wordsList, [entry.l_term for entry in glos])
 
 	def test_addEntries_2(self):
 		# entry filters don't apply to loaded entries (added with addEntry)
@@ -927,7 +926,7 @@ Japonica"""
 		glos.updateEntryFilters()
 		self.assertEqual(
 			[["a"], [""], ["b"], []],
-			[entry.l_word for entry in glos],
+			[entry.l_term for entry in glos],
 		)
 
 	def test_addEntries_3(self):
@@ -944,7 +943,7 @@ Japonica"""
 		wordListList = []
 		dataEntries = []
 		for entry in glos:
-			wordListList.append(entry.l_word)
+			wordListList.append(entry.l_term)
 			if entry.isData():
 				dataEntries.append(entry)
 		self.assertEqual(

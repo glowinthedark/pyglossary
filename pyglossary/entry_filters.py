@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 __all__ = [
 	"EntryFilterType",
-	"PreventDuplicateWords",
+	"PreventDuplicateTerms",
 	"RemoveHtmlTagsAll",
 	"ShowMaxMemoryUsage",
 	"StripFullHtml",
@@ -78,7 +78,7 @@ class EntryFilter:
 
 class TrimWhitespaces(EntryFilter):
 	name = "trim_whitespaces"
-	desc = "Remove leading/trailing whitespaces from word(s) and definition"
+	desc = "Remove leading/trailing whitespaces from term(s) and definition"
 
 	def run(self, entry: EntryType) -> EntryType | None:  # noqa: PLR6301
 		entry.strip()
@@ -86,12 +86,12 @@ class TrimWhitespaces(EntryFilter):
 		return entry
 
 
-class NonEmptyWordFilter(EntryFilter):
-	name = "non_empty_word"
-	desc = "Skip entries with empty word"
+class NonEmptyTermFilter(EntryFilter):
+	name = "non_empty_term"
+	desc = "Skip entries with empty terms"
 
 	def run(self, entry: EntryType) -> EntryType | None:  # noqa: PLR6301
-		if not entry.s_word:
+		if not entry.s_term:
 			return None
 		return entry
 
@@ -106,46 +106,46 @@ class NonEmptyDefiFilter(EntryFilter):
 		return entry
 
 
-class RemoveEmptyAndDuplicateAltWords(EntryFilter):
-	name = "remove_empty_dup_alt_words"
-	desc = "Remove empty and duplicate alternate words"
+class RemoveEmptyAndDuplicateAltTerms(EntryFilter):
+	name = "remove_empty_dup_alt_terms"
+	desc = "Remove empty and duplicate alternate terms"
 
 	def run(self, entry: EntryType) -> EntryType | None:  # noqa: PLR6301
-		entry.removeEmptyAndDuplicateAltWords()
-		if not entry.l_word:
+		entry.removeEmptyAndDuplicateAltTerms()
+		if not entry.l_term:
 			return None
 		return entry
 
 
 class FixUnicode(EntryFilter):
 	name = "utf8_check"
-	desc = "Fix Unicode in word(s) and definition"
-	falseComment = "Do not fix Unicode in word(s) and definition"
+	desc = "Fix Unicode in term(s) and definition"
+	falseComment = "Do not fix Unicode in term(s) and definition"
 
 	def run(self, entry: EntryType) -> EntryType | None:  # noqa: PLR6301
-		entry.editFuncWord(fixUtf8Str)
+		entry.editFuncTerm(fixUtf8Str)
 		entry.editFuncDefi(fixUtf8Str)
 		return entry
 
 
-class LowerWord(EntryFilter):
+class LowerTerm(EntryFilter):
 	name = "lower"
-	desc = "Lowercase word(s)"
-	falseComment = "Do not lowercase words before writing"
+	desc = "Lowercase term(s)"
+	falseComment = "Do not lowercase terms before writing"
 
 	def __init__(self, glos: _GlossaryType) -> None:
 		EntryFilter.__init__(self, glos)
-		self._re_word_ref = re.compile("href=[\"'](bword://[^\"']+)[\"']")
+		self._re_term_ref = re.compile("href=[\"'](bword://[^\"']+)[\"']")
 
-	def lowerWordRefs(self, defi: str) -> str:
-		return self._re_word_ref.sub(
+	def lowerTermRefs(self, defi: str) -> str:
+		return self._re_term_ref.sub(
 			lambda m: m.group(0).lower(),
 			defi,
 		)
 
 	def run(self, entry: EntryType) -> EntryType | None:
-		entry.editFuncWord(str.lower)
-		entry.editFuncDefi(self.lowerWordRefs)
+		entry.editFuncTerm(str.lower)
+		entry.editFuncDefi(self.lowerTermRefs)
 		return entry
 
 
@@ -319,7 +319,7 @@ class LanguageCleanup(EntryFilter):
 	def run_fa(self, entry: EntryType) -> EntryType | None:  # noqa: PLR6301
 		from .persian_utils import faEditStr
 
-		entry.editFuncWord(faEditStr)
+		entry.editFuncTerm(faEditStr)
 		entry.editFuncDefi(faEditStr)
 		return entry
 
@@ -361,9 +361,9 @@ class TextListSymbolCleanup(EntryFilter):
 		return entry
 
 
-class PreventDuplicateWords(EntryFilter):
-	name = "prevent_duplicate_words"
-	desc = "Prevent duplicate words"
+class PreventDuplicateTerms(EntryFilter):
+	name = "prevent_duplicate_terms"
+	desc = "Prevent duplicate terms"
 
 	def __init__(self, glos: _GlossaryType) -> None:
 		EntryFilter.__init__(self, glos)
@@ -374,7 +374,7 @@ class PreventDuplicateWords(EntryFilter):
 			return entry
 
 		termSet = self._termSet
-		term = entry.s_word
+		term = entry.s_term
 
 		if term not in termSet:
 			termSet.add(term)
@@ -387,21 +387,21 @@ class PreventDuplicateWords(EntryFilter):
 
 		termSet.add(term)
 		entry._term = term  # type: ignore
-		# use entry.editFuncWord?
+		# use entry.editFuncTerm?
 
 		return entry
 
 
 class SkipEntriesWithDuplicateHeadword(EntryFilter):
 	name = "skip_duplicate_headword"
-	desc = "Skip entries with a duplicate headword"
+	desc = "Skip entries with a duplicate headword (first term)"
 
 	def __init__(self, glos: _GlossaryType) -> None:
 		EntryFilter.__init__(self, glos)
 		self._wset: set[str] = set()
 
 	def run(self, entry: EntryType) -> EntryType | None:
-		term = entry.l_word[0]
+		term = entry.l_term[0]
 		if term in self._wset:
 			return None
 		self._wset.add(term)
@@ -410,14 +410,14 @@ class SkipEntriesWithDuplicateHeadword(EntryFilter):
 
 class TrimArabicDiacritics(EntryFilter):
 	name = "trim_arabic_diacritics"
-	desc = "Trim Arabic diacritics from headword"
+	desc = "Trim Arabic diacritics from headword (first term)"
 
 	def __init__(self, glos: _GlossaryType) -> None:
 		EntryFilter.__init__(self, glos)
 		self._pat = re.compile("[\u064b-\u065f]")
 
 	def run(self, entry: EntryType) -> EntryType | None:
-		terms = list(entry.l_word)
+		terms = list(entry.l_term)
 		hw = terms[0]
 		hw_t = self._pat.sub("", hw)
 		hw_t = hw_t.replace("\u0622", "\u0627").replace("\u0623", "\u0627")
@@ -427,9 +427,9 @@ class TrimArabicDiacritics(EntryFilter):
 		return entry
 
 
-class UnescapeWordLinks(EntryFilter):
-	name = "unescape_word_links"
-	desc = "Unescape Word Links"
+class UnescapeTermLinks(EntryFilter):
+	name = "unescape_word_links"  # used in config, do not change
+	desc = "Unescape Term/Entry Links"
 
 	def __init__(self, glos: _GlossaryType) -> None:
 		from .html_utils import unescape_unicode
@@ -454,7 +454,7 @@ class UnescapeWordLinks(EntryFilter):
 class ShowMaxMemoryUsage(EntryFilter):
 	name = "max_memory_usage"
 	desc = "Show Max Memory Usage"
-	MAX_WORD_LEN = 30
+	MAX_TERM_LEN = 30
 
 	def __init__(self, glos: _GlossaryType) -> None:
 		import os
@@ -469,37 +469,37 @@ class ShowMaxMemoryUsage(EntryFilter):
 		usage = self._process.memory_info().rss // 1024
 		if usage > self._max_mem_usage:
 			self._max_mem_usage = usage
-			term = entry.s_word
-			if len(term) > self.MAX_WORD_LEN:
-				term = term[: self.MAX_WORD_LEN - 3] + "..."
+			term = entry.s_term
+			if len(term) > self.MAX_TERM_LEN:
+				term = term[: self.MAX_TERM_LEN - 3] + "..."
 			core.trace(log, f"MaxMemUsage: {usage:,}, {term=}")
 		return entry
 
 
 entryFiltersRules = [
 	(None, True, TrimWhitespaces),
-	(None, True, NonEmptyWordFilter),
+	(None, True, NonEmptyTermFilter),
 	("skip_resources", False, SkipDataEntry),
 	("utf8_check", False, FixUnicode),
-	("lower", False, LowerWord),
+	("lower", False, LowerTerm),
 	("skip_duplicate_headword", False, SkipEntriesWithDuplicateHeadword),
 	("trim_arabic_diacritics", False, TrimArabicDiacritics),
 	("rtl", False, RTLDefi),
 	("remove_html_all", False, RemoveHtmlTagsAll),
 	("remove_html", "", RemoveHtmlTags),
 	("normalize_html", False, NormalizeHtml),
-	("unescape_word_links", False, UnescapeWordLinks),
+	("unescape_word_links", False, UnescapeTermLinks),
 	(None, True, LanguageCleanup),
 	# -------------------------------------
 	# TODO
 	# ("text_list_symbol_cleanup", False, TextListSymbolCleanup),
 	# -------------------------------------
-	(None, True, NonEmptyWordFilter),
+	(None, True, NonEmptyTermFilter),
 	(None, True, NonEmptyDefiFilter),
-	(None, True, RemoveEmptyAndDuplicateAltWords),
+	(None, True, RemoveEmptyAndDuplicateAltTerms),
 	# -------------------------------------
 	# filters that are enabled by plugins using glossary methods:
-	(None, False, PreventDuplicateWords),
+	(None, False, PreventDuplicateTerms),
 	(None, False, StripFullHtml),
 	# -------------------------------------
 	# filters are added conditionally (other than with config or glossary methods):

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# glossary.py
 #
 # Copyright © 2008-2022 Saeed Rasooli <saeed.gnu@gmail.com> (ilius)
 # This file is part of PyGlossary project, https://github.com/ilius/pyglossary
@@ -67,11 +66,12 @@ class Glossary(GlossaryCommon, PluginHandler):
 			for key, value in info.items():
 				self.setInfo(key, value)
 
-	def titleElement(  # noqa: ANN201
+	# TODO: use Protocol for hf and return type
+	def titleElement(
 		self,
-		hf,  # noqa: ANN001, type: ignore
+		hf: Any,
 		sample: str = "",
-	):  # type: ignore
+	) -> Any:
 		return hf.element(self.titleTag(sample))
 
 	def read(
@@ -79,7 +79,7 @@ class Glossary(GlossaryCommon, PluginHandler):
 		filename: str,
 		direct: bool = False,
 		progressbar: bool = True,
-		**kwargs,  # noqa: ANN003
+		**kwargs: Any,
 	) -> bool:
 		"""
 		Read from a given glossary file.
@@ -164,7 +164,7 @@ class Glossary(GlossaryCommon, PluginHandler):
 		self._iter = self._loadedEntryGen()
 
 	@classmethod
-	def detectInputFormat(  # type: ignore # pyright: ignore[reportIncompatibleMethodOverride]
+	def detectInputFormat(  # type: ignore
 		cls,
 		*args,
 		**kwargs,
@@ -176,7 +176,7 @@ class Glossary(GlossaryCommon, PluginHandler):
 			return None
 
 	@classmethod
-	def detectOutputFormat(  # type: ignore # pyright: ignore[reportIncompatibleMethodOverride]
+	def detectOutputFormat(  # type: ignore
 		cls,
 		*args,
 		**kwargs,

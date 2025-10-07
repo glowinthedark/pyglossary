@@ -224,8 +224,6 @@ class Salsa20:
 		ctx[6], ctx[7] = little2_i32.unpack(IV)
 		ctx[8], ctx[9] = 0, 0  # Reset the block counter.
 
-	setNonce = setIV  # support an alternate name
-
 	def setCounter(self, counter):
 		assert isinstance(counter, int), f"{counter=}"
 		assert 0 <= counter < 1 << 64, "counter < 0 or >= 2**64"
@@ -319,16 +317,6 @@ def salsa20_wordtobyte(input_, nRounds=20, checkRounds=True):
 
 
 # --------------------------- 32-bit ops -------------------------------
-
-
-def trunc32(w):
-	"""
-	Return the bottom 32 bits of w as a Python int.
-	This creates longs temporarily, but returns an int.
-	"""
-	w = int((w & 0x7FFFFFFF) | -(w & 0x80000000))
-	assert isinstance(w, int), f"{w=}"
-	return w
 
 
 def add32(a, b):

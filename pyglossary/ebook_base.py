@@ -2,7 +2,7 @@
 # The MIT License (MIT)
 
 # Copyright © 2012-2016 Alberto Pettarin (alberto@albertopettarin.it)
-# Copyright © 2016-2019 Saeed Rasooli <saeed.gnu@gmail.com>
+# Copyright © 2016-2025 Saeed Rasooli <saeed.gnu@gmail.com>
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -64,7 +64,7 @@ class GroupState:
 		return bool(self.last_prefix) and prefix != self.last_prefix
 
 	def add(self, entry: EntryType, prefix: str) -> None:
-		term = entry.s_word
+		term = entry.s_term
 		defi = entry.defi.replace("<br>", "<br/>").replace("<BR>", "<BR/>")
 		if not self.first_word:
 			self.first_word = term
@@ -307,7 +307,7 @@ class EbookWriter:
 				self.write_data_entry(entry)
 				continue
 
-			prefix = self.get_prefix(entry.s_word)
+			prefix = self.get_prefix(entry.s_term)
 			if state.is_new(prefix):
 				self._add_group(group_labels, state)
 				state.reset()

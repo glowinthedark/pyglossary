@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import shutil
+import warnings
 from os.path import dirname, getsize, join
 from typing import TYPE_CHECKING
 
@@ -96,15 +97,15 @@ class DataEntry(BaseEntry):  # noqa: PLR0904
 		return fpath
 
 	@property
-	def s_word(self) -> str:
+	def s_term(self) -> str:
 		return self._fname
 
 	@property
-	def l_word(self) -> list[str]:
+	def l_term(self) -> list[str]:
 		return [self._fname]
 
 	@property
-	def lb_word(self) -> list[bytes]:
+	def lb_term(self) -> list[bytes]:
 		return [self._fname.encode("utf-8")]
 
 	@property
@@ -128,7 +129,7 @@ class DataEntry(BaseEntry):  # noqa: PLR0904
 	def addAlt(self, alt: str) -> None:
 		pass
 
-	def editFuncWord(self, func: Callable[[str], str]) -> None:
+	def editFuncTerm(self, func: Callable[[str], str]) -> None:
 		pass
 
 	def editFuncDefi(self, func: Callable[[str], str]) -> None:
@@ -146,7 +147,7 @@ class DataEntry(BaseEntry):  # noqa: PLR0904
 	def replace(self, source: str, target: str) -> None:
 		pass
 
-	def removeEmptyAndDuplicateAltWords(self) -> None:
+	def removeEmptyAndDuplicateAltTerms(self) -> None:
 		pass
 
 	def stripFullHtml(self) -> str | None:
@@ -199,7 +200,7 @@ class Entry(BaseEntry):  # noqa: PLR0904
 	def getRawEntrySortKey(
 		key: Callable[[list[str]], Any],
 	) -> Callable[[RawEntryType], Any]:
-		def newKey(x: RawEntryType) -> Any:  # noqa: ANN401
+		def newKey(x: RawEntryType) -> Any:
 			# x is rawEntry, so x[2:] is list[bytes]: list of words in bytes
 			return key([b.decode("utf-8") for b in x[2:]])  # type: ignore
 
@@ -207,10 +208,11 @@ class Entry(BaseEntry):  # noqa: PLR0904
 
 	def __init__(
 		self,
-		term: MultiStr,
-		defi: str,
+		term: MultiStr | None = None,
+		defi: str = "",
 		defiFormat: str = "m",
 		byteProgress: tuple[int, int] | None = None,
+		word: MultiStr | None = None,
 	) -> None:
 		"""
 		Create a new Entry.
@@ -222,12 +224,22 @@ class Entry(BaseEntry):  # noqa: PLR0904
 			"h": html
 			"x": xdxf.
 		"""
+		if word is not None:
+			if term is not None:
+				raise ValueError("both term and word arguments passed")
+			warnings.warn(
+				"word argument is deprecated, use term argument",
+				category=DeprecationWarning,
+				stacklevel=3,
+			)
+			term = word
+
 		# memory optimization:
 		if isinstance(term, list | tuple):
 			if len(term) == 1:
 				term = term[0]
 		elif not isinstance(term, str):
-			raise TypeError(f"invalid word type {type(term)}")
+			raise TypeError(f"invalid term type {type(term)}")
 
 		if isinstance(defi, list):
 			if len(defi) == 1:
@@ -250,21 +262,21 @@ class Entry(BaseEntry):  # noqa: PLR0904
 		return f"Entry({self._term!r}, {self._defi!r}, defiFormat={self._defiFormat!r})"
 
 	@property
-	def s_word(self) -> str:
+	def s_term(self) -> str:
 		"""Returns string of word, and all the alternate words separated by "|"."""
 		if isinstance(self._term, str):
 			return self._term
 		return joinByBar(self._term)
 
 	@property
-	def l_word(self) -> list[str]:
+	def l_term(self) -> list[str]:
 		"""Returns list of the word and all the alternate words."""
 		if isinstance(self._term, str):
 			return [self._term]
 		return self._term
 
 	@property
-	def lb_word(self) -> list[bytes]:
+	def lb_term(self) -> list[bytes]:
 		"""Returns list of the word and all the alternate words."""
 		if isinstance(self._term, str):
 			return [self._term.encode("utf-8")]
@@ -320,11 +332,11 @@ class Entry(BaseEntry):  # noqa: PLR0904
 		return self._byteProgress
 
 	def addAlt(self, alt: str) -> None:
-		l_word = self.l_word
-		l_word.append(alt)
-		self._term = l_word
+		l_term = self.l_term
+		l_term.append(alt)
+		self._term = l_term
 
-	def editFuncWord(self, func: Callable[[str], str]) -> None:
+	def editFuncTerm(self, func: Callable[[str], str]) -> None:
 		"""
 		Run function `func` on all the words.
 
@@ -354,7 +366,7 @@ class Entry(BaseEntry):  # noqa: PLR0904
 
 	def strip(self) -> None:
 		"""Strip whitespaces from all words and definitions."""
-		self.editFuncWord(str.strip)
+		self.editFuncTerm(str.strip)
 		self.editFuncDefi(str.strip)
 		self.editFuncDefi(self._stripTrailingBR)
 
@@ -375,13 +387,13 @@ class Entry(BaseEntry):  # noqa: PLR0904
 		self.replaceInWord(source, target)
 		self.replaceInDefi(source, target)
 
-	def removeEmptyAndDuplicateAltWords(self) -> None:
-		l_word = self.l_word
-		if len(l_word) == 1:
+	def removeEmptyAndDuplicateAltTerms(self) -> None:
+		l_term = self.l_term
+		if len(l_term) == 1:
 			return
-		l_word = [word for word in l_word if word]
-		l_word = list(unique_everseen(l_word))
-		self._term = l_word
+		l_term = [word for word in l_term if word]
+		l_term = list(unique_everseen(l_term))
+		self._term = l_term
 
 	def stripFullHtml(self) -> str | None:
 		"""Remove <html><head><body> tags and returns error."""

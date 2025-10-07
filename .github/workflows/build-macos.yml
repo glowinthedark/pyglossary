@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - 'build-release'
-      
+
   workflow_dispatch:
   
 env:
@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           # TODO: !!! comment out before merging to master
-          ref: master
+          # ref: build-release
 
       - name: Update brew
         run: |
@@ -47,7 +47,7 @@ jobs:
 
       - name: Install brew dependencies
         run: |
-          brew install libffi gettext cmake ccache pkg-config icu4c lzo
+          brew install libffi gettext cmake pkg-config icu4c lzo
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -165,7 +165,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          ref: master # comment out before merge
+          # ref: build-release # comment out before merge
 
       - name: Set release vars
         run: |
@@ -213,4 +213,5 @@ jobs:
           generateReleaseNotes: true
           makeLatest: true
           allowUpdates: true
+          omitBodyDuringUpdate: true # preserve the existing body during updates:
           tag: ${{ env.VERSION }}

@@ -18,6 +18,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
+from __future__ import annotations
 
 import logging
 import re
@@ -92,7 +93,7 @@ class MDict:
 		self,
 		fname: str,
 		encoding: str = "",
-		passcode: "tuple[bytes, bytes] | None" = None,
+		passcode: tuple[bytes, bytes] | None = None,
 	) -> None:
 		self._fname = fname
 		self._encoding = encoding.upper()
@@ -235,7 +236,7 @@ class MDict:
 			key_block_info = key_block_info_compressed
 		# decode
 		key_block_info_list = []
-		num_entries = 0
+		# num_entries = 0
 		i = 0
 		if self._version >= 2:
 			byte_format = ">H"
@@ -248,10 +249,10 @@ class MDict:
 
 		while i < len(key_block_info):
 			# number of entries in current key block
-			num_entries += unpack(
-				self._number_format,
-				key_block_info[i : i + self._number_width],
-			)[0]
+			# num_entries += unpack(
+			# 	self._number_format,
+			# 	key_block_info[i : i + self._number_width],
+			# )[0]
 			i += self._number_width
 			# text head size
 			text_head_size = unpack(byte_format, key_block_info[i : i + byte_width])[0]
@@ -572,7 +573,7 @@ class MDict:
 
 		offset = 0
 		i = 0
-		size_counter = 0
+		# size_counter = 0
 
 		num_record_blocks = self._read_int32(f)
 		self._read_number(f)  # num_bytes
@@ -599,7 +600,7 @@ class MDict:
 				data = record_block[record_start - offset : record_end - offset]
 				yield key_text, self._treat_record_data(data)
 			offset += len(record_block)
-			size_counter += compressed_size
+			# size_counter += compressed_size
 
 	def _read_records_v1v2(self):
 		f = open(self._fname, "rb")
@@ -673,7 +674,7 @@ class MDD(MDict):
 	def __init__(
 		self,
 		fname: str,
-		passcode: "tuple[bytes, bytes] | None" = None,
+		passcode: tuple[bytes, bytes] | None = None,
 	) -> None:
 		MDict.__init__(self, fname, encoding="UTF-16", passcode=passcode)
 
@@ -693,7 +694,7 @@ class MDX(MDict):
 		fname: str,
 		encoding: str = "",
 		substyle: bool = False,
-		passcode: "tuple[bytes, bytes] | None" = None,
+		passcode: tuple[bytes, bytes] | None = None,
 	) -> None:
 		MDict.__init__(self, fname, encoding, passcode)
 		self._substyle = substyle

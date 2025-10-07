@@ -4,11 +4,11 @@ A glossary contains a number of entries.
 
 Each entry contains:
 
-- Headword (title or main phrase for lookup)
-- Alternates (some alternative phrases for lookup)
+- Headword (title or main term/phrase for lookup)
+- Alternates (some alternative terms/phrases for lookup)
 - Definition / article
 
-Headword and alternates together are accessible as a single Python list `entry.l_word`, and `entry.l_word[0]` is the headword.
+Headword and alternates together are accessible as a single Python list `entry.l_term`, and `entry.l_term[0]` is the headword.
 
 `entry.defi` is the definition as a Python Unicode `str`. Also `entry.b_defi` is definition in UTF-8 byte array (`bytes`).
 
@@ -16,13 +16,13 @@ Headword and alternates together are accessible as a single Python list `entry.l
 
 There is another type of entry which is called **Data Entry**, and generally contains an image, audio, css, or any other file that was included in input glossary. For data entries:
 
-- `entry.s_word` is file name (and `l_word` is still a list containing this string),
+- `entry.s_term` is file name (and `l_term` is still a list containing this string),
 - `entry.defiFormat` is `b`
 - `entry.data` gives the content of file in `bytes`.
 
 ## Entry filters
 
-Entry filters are internal objects that modify words/definition of entries,
+Entry filters are internal objects that modify terms/definition of entries,
 or remove entries (in some special cases).
 
 Like several filters in a pipe which connects a `reader` object to a `writer` object
