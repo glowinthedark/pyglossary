@@ -207,6 +207,8 @@ jobs:
             Now you should be able to open the app by **right-clicking** on **/Applications/PyGlossary.app** in Finder, selecting **Open** and confirming running an app unsigned by Apple (only needs to be done once).
             </details>
             </blockquote>
+
+            &nbsp; \
             
           artifacts: "artifacts/*.dmg"
           artifactContentType: application/zip
