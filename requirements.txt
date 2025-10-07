@@ -11,5 +11,9 @@ polib
 prompt_toolkit
 pyicu
 pymorphy3
+python_idzip
+--extra-index-url https://glowinthedark.github.io/python-lzo/
+python-lzo
 python-romkan-ng
+tqdm
 xxhash
