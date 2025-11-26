@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
 import sys
-from os.path import abspath, dirname
+from os.path import abspath, dirname, join
 from pathlib import Path
 
-rootDir = dirname(dirname(abspath(__file__)))
+rootDir = dirname(dirname(dirname(abspath(__file__))))
 sys.path.insert(0, rootDir)
 
 from pyglossary.core import userPluginsDir
@@ -29,5 +29,5 @@ for p in plugins:
 	requirements |= set(p.readDepends.values())
 	requirements |= set(p.writeDepends.values())
 
-with open("requirements.txt", "w", encoding="utf-8") as file:
+with open(join(rootDir, "requirements.txt"), "w", encoding="utf-8") as file:
 	file.writelines(name + "\n" for name in sorted(requirements))

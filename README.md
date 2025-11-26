@@ -170,13 +170,25 @@ You can explicitly select user interface type using `--ui`
 
 ## Installation on Windows
 
-- [Download and install Python](https://www.python.org/downloads/windows/) (3.10 or above)
+You can either download the latest `setup.exe` from [Releases](https://github.com/ilius/pyglossary/releases) and install it via a wizard, or install it using Python and `pip`:
+
+- [Download and install latest Python](https://www.python.org/downloads/windows/)
 - Open Start -> type Command -> right-click on Command Prompt -> Run as administrator
 - To ensure you have `pip`, run: `python -m ensurepip --upgrade`
 - To install, run: `pip install --upgrade pyglossary`
 - Now you should be able to run `pyglossary` command
 - If command was not found, make sure Python environment variables are set up:
   <img src="https://raw.githubusercontent.com/wiki/ilius/pyglossary/screenshots/windows-python39-env-vars.png" width="50%" height="50%"/>
+
+## Installation on Mac OS (14)
+
+If you download the DMG file from [Releases](https://github.com/ilius/pyglossary/releases) and install it, Mac may refuse to run it, showing **the app is damaged and cannot be opened** error. In that case, move the unpacked bundle to `/Applications`, and run this from the Terminal:
+
+```bash
+/usr/bin/xattr -d com.apple.quarantine /Applications/PyGlossary.app
+```
+
+Now you should be able to open the app by **right-clicking** on **/Applications/PyGlossary.app** in Finder, selecting **Open** and confirming running an app unsigned by Apple (only needs to be done once).
 
 ## Feature-specific requirements
 
@@ -288,7 +300,7 @@ See [doc/lib-usage.md](./doc/lib-usage.md) for how to use PyGlossary as a Python
 
 To learn how to develop plugins, see [test plugin](./pyglossary/plugins/testformat/) as a basic example, or [CSV plugin](./pyglossary/plugins/csv_plugin) for example.
 
-Whenever you add a new plugin, or change options/metedata of an existing plugin, make sure to run [`./scripts/gen.sh`](./scripts/gen.sh) script to update generated files (index and documentation) that we keep.
+Whenever you add a new plugin, or change options/metedata of an existing plugin, make sure to run [`./scripts/gen`](./scripts/gen) script to update generated files (index and documentation) that we keep.
 
 ## Internals
 
