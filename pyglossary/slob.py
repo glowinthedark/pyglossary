@@ -1489,13 +1489,16 @@ class Writer:
 	# 	return size
 
 	def size_data(self) -> int:
+		# Use tell(), not os.stat().st_size: buffered writers (esp. Python 3.14+
+		# DEFAULT_BUFFER_SIZE 128KiB) may not have flushed to the file yet, so stat
+		# understates size and breaks file_size_approx splitting.
 		files = (
 			self.f_ref_positions,
 			self.f_refs,
 			self.f_store_positions,
 			self.f_store,
 		)
-		return sum(os.stat(f.name).st_size for f in files)
+		return sum(f.tell() for f in files)
 
 	def __enter__(self) -> Slob:
 		return cast("Slob", self)

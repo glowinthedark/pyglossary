@@ -37,8 +37,6 @@ jobs:
           sudo apt-get install dictzip --yes
           sh ./scripts/test-deps.sh
       - name: Run tests
-        env:
-          SKIP_TEST_SLOB_WRITE_FILE_SIZE_APPROX: 1
         run: bash scripts/ci/test.sh
       - name: Upload test artifacts
         if: always()
