@@ -109,6 +109,7 @@ jobs:
           PYTHONWARNDEFAULTENCODING: 0
         run: |
           .venv/bin/python -m nuitka \
+            --user-package-configuration-file=scripts/ci/linux/pyglossary.nuitka-package.config.yml \
             --standalone \
             --assume-yes-for-downloads \
             --follow-imports \
@@ -163,37 +164,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-      
-          DIST="${DIST_DIR}/${APPNAME}.dist"
-      
-          echo "=== Finding PyICU extension ==="
-      
-          ICU_EXT="$(find "$DIST" -type f \
-            -name '_icu*.so' -print -quit)"
-      
-          if [ -z "$ICU_EXT" ]; then
-            echo "PyICU native extension not found"
-            exit 1
-          fi
-      
-          echo "Extension: $ICU_EXT"
-      
-          echo "=== Direct ELF dependencies ==="
-      
-          readelf -d "$ICU_EXT" | grep NEEDED
-      
-          echo "=== Resolved dependencies ==="
-      
-          ldd "$ICU_EXT"
-      
-          echo "=== ICU libraries in Nuitka distribution ==="
-      
-          find "$DIST" -name 'libicu*.so*' -print
-      
-          echo "=== LZO libraries in Nuitka distribution ==="
-      
-          find "$DIST" -name 'liblzo*.so*' -print
-      
+          
+          DIST="dist.nuitka.slint/PyGlossarySlint.dist"
+          
+          for f in \
+              "$DIST/icu/_icu_.so" \
+              "$DIST/lzo.so" \
+              "$DIST/marisa_trie.so" \
+              "$DIST/xxhash/_xxhash.so" \
+              "$DIST/lxml/etree.so" \
+              "$DIST/libzim.so.9" \
+              "$DIST/slint/slint.so"
+          do
+              [ -f "$f" ] || continue
+          
+              echo
+              echo "========================================"
+              echo "BINARY: $f"
+              echo "========================================"
+          
+              readelf -d "$f" 2>/dev/null |
+                  grep NEEDED || true
+          
+              echo "--- Resolved dependencies ---"
+          
+              LD_LIBRARY_PATH="$DIST${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+                  ldd "$f" || true
+          
+          done      
           echo "=== Other native libraries ==="
       
           find "$DIST" -type f \
