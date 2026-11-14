@@ -205,7 +205,7 @@ jobs:
 
           DIST_PATH="${DIST_DIR}/${APPNAME}.dist"
           APPDIR="$RUNNER_TEMP/${APPNAME}.AppDir"
-          APPIMAGE_NAME="${APPNAME}-${VERSION}-x86_64.AppImage"
+          APPIMAGE_NAME="${APPNAME}-${VERSION}-Linux-x86_64.AppImage"
 
           test -x "${DIST_PATH}/${APPNAME}"
           test -f res/pyglossary.png
