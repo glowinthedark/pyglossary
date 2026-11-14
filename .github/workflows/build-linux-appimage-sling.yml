@@ -159,6 +159,46 @@ jobs:
             --output-filename="${APPNAME}" \
             "${APPNAME}.py"
 
+      - name: Audit native dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          DIST="${DIST_DIR}/${APPNAME}.dist"
+      
+          echo "=== Finding PyICU extension ==="
+      
+          ICU_EXT="$(find "$DIST" -type f \
+            -name '_icu*.so' -print -quit)"
+      
+          if [ -z "$ICU_EXT" ]; then
+            echo "PyICU native extension not found"
+            exit 1
+          fi
+      
+          echo "Extension: $ICU_EXT"
+      
+          echo "=== Direct ELF dependencies ==="
+      
+          readelf -d "$ICU_EXT" | grep NEEDED
+      
+          echo "=== Resolved dependencies ==="
+      
+          ldd "$ICU_EXT"
+      
+          echo "=== ICU libraries in Nuitka distribution ==="
+      
+          find "$DIST" -name 'libicu*.so*' -print
+      
+          echo "=== LZO libraries in Nuitka distribution ==="
+      
+          find "$DIST" -name 'liblzo*.so*' -print
+      
+          echo "=== Other native libraries ==="
+      
+          find "$DIST" -type f \
+            \( -name '*.so' -o -name '*.so.*' \) -print
+      
       - name: Assemble AppDir and create AppImage
         run: |
           set -euo pipefail
