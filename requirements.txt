@@ -14,4 +14,5 @@ pyicu
 pymorphy3
 pyparsing
 python-romkan-ng
+PyYAML
 xxhash
