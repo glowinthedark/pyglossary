@@ -8,7 +8,7 @@ export APPNAME ?= PyGlossarySlint
 export DIST_DIR ?= dist.nuitka.slint
 export MAIN_SCRIPT ?= main.py
 export SLINT_VERSION ?= 1.18.1b1
-export PYTHON_VERSION ?= 3.14
+export PYTHON_VERSION ?= 3.13
 
 # `patch` edits tracked files for the nuitka build; restore them afterwards
 # (even on failure, keeping the build's exit status) so local builds leave the
