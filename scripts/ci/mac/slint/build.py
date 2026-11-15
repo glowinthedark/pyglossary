@@ -27,7 +27,7 @@ APPNAME = os.getenv("APPNAME", "PyGlossarySlint")
 DIST_DIR = os.getenv("DIST_DIR", "dist.nuitka.slint")
 MAIN_SCRIPT = os.getenv("MAIN_SCRIPT", "main.py")
 SLINT_VERSION = os.getenv("SLINT_VERSION", "1.18.1b1")
-PYTHON_VERSION = os.getenv("PYTHON_VERSION", "3.13")
+PYTHON_VERSION = os.getenv("PYTHON_VERSION", "3.14")
 
 ARCH = platform.machine()
 OS_TAG = f"macos-{ARCH}-{platform.mac_ver()[0]}"
