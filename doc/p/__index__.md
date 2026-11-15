@@ -5,7 +5,6 @@
 | AppleDict Source | AppleDict | [appledict.md](./appledict.md) |
 | AppleDict Binary | AppleDictBin | [appledict_bin.md](./appledict_bin.md) |
 | Babylon (.BGL) | BabylonBgl | [babylon_bgl.md](./babylon_bgl.md) |
-| Crawler Directory | CrawlerDir | [crawler_dir.md](./crawler_dir.md) |
 | CSV (.csv) | Csv | [csv.md](./csv.md) |
 | DictionaryForMIDs | Dicformids | [dicformids.md](./dicformids.md) |
 | Dict.cc (SQLite3) | Dictcc | [dict_cc.md](./dict_cc.md) |
@@ -24,7 +23,6 @@
 | EDICT2 (CEDICT) (.u8) | EDICT2 | [edict2.md](./edict2.md) |
 | EPWING | EPWING | [epwing.md](./epwing.md) |
 | FreeDict (.tei) | FreeDict | [freedict.md](./freedict.md) |
-| FreeDict Markdown (.tei) (text output) | FreeDictMarkdown | [freedict_md.md](./freedict_md.md) |
 | Gettext Source (.po) | GettextPo | [gettext_po.md](./gettext_po.md) |
 | HTML Directory | HtmlDir | [html_dir.md](./html_dir.md) |
 | Glossary Info (.info) | Info | [info.md](./info.md) |
