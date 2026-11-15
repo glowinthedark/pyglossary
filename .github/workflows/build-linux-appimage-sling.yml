@@ -109,7 +109,7 @@ jobs:
           PYTHONWARNDEFAULTENCODING: 0
         run: |
           .venv/bin/python -m nuitka \
-            --user-package-configuration-file=scripts/ci/linux/pyglossary.nuitka-package.config.yml \
+            --user-package-configuration-file=scripts/ci/linux/nuitka-package-config.yml \
             --standalone \
             --assume-yes-for-downloads \
             --follow-imports \
